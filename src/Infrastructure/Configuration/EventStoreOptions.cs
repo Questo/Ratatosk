@@ -4,12 +4,12 @@ public class EventStoreOptions
 {
     public const string SectionName = "EventStore";
 
-    public EventStoreType Type { get; set; } = EventStoreType.InMemory;
+    public StoreType Type { get; set; } = StoreType.InMemory;
     public string? FilePath { get; set; }
     public string? ConnectionString { get; set; }
 }
 
-public enum EventStoreType
+public enum StoreType
 {
     InMemory,
     File,

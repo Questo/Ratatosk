@@ -20,7 +20,7 @@ public sealed class FileEventStoreTests
     public void Setup()
     {
         var serializer = new JsonEventSerializer();
-        var options = new EventStoreOptions { Type = EventStoreType.File, FilePath = _testEventsPath };
+        var options = new EventStoreOptions { Type = StoreType.File, FilePath = _testEventsPath };
         _eventStore = new FileEventStore(options, serializer);
     }
 

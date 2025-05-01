@@ -13,6 +13,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.Configure<EventStoreOptions>(configuration.GetSection(EventStoreOptions.SectionName));
 
         services.AddSingleton<IEventSerializer, JsonEventSerializer>();
+        services.AddSingleton<ISnapshotSerializer, JsonSnapshotSerializer>();
         services.AddSingleton<IEventStore>(provider =>
         {
             var options = provider.GetRequiredService<IOptions<EventStoreOptions>>().Value;
@@ -20,10 +21,24 @@ public static class InfrastructureServiceCollectionExtensions
 
             return options.Type switch
             {
-                EventStoreType.File => new FileEventStore(options, serializer),
-                EventStoreType.InMemory or _ => new InMemoryEventStore()
+                StoreType.File => new FileEventStore(options, serializer),
+                StoreType.Sql => new SqlEventStore(options, serializer),
+                StoreType.InMemory or _ => new InMemoryEventStore()
             };
         });
+        services.AddSingleton<ISnapshotStore>(provider =>
+        {
+            var options = provider.GetRequiredService<IOptions<EventStoreOptions>>().Value;
+            var serializer = provider.GetRequiredService<ISnapshotSerializer>();
+
+            return options.Type switch
+            {
+                StoreType.Sql => new SqlSnapshotStore(options, serializer),
+                StoreType.InMemory => new InMemorySnapshotStore(),
+                _ => throw new NotImplementedException()
+            };
+        });
+
         services.AddScoped(typeof(IAggregateRepository<>), typeof(AggregateRepository<>));
 
         return services;

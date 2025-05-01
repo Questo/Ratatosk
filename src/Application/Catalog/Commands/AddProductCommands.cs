@@ -1,6 +1,6 @@
 namespace Ratatosk.Application.Commands;
 
-public record AddProductCommand(
+public sealed record AddProductCommand(
     string Name,
     string Sku,
     string Description,

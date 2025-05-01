@@ -4,14 +4,20 @@ using Ratatosk.Infrastructure.Persistence;
 using Ratatosk.Infrastructure;
 using Ratatosk.Application.Commands;
 
-namespace Ratatosk.Application.Services;
+namespace Ratatosk.Application.Catalog;
 
-public class CatalogService(IAggregateRepository<Product> repository, EventBus eventBus)
+public interface ICatalogService
+{
+    Task<Result> AddProductAsync(AddProductCommand command, CancellationToken cancellationToken = default);
+    Task<Result> UpdateProductAsync(UpdateProductCommand command, CancellationToken cancellationToken = default);
+}
+
+public class CatalogService(IAggregateRepository<Product> repository, EventBus eventBus) : ICatalogService
 {
     private readonly IAggregateRepository<Product> _repository = repository;
     private readonly EventBus _eventBus = eventBus;
 
-    public async Task<Result<Product>> HandleAsync(AddProductCommand command, CancellationToken cancellationToken = default)
+    public async Task<Result> AddProductAsync(AddProductCommand command, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -27,15 +33,15 @@ public class CatalogService(IAggregateRepository<Product> repository, EventBus e
             foreach (var domainEvent in product.UncommittedEvents)
                 await _eventBus.PublishAsync(domainEvent, cancellationToken);
 
-            return Result<Product>.Success(product);
+            return Result.Success();
         }
         catch (Exception ex)
         {
-            return Result<Product>.Failure(Error.FromException(ex).Message);
+            return Result.Failure(Error.FromException(ex).Message);
         }
     }
 
-    public async Task<Result> HandleAsync(UpdateProductCommand command, CancellationToken cancellationToken = default)
+    public async Task<Result> UpdateProductAsync(UpdateProductCommand command, CancellationToken cancellationToken = default)
     {
         var result = await _repository.LoadAsync(command.ProductId, cancellationToken);
         if (result.IsFailure)
