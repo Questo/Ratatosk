@@ -43,16 +43,27 @@ public class CatalogService(IAggregateRepository<Product> repository, EventBus e
 
     public async Task<Result> UpdateProductAsync(UpdateProductCommand command, CancellationToken cancellationToken = default)
     {
-        var result = await _repository.LoadAsync(command.ProductId, cancellationToken);
-        if (result.IsFailure)
-            return Result.Failure(result.Error!);
+        try
+        {
+            var result = await _repository.LoadAsync(command.ProductId, cancellationToken);
+            if (result.IsFailure)
+                return Result.Failure(result.Error!);
 
-        var product = result.Value!;
-        await _repository.SaveAsync(product, cancellationToken);
+            var product = result.Value!;
+            var updateResult = product.Update(command.Name, command.Description, Price.Create(command.Price ?? default!).Value);
+            if (updateResult.IsFailure)
+                return Result.Failure(result.Error!);
 
-        foreach (var domainEvent in product.UncommittedEvents)
-            await _eventBus.PublishAsync(domainEvent, cancellationToken);
+            await _repository.SaveAsync(product, cancellationToken);
 
-        return Result.Success();
+            foreach (var domainEvent in product.UncommittedEvents)
+                await _eventBus.PublishAsync(domainEvent, cancellationToken);
+
+            return Result.Success();
+        }
+        catch (Exception ex)
+        {
+            return Result.Failure(Error.FromException(ex).Message);
+        }
     }
 }

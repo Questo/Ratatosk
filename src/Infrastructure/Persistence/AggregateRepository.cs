@@ -35,9 +35,7 @@ public class AggregateRepository<T>(IEventStore eventStore, ISnapshotStore snaps
         }
 
         if (events.Count == 0)
-        {
             return Result<T>.Failure($"{typeof(T).Name} with ID {id} not found");
-        }
 
         return AggregateRoot.Rehydrate<T>(events);
     }
@@ -49,15 +47,11 @@ public class AggregateRepository<T>(IEventStore eventStore, ISnapshotStore snaps
         await eventStore.AppendEventsAsync(streamName, uncommitted, aggregate.Version, cancellationToken);
 
         if (!aggregate.ShouldCreateSnapshot())
-        {
             return;
-        }
 
         var snapshot = aggregate.CreateSnapshot();
         if (snapshot == null)
-        {
             return;
-        }
 
         await snapshotStore.SaveSnapshotAsync(snapshot, cancellationToken);
     }
