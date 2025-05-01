@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
-using Ratatosk.Core.BuildingBlocks;
 using Ratatosk.Infrastructure.EventStore;
+using Ratatosk.UnitTests.Shared;
 
 namespace Ratatosk.UnitTests;
 
@@ -46,12 +46,6 @@ public class JsonEventSerializerTests
 
         Assert.IsInstanceOfType<TestEvent>(deserializedEvent);
         Assert.AreEqual("acorn", ((TestEvent)deserializedEvent).Name);
-    }
-
-    // Dummy event for testing
-    private class TestEvent(string name) : DomainEvent
-    {
-        public string Name { get; } = name;
     }
 }
 
