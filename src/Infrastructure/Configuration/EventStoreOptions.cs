@@ -6,7 +6,6 @@ public class EventStoreOptions
 
     public StoreType Type { get; set; } = StoreType.InMemory;
     public string? FilePath { get; set; }
-    public string? ConnectionString { get; set; }
 }
 
 public enum StoreType

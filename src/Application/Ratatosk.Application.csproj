@@ -3,7 +3,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Domain\Ratatosk.Domain.csproj" />
     <ProjectReference Include="..\Core\Ratatosk.Core.csproj" />
-    <ProjectReference Include="..\Infrastructure\Ratatosk.Infrastructure.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

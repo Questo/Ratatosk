@@ -1,11 +1,12 @@
-
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Options;
 using Ratatosk.Core.BuildingBlocks;
 using Ratatosk.Infrastructure.Configuration;
+using Ratatosk.Infrastructure.EventStore;
 
-namespace Ratatosk.Infrastructure.EventStore;
+namespace Ratatosk.Infrastructure.Persistence.EventStore;
 
-public class SqlSnapshotStore(EventStoreOptions options, ISnapshotSerializer serializer) : ISnapshotStore
+public class SqlSnapshotStore(IOptions<DatabaseOptions> options, ISnapshotSerializer serializer) : ISnapshotStore
 {
     public async Task<Snapshot?> LoadSnapshotAsync(Guid aggregateId, CancellationToken cancellationToken)
     {
@@ -13,7 +14,7 @@ public class SqlSnapshotStore(EventStoreOptions options, ISnapshotSerializer ser
             SELECT SnapshotData FROM Snapshots
             WHERE AggregateId = @AggregateId";
 
-        using var connection = new SqlConnection(options.ConnectionString);
+        using var connection = new SqlConnection(options.Value.ConnectionString);
         using var command = new SqlCommand(sql, connection);
 
         command.Parameters.AddWithValue("@AggregateId", aggregateId);
@@ -48,7 +49,7 @@ public class SqlSnapshotStore(EventStoreOptions options, ISnapshotSerializer ser
                 INSERT (Aggregateid, Version, AggregateType, SnapshotData, Timestamp)
                 VALUES (@Aggregateid, @Version, @AggregateType, @SnapshotData, @Timestamp)";
 
-        using var connection = new SqlConnection(options.ConnectionString);
+        using var connection = new SqlConnection(options.Value.ConnectionString);
         using var command = new SqlCommand(sql, connection);
 
         command.Parameters.AddWithValue("@AggregateId", snapshot.AggregateId);

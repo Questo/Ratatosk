@@ -1,7 +1,7 @@
 using Ratatosk.Core.BuildingBlocks;
 using Ratatosk.Core.Primitives;
 
-namespace Ratatosk.Infrastructure.Persistence;
+namespace Ratatosk.Core.Abstractions;
 
 public interface IAggregateRepository<T> where T : AggregateRoot, new()
 {

@@ -1,8 +1,10 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Ratatosk.Core.Abstractions;
 using Ratatosk.Infrastructure.EventStore;
 using Ratatosk.Infrastructure.Persistence;
+using Ratatosk.Infrastructure.Persistence.EventStore;
 
 namespace Ratatosk.Infrastructure.Configuration;
 
@@ -10,30 +12,33 @@ public static class InfrastructureServiceCollectionExtensions
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
+        services.Configure<DatabaseOptions>(configuration.GetSection(DatabaseOptions.SectionName));
         services.Configure<EventStoreOptions>(configuration.GetSection(EventStoreOptions.SectionName));
 
         services.AddSingleton<IEventSerializer, JsonEventSerializer>();
         services.AddSingleton<ISnapshotSerializer, JsonSnapshotSerializer>();
         services.AddSingleton<IEventStore>(provider =>
         {
-            var options = provider.GetRequiredService<IOptions<EventStoreOptions>>().Value;
+            var eventStoreOptions = provider.GetRequiredService<IOptions<EventStoreOptions>>().Value;
+            var databaseOptions = provider.GetRequiredService<IOptions<DatabaseOptions>>();
             var serializer = provider.GetRequiredService<IEventSerializer>();
 
-            return options.Type switch
+            return eventStoreOptions.Type switch
             {
-                StoreType.File => new FileEventStore(options, serializer),
-                StoreType.Sql => new SqlEventStore(options, serializer),
+                StoreType.File => new FileEventStore(eventStoreOptions, serializer),
+                StoreType.Sql => new SqlEventStore(databaseOptions, serializer),
                 StoreType.InMemory or _ => new InMemoryEventStore()
             };
         });
         services.AddSingleton<ISnapshotStore>(provider =>
         {
             var options = provider.GetRequiredService<IOptions<EventStoreOptions>>().Value;
+            var databaseOptions = provider.GetRequiredService<IOptions<DatabaseOptions>>();
             var serializer = provider.GetRequiredService<ISnapshotSerializer>();
 
             return options.Type switch
             {
-                StoreType.Sql => new SqlSnapshotStore(options, serializer),
+                StoreType.Sql => new SqlSnapshotStore(databaseOptions, serializer),
                 StoreType.InMemory => new InMemorySnapshotStore(),
                 _ => throw new NotImplementedException()
             };

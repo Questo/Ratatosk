@@ -1,7 +1,8 @@
 using Ratatosk.Core.BuildingBlocks;
 using Ratatosk.Infrastructure.Configuration;
+using Ratatosk.Infrastructure.EventStore;
 
-namespace Ratatosk.Infrastructure.EventStore;
+namespace Ratatosk.Infrastructure.Persistence.EventStore;
 
 public class FileEventStore(EventStoreOptions options, IEventSerializer serializer) : IEventStore
 {

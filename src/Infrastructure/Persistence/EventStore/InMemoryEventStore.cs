@@ -1,7 +1,8 @@
 using System.Collections.Concurrent;
 using Ratatosk.Core.BuildingBlocks;
+using Ratatosk.Infrastructure.EventStore;
 
-namespace Ratatosk.Infrastructure.EventStore;
+namespace Ratatosk.Infrastructure.Persistence.EventStore;
 
 public class InMemoryEventStore : IEventStore
 {

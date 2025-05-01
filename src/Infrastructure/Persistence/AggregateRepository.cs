@@ -1,3 +1,4 @@
+using Ratatosk.Core.Abstractions;
 using Ratatosk.Core.BuildingBlocks;
 using Ratatosk.Core.Primitives;
 using Ratatosk.Infrastructure.EventStore;

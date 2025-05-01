@@ -1,22 +1,21 @@
+using Ratatosk.Core.Abstractions;
 using Ratatosk.Core.BuildingBlocks;
 
-namespace Ratatosk.Infrastructure
+namespace Ratatosk.Infrastructure;
+public class EventBus : IEventBus
 {
-    public class EventBus
+    private readonly List<Func<DomainEvent, CancellationToken, Task>> _subscribers = [];
+
+    public void Subscribe(Func<DomainEvent, CancellationToken, Task> handler)
     {
-        private readonly List<Func<DomainEvent, CancellationToken, Task>> _subscribers = [];
+        _subscribers.Add(handler);
+    }
 
-        public void Subscribe(Func<DomainEvent, CancellationToken, Task> handler)
+    public async Task PublishAsync(DomainEvent domainEvent, CancellationToken cancellationToken = default)
+    {
+        foreach (var subscriber in _subscribers)
         {
-            _subscribers.Add(handler);
-        }
-
-        public async Task PublishAsync(DomainEvent domainEvent, CancellationToken cancellationToken = default)
-        {
-            foreach (var subscriber in _subscribers)
-            {
-                await subscriber(domainEvent, cancellationToken);
-            }
+            await subscriber(domainEvent, cancellationToken);
         }
     }
 }
