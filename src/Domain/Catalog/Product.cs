@@ -30,6 +30,17 @@ public class Product : AggregateRoot
         }
     }
 
+    public override Snapshot? CreateSnapshot() => new ProductSnapshot
+    {
+        AggregateId = Id,
+        Version = Version,
+        AggregateType = GetType().FullName!,
+        Name = Name,
+        Sku = Sku,
+        Description = Description,
+        Price = Price
+    };
+
     public Result Update(string name, string? description, Price? price)
     {
         try
