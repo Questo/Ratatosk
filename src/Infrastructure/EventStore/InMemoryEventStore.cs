@@ -7,7 +7,7 @@ public class InMemoryEventStore : IEventStore
 {
     private readonly ConcurrentDictionary<string, List<DomainEvent>> _eventStore = new();
 
-    public Task AppendEventsAsync(string streamName, IEnumerable<DomainEvent> events, CancellationToken cancellationToken = default)
+    public Task AppendEventsAsync(string streamName, IEnumerable<DomainEvent> events, int startingVersion, CancellationToken cancellationToken = default)
     {
         var stream = _eventStore.GetOrAdd(streamName, _ => []);
         lock (stream)
@@ -17,7 +17,7 @@ public class InMemoryEventStore : IEventStore
         return Task.CompletedTask;
     }
 
-    public Task<IReadOnlyCollection<DomainEvent>> LoadEventsAsync(string streamName, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyCollection<DomainEvent>> LoadEventsAsync(string streamName, int startingVersion = 0, CancellationToken cancellationToken = default)
     {
         if (_eventStore.TryGetValue(streamName, out var stream))
         {

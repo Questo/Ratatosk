@@ -31,7 +31,7 @@ public class ProductSearchProjection(IProductSearchViewRepository repository)
         {
             product.Name = @event.Name;
             product.Description = @event.Description;
-            product.Price = @event.Price;
+            product.Price = @event.Price.Amount;
 
             await _repository.SaveAsync(view, cancellationToken);
         }

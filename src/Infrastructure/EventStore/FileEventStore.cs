@@ -16,7 +16,7 @@ public class FileEventStore(EventStoreOptions options, IEventSerializer serializ
     private string GetStreamFilePath(string streamName) =>
         Path.Combine(_directory, $"{streamName}.log");
 
-    public async Task AppendEventsAsync(string streamName, IEnumerable<DomainEvent> events, CancellationToken cancellationToken = default)
+    public async Task AppendEventsAsync(string streamName, IEnumerable<DomainEvent> events, int startingVersion, CancellationToken cancellationToken = default)
     {
         var filePath = GetStreamFilePath(streamName);
         EnsureDirectoryExists();
@@ -28,7 +28,7 @@ public class FileEventStore(EventStoreOptions options, IEventSerializer serializ
         await File.AppendAllLinesAsync(filePath, lines, cancellationToken);
     }
 
-    public async Task<IReadOnlyCollection<DomainEvent>> LoadEventsAsync(string streamName, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyCollection<DomainEvent>> LoadEventsAsync(string streamName, int startingVersion = 0, CancellationToken cancellationToken = default)
     {
         var filePath = GetStreamFilePath(streamName);
         if (!File.Exists(filePath))

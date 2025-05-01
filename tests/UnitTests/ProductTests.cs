@@ -15,7 +15,7 @@ public class ProductTests
             .WithPrice(100m)
             .Build();
 
-        var result = product.Update("New Name", "New Description", 120m);
+        var result = product.Update("New Name", "New Description", Price.Create(120m).Value);
 
         Assert.IsTrue(result.IsSuccess);
         var @event = product.UncommittedEvents
@@ -25,7 +25,7 @@ public class ProductTests
         Assert.IsNotNull(@event);
         Assert.AreEqual("New Name", @event.Name);
         Assert.AreEqual("New Description", @event.Description);
-        Assert.AreEqual(120m, @event.Price);
+        Assert.AreEqual(120m, @event.Price.Amount);
     }
 
     [TestMethod]
@@ -37,7 +37,7 @@ public class ProductTests
             .WithPrice(100m)
             .Build();
 
-        var result = product.Update("Same Name", "Same Description", 100m);
+        var result = product.Update("Same Name", "Same Description", Price.Create(100m).Value);
 
         Assert.IsTrue(result.IsFailure);
         Assert.AreEqual("Nothing has changed", result.Error);

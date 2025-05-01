@@ -3,6 +3,6 @@ using Ratatosk.Infrastructure.Shared;
 
 namespace Ratatosk.Infrastructure.EventStore;
 
-public class JsonEventSerializer : JsonPolymorphicSerializer<DomainEvent>, IEventSerializer
+public class JsonSnapshotSerializer : JsonPolymorphicSerializer<Snapshot>, ISnapshotSerializer
 {
 }

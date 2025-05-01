@@ -1,4 +1,5 @@
-﻿using Ratatosk.Core.Primitives;
+﻿using System.Text.Json.Serialization;
+using Ratatosk.Core.Primitives;
 
 namespace Ratatosk.Core.BuildingBlocks;
 
@@ -10,6 +11,17 @@ public abstract class AggregateRoot
     public int Version { get; protected set; } = 0;
 
     public IReadOnlyCollection<DomainEvent> UncommittedEvents => [.. _uncommittedEvents];
+
+    /// <summary>
+    /// The number of events between each snapshot. Can be overridden in derived classes.
+    /// </summary>
+    [JsonIgnore]
+    public virtual int SnapshotFrequency => 25;
+
+    /// <summary>
+    /// Determines if a snapshot should be created based on the Version property.
+    /// </summary>
+    public bool ShouldCreateSnapshot() => Version >= SnapshotFrequency && Version % SnapshotFrequency == 0;
 
     protected void RaiseEvent(DomainEvent domainEvent)
     {
@@ -47,4 +59,6 @@ public abstract class AggregateRoot
             Version++;
         }
     }
+
+    public virtual Snapshot? CreateSnapshot() => null;
 }

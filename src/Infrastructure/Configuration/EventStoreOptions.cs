@@ -6,10 +6,12 @@ public class EventStoreOptions
 
     public EventStoreType Type { get; set; } = EventStoreType.InMemory;
     public string? FilePath { get; set; }
+    public string? ConnectionString { get; set; }
 }
 
 public enum EventStoreType
 {
     InMemory,
-    File
+    File,
+    Sql
 }

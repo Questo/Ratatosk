@@ -37,7 +37,7 @@ public sealed class FileEventStoreTests
         var domainEvent = new TestEvent("Foobar");
         var events = new List<DomainEvent> { domainEvent };
 
-        await _eventStore.AppendEventsAsync(streamName, events);
+        await _eventStore.AppendEventsAsync(streamName, events, 0);
         var loadedEvents = await _eventStore.LoadEventsAsync(streamName);
 
         Assert.AreEqual(1, loadedEvents.Count);

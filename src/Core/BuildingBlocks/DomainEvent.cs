@@ -2,6 +2,7 @@ namespace Ratatosk.Core.BuildingBlocks;
 
 public abstract class DomainEvent
 {
-    public Guid EventId { get; } = Guid.NewGuid();
-    public DateTimeOffset OccurredAt { get; } = DateTimeOffset.UtcNow;
+    public Guid AggregateId { get; init; }
+    public DateTimeOffset OccurredAtUtc { get; } = DateTimeOffset.UtcNow;
+    public int Version { get; set; }
 }
