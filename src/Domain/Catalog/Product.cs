@@ -9,7 +9,7 @@ public class Product : AggregateRoot
     public string Name { get; private set; } = default!;
     public string Sku { get; private set; } = default!;
     public string Description { get; private set; } = default!;
-    public decimal Price { get; private set; } = default!;
+    public Price Price { get; private set; } = default!;
 
     protected override void ApplyEvent(DomainEvent domainEvent)
     {
@@ -19,6 +19,7 @@ public class Product : AggregateRoot
                 Id = e.ProductId;
                 Name = e.Name;
                 Sku = e.Sku;
+                Price = e.Price;
                 break;
 
             case ProductUpdated e:
@@ -29,7 +30,7 @@ public class Product : AggregateRoot
         }
     }
 
-    public Result Update(string name, string? description, decimal? price)
+    public Result Update(string name, string? description, Price? price)
     {
         try
         {
@@ -37,7 +38,7 @@ public class Product : AggregateRoot
 
             bool nameChanged = !Name.Equals(name);
             bool descChanged = !Description.Equals(description);
-            bool priceChanged = !price.Equals(price);
+            bool priceChanged = !Price.Equals(price);
 
             bool productChanged = nameChanged || descChanged || priceChanged;
 

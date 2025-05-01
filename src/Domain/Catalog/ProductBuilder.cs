@@ -9,7 +9,7 @@ public class ProductBuilder : IBuilder<Product>
     private string _name = "Default Product";
     private string _sku = "Default Sku";
     private string _description = "Default description";
-    private decimal _price = 0;
+    private Price _price = Price.Free();
 
     public ProductBuilder WithId(Guid id)
     {
@@ -35,9 +35,12 @@ public class ProductBuilder : IBuilder<Product>
         return this;
     }
 
-    public ProductBuilder WithPrice(decimal price)
+    public ProductBuilder WithPrice(decimal amount, string currency = "SEK")
     {
-        _price = price;
+        var result = Price.Create(amount, currency);
+        if (result.IsFailure) throw new ArgumentException(result.Error!);
+
+        _price = result.Value!;
         return this;
     }
 
@@ -45,7 +48,7 @@ public class ProductBuilder : IBuilder<Product>
     {
         var product = new Product();
 
-        var created = new ProductAdded(_id, _name, _sku);
+        var created = new ProductAdded(_id, _name, _sku, _price);
         product.LoadFromHistory([created]);
 
         // Raise a ProductUpdated event to set optional fields like Description/Price
