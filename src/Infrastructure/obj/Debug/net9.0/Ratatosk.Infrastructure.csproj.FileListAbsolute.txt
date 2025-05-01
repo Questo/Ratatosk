@@ -1,0 +1,15 @@
+/home/pekdon/ratatosk/src/Infrastructure/bin/Debug/net9.0/Ratatosk.Infrastructure.deps.json
+/home/pekdon/ratatosk/src/Infrastructure/bin/Debug/net9.0/Ratatosk.Infrastructure.dll
+/home/pekdon/ratatosk/src/Infrastructure/bin/Debug/net9.0/Ratatosk.Infrastructure.pdb
+/home/pekdon/ratatosk/src/Infrastructure/bin/Debug/net9.0/Ratatosk.Core.dll
+/home/pekdon/ratatosk/src/Infrastructure/bin/Debug/net9.0/Ratatosk.Core.pdb
+/home/pekdon/ratatosk/src/Infrastructure/obj/Debug/net9.0/Ratatosk.Infrastructure.csproj.AssemblyReference.cache
+/home/pekdon/ratatosk/src/Infrastructure/obj/Debug/net9.0/Ratatosk.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+/home/pekdon/ratatosk/src/Infrastructure/obj/Debug/net9.0/Ratatosk.Infrastructure.AssemblyInfoInputs.cache
+/home/pekdon/ratatosk/src/Infrastructure/obj/Debug/net9.0/Ratatosk.Infrastructure.AssemblyInfo.cs
+/home/pekdon/ratatosk/src/Infrastructure/obj/Debug/net9.0/Ratatosk.Infrastructure.csproj.CoreCompileInputs.cache
+/home/pekdon/ratatosk/src/Infrastructure/obj/Debug/net9.0/Ratatosk.6ACFD67C.Up2Date
+/home/pekdon/ratatosk/src/Infrastructure/obj/Debug/net9.0/Ratatosk.Infrastructure.dll
+/home/pekdon/ratatosk/src/Infrastructure/obj/Debug/net9.0/refint/Ratatosk.Infrastructure.dll
+/home/pekdon/ratatosk/src/Infrastructure/obj/Debug/net9.0/Ratatosk.Infrastructure.pdb
+/home/pekdon/ratatosk/src/Infrastructure/obj/Debug/net9.0/ref/Ratatosk.Infrastructure.dll

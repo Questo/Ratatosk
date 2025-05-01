@@ -1,0 +1,15 @@
+/home/pekdon/ratatosk/src/Domain/bin/Debug/net9.0/Ratatosk.Domain.deps.json
+/home/pekdon/ratatosk/src/Domain/bin/Debug/net9.0/Ratatosk.Domain.dll
+/home/pekdon/ratatosk/src/Domain/bin/Debug/net9.0/Ratatosk.Domain.pdb
+/home/pekdon/ratatosk/src/Domain/bin/Debug/net9.0/Ratatosk.Core.dll
+/home/pekdon/ratatosk/src/Domain/bin/Debug/net9.0/Ratatosk.Core.pdb
+/home/pekdon/ratatosk/src/Domain/obj/Debug/net9.0/Ratatosk.Domain.csproj.AssemblyReference.cache
+/home/pekdon/ratatosk/src/Domain/obj/Debug/net9.0/Ratatosk.Domain.GeneratedMSBuildEditorConfig.editorconfig
+/home/pekdon/ratatosk/src/Domain/obj/Debug/net9.0/Ratatosk.Domain.AssemblyInfoInputs.cache
+/home/pekdon/ratatosk/src/Domain/obj/Debug/net9.0/Ratatosk.Domain.AssemblyInfo.cs
+/home/pekdon/ratatosk/src/Domain/obj/Debug/net9.0/Ratatosk.Domain.csproj.CoreCompileInputs.cache
+/home/pekdon/ratatosk/src/Domain/obj/Debug/net9.0/Ratatosk.687112A2.Up2Date
+/home/pekdon/ratatosk/src/Domain/obj/Debug/net9.0/Ratatosk.Domain.dll
+/home/pekdon/ratatosk/src/Domain/obj/Debug/net9.0/refint/Ratatosk.Domain.dll
+/home/pekdon/ratatosk/src/Domain/obj/Debug/net9.0/Ratatosk.Domain.pdb
+/home/pekdon/ratatosk/src/Domain/obj/Debug/net9.0/ref/Ratatosk.Domain.dll
