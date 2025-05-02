@@ -1,7 +1,10 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Ratatosk.Application.Catalog.Projections;
+using Ratatosk.Application.Catalog.ReadModels;
 using Ratatosk.Core.Abstractions;
+using Ratatosk.Domain.Catalog;
 using Ratatosk.Infrastructure.EventStore;
 using Ratatosk.Infrastructure.Persistence;
 using Ratatosk.Infrastructure.Persistence.EventStore;
@@ -15,6 +18,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.Configure<DatabaseOptions>(configuration.GetSection(DatabaseOptions.SectionName));
         services.Configure<EventStoreOptions>(configuration.GetSection(EventStoreOptions.SectionName));
 
+        services.AddSingleton<IEventBus, EventBus>();
         services.AddSingleton<IEventSerializer, JsonEventSerializer>();
         services.AddSingleton<ISnapshotSerializer, JsonSnapshotSerializer>();
         services.AddSingleton<IEventStore>(provider =>
@@ -45,6 +49,12 @@ public static class InfrastructureServiceCollectionExtensions
         });
 
         services.AddScoped(typeof(IAggregateRepository<>), typeof(AggregateRepository<>));
+        services.AddScoped<IProductReadModelRepository, SqlProductReadModelRepository>();
+
+        var provider = services.BuildServiceProvider();
+        var repo = provider.GetService<IAggregateRepository<Product>>();
+
+        services.AddHostedService<ProjectionRegistrationService>();
 
         return services;
     }

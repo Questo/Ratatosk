@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Serialization;
+using Ratatosk.Core.Abstractions;
 using Ratatosk.Core.Primitives;
 
 namespace Ratatosk.Core.BuildingBlocks;
@@ -7,7 +8,7 @@ public abstract class AggregateRoot
 {
     private readonly Stack<DomainEvent> _uncommittedEvents = [];
 
-    public Guid Id { get; protected set; }
+    public Guid Id { get; protected set; } = Guid.NewGuid();
     public int Version { get; protected set; } = 0;
 
     public IReadOnlyCollection<DomainEvent> UncommittedEvents => [.. _uncommittedEvents];

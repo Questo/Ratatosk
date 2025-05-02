@@ -1,4 +1,5 @@
 using Ratatosk.Core.Abstractions;
+using Ratatosk.Core.BuildingBlocks;
 using Ratatosk.Core.Primitives;
 using Ratatosk.Domain.Catalog;
 
@@ -20,12 +21,7 @@ public class AddProductCommandHandler(IAggregateRepository<Product> repository, 
     {
         try
         {
-            var product = new ProductBuilder()
-                .WithName(command.Name)
-                .WithSku(command.Sku)
-                .WithDescription(command.Description)
-                .WithPrice(command.Price)
-                .Build();
+            var product = Product.Create(command.Name, command.Sku, command.Description, command.Price);
 
             await _repository.SaveAsync(product, cancellationToken);
 

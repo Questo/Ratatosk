@@ -55,7 +55,6 @@ public class ProductBuilder : IBuilder<Product>
         var updated = new ProductUpdated(_id, _name, _description, _price);
         product.LoadFromHistory([updated]);
 
-        product.ClearUncommittedEvents();
         return product;
     }
 

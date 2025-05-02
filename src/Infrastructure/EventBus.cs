@@ -1,10 +1,12 @@
+using System.Collections.Concurrent;
 using Ratatosk.Core.Abstractions;
 using Ratatosk.Core.BuildingBlocks;
 
 namespace Ratatosk.Infrastructure;
+
 public class EventBus : IEventBus
 {
-    private readonly List<Func<DomainEvent, CancellationToken, Task>> _subscribers = [];
+    private readonly ConcurrentBag<Func<DomainEvent, CancellationToken, Task>> _subscribers = [];
 
     public void Subscribe(Func<DomainEvent, CancellationToken, Task> handler)
     {

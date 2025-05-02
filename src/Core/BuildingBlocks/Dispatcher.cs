@@ -10,8 +10,12 @@ public class Dispatcher(IServiceProvider serviceProvider)
 
     public async Task<Result<TResult>> DispatchQueryAsync<TResult>(IQuery<TResult> query, CancellationToken cancellationToken = default)
     {
-        var handler = _serviceProvider.GetRequiredService<IHandler<IQuery<TResult>, TResult>>();
-        return await handler.HandleAsync(query, cancellationToken);
+        var handlerType = typeof(IHandler<,>).MakeGenericType(query.GetType(), typeof(TResult));
+        var handler = _serviceProvider.GetRequiredService(handlerType);
+
+        var method = handlerType.GetMethod(nameof(IHandler<IQuery<TResult>, TResult>.HandleAsync))!;
+        var task = (Task<Result<TResult>>)method.Invoke(handler, [query, cancellationToken])!;
+        return await task;
     }
 
     public async Task<Result> DispatchCommandAsync<TCommand>(TCommand command, CancellationToken cancellationToken = default) where TCommand : ICommand

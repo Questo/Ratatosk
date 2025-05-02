@@ -1,14 +1,14 @@
-using Ratatosk.Application.Abstractions;
 using Ratatosk.Application.Catalog.ReadModels;
+using Ratatosk.Core.Abstractions;
 using Ratatosk.Domain.Catalog.Events;
 
 namespace Ratatosk.Application.Catalog.Projections;
 
 public class ProductProjection(IProductReadModelRepository repo) :
-    IEventHandler<ProductAdded>,
-    IEventHandler<ProductUpdated>
+    IProjection<ProductAdded>,
+    IProjection<ProductUpdated>
 {
-    public async Task HandleAsync(ProductAdded domainEvent, CancellationToken cancellationToken)
+    public async Task WhenAsync(ProductAdded domainEvent, CancellationToken cancellationToken)
     {
         var readModel = new ProductReadModel
         {
@@ -21,7 +21,7 @@ public class ProductProjection(IProductReadModelRepository repo) :
         await repo.SaveAsync(readModel, cancellationToken);
     }
 
-    public async Task HandleAsync(ProductUpdated domainEvent, CancellationToken cancellationToken)
+    public async Task WhenAsync(ProductUpdated domainEvent, CancellationToken cancellationToken)
     {
         var existing = await repo.GetByIdAsync(domainEvent.ProductId, cancellationToken);
         if (existing == null) return;

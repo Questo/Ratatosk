@@ -41,6 +41,24 @@ public class Product : AggregateRoot
         Price = Price
     };
 
+    public static Product Create(string name, string sku, string description, decimal price)
+    {
+        Guard.AgainstNullOrEmpty(name, nameof(name));
+        Guard.AgainstNullOrEmpty(sku, nameof(sku));
+        Guard.AgainstNullOrEmpty(description, nameof(description));
+
+        var priceResult = Price.Create(price);
+        if (priceResult.IsFailure)
+            throw new ArgumentException(priceResult.Error);
+
+        var product = new Product();
+
+        product.RaiseEvent(new ProductAdded(product.Id, name, sku, priceResult.Value!));
+        product.RaiseEvent(new ProductUpdated(product.Id, name, description, priceResult.Value!));
+
+        return product;
+    }
+
     public Result Update(string name, string? description, Price? price)
     {
         try
