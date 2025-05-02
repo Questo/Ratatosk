@@ -6,4 +6,6 @@ namespace Ratatosk.Infrastructure.Persistence.EventStore;
 
 public class JsonSnapshotSerializer : JsonPolymorphicSerializer<Snapshot>, ISnapshotSerializer
 {
+    protected override IEnumerable<string> GetPreferredPropertyOrder() =>
+    [nameof(Snapshot.Version), nameof(Snapshot.TakenAtUtc)];
 }

@@ -1,16 +1,16 @@
 using System.Data;
 using Dapper;
-using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Options;
+using Npgsql;
 using Ratatosk.Core.BuildingBlocks;
 using Ratatosk.Infrastructure.Configuration;
 using Ratatosk.Infrastructure.EventStore;
 
 namespace Ratatosk.Infrastructure.Persistence.EventStore;
 
-public class SqlSnapshotStore(IOptions<DatabaseOptions> options, ISnapshotSerializer serializer) : ISnapshotStore
+public class PostgresSnapshotStore(IOptions<DatabaseOptions> options, ISnapshotSerializer serializer) : ISnapshotStore
 {
-    private readonly IDbConnection _db = new SqlConnection(options.Value.ConnectionString);
+    private readonly IDbConnection _db = new NpgsqlConnection(options.Value.ConnectionString);
 
     public async Task<Snapshot?> LoadSnapshotAsync(Guid aggregateId, CancellationToken cancellationToken)
     {

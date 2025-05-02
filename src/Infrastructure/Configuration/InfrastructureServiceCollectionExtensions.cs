@@ -30,7 +30,7 @@ public static class InfrastructureServiceCollectionExtensions
             return eventStoreOptions.Type switch
             {
                 StoreType.File => new FileEventStore(eventStoreOptions, serializer),
-                StoreType.Sql => new SqlEventStore(databaseOptions, serializer),
+                StoreType.Sql => new PostgresEventStore(databaseOptions, serializer),
                 StoreType.InMemory or _ => new InMemoryEventStore()
             };
         });
@@ -42,14 +42,14 @@ public static class InfrastructureServiceCollectionExtensions
 
             return options.Type switch
             {
-                StoreType.Sql => new SqlSnapshotStore(databaseOptions, serializer),
+                StoreType.Sql => new PostgresSnapshotStore(databaseOptions, serializer),
                 StoreType.InMemory => new InMemorySnapshotStore(),
                 _ => throw new NotImplementedException()
             };
         });
 
         services.AddScoped(typeof(IAggregateRepository<>), typeof(AggregateRepository<>));
-        services.AddScoped<IProductReadModelRepository, SqlProductReadModelRepository>();
+        services.AddScoped<IProductReadModelRepository, PostgresProductReadModelRepository>();
 
         var provider = services.BuildServiceProvider();
         var repo = provider.GetService<IAggregateRepository<Product>>();

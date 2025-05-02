@@ -1,15 +1,15 @@
 using System.Data;
 using Dapper;
-using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Options;
+using Npgsql;
 using Ratatosk.Application.Catalog.ReadModels;
 using Ratatosk.Infrastructure.Configuration;
 
 namespace Ratatosk.Infrastructure.Persistence;
 
-public class SqlProductReadModelRepository(IOptions<DatabaseOptions> options) : IProductReadModelRepository
+public class PostgresProductReadModelRepository(IOptions<DatabaseOptions> options) : IProductReadModelRepository
 {
-    private readonly IDbConnection _db = new SqlConnection(options.Value.ConnectionString);
+    private readonly IDbConnection _db = new NpgsqlConnection(options.Value.ConnectionString);
 
     public async Task<ProductReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
