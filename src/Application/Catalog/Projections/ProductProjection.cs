@@ -5,16 +5,17 @@ using Ratatosk.Domain.Catalog.Events;
 namespace Ratatosk.Application.Catalog.Projections;
 
 public class ProductProjection(IProductReadModelRepository repo) :
-    IProjection<ProductAdded>,
+    IProjection<ProductCreated>,
     IProjection<ProductUpdated>
 {
-    public async Task WhenAsync(ProductAdded domainEvent, CancellationToken cancellationToken)
+    public async Task WhenAsync(ProductCreated domainEvent, CancellationToken cancellationToken)
     {
         var readModel = new ProductReadModel
         {
             Id = domainEvent.ProductId,
             Name = domainEvent.Name,
             Price = domainEvent.Price.Amount,
+            Description = domainEvent.Description,
             LastUpdatedUtc = domainEvent.OccurredAtUtc.UtcDateTime
         };
 
