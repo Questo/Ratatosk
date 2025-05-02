@@ -25,7 +25,7 @@ public class JsonEventSerializerTests
         var normalizedSerialized = RegexHelper.DecodeUnicodeEscapeSequences(serialized);
 
         Assert.IsTrue(normalizedSerialized.Contains("Type"));
-        Assert.IsTrue(normalizedSerialized.Contains("Ratatosk.UnitTests.JsonEventSerializerTests+TestEvent"));
+        Assert.IsTrue(normalizedSerialized.Contains("Ratatosk.UnitTests.Shared.TestEvent"));
     }
 
     [TestMethod]
