@@ -19,6 +19,7 @@ public class Product : AggregateRoot
                 Id = e.ProductId;
                 Name = e.Name;
                 Sku = e.Sku;
+                Description = e.Description;
                 Price = e.Price;
                 break;
 
@@ -58,32 +59,22 @@ public class Product : AggregateRoot
         return product;
     }
 
-    public Result Update(string name, string? description, Price? price)
+    public void Update(string name, string? description, Price? price)
     {
-        try
+        Guard.AgainstNullOrEmpty(name, nameof(name));
+
+        bool nameChanged = !Name.Equals(name);
+        bool descChanged = !Description.Equals(description);
+        bool priceChanged = !Price.Equals(price);
+
+        bool productChanged = nameChanged || descChanged || priceChanged;
+
+        if (!productChanged)
         {
-            Guard.AgainstNullOrEmpty(name, nameof(name));
-
-            bool nameChanged = !Name.Equals(name);
-            bool descChanged = !Description.Equals(description);
-            bool priceChanged = !Price.Equals(price);
-
-            bool productChanged = nameChanged || descChanged || priceChanged;
-
-            if (!productChanged)
-            {
-                return Result.Failure("Nothing has changed");
-            }
-
-            ProductUpdated @event = new(Id, name, description, price);
-            RaiseEvent(@event);
-
-            return Result.Success();
+            return;
         }
-        catch (Exception ex)
-        {
-            var error = Error.FromException(ex);
-            return Result.Failure(error.Message);
-        }
+
+        ProductUpdated @event = new(Id, name, description, price);
+        RaiseEvent(@event);
     }
 }

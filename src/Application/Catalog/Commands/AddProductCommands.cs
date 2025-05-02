@@ -10,29 +10,28 @@ public sealed record AddProductCommand(
     string Sku,
     string Description,
     decimal Price
-) : ICommand;
+) : IRequest<Result<Guid>>;
 
-public class AddProductCommandHandler(IAggregateRepository<Product> repository, IEventBus eventBus) : IHandler<AddProductCommand>
+public class AddProductCommandHandler(IAggregateRepository<Product> repository, IEventBus eventBus)
+    : IRequestHandler<AddProductCommand, Result<Guid>>
 {
-    private readonly IAggregateRepository<Product> _repository = repository;
-    private readonly IEventBus _eventBus = eventBus;
-
-    public async Task<Result> HandleAsync(AddProductCommand command, CancellationToken cancellationToken = default)
+    public async Task<Result<Guid>> HandleAsync(AddProductCommand request, CancellationToken cancellationToken = default)
     {
         try
         {
-            var product = Product.Create(command.Name, command.Sku, command.Description, command.Price);
+            var product = Product.Create(request.Name, request.Sku, request.Description, request.Price);
 
-            await _repository.SaveAsync(product, cancellationToken);
+            await repository.SaveAsync(product, cancellationToken);
 
             foreach (var domainEvent in product.UncommittedEvents)
-                await _eventBus.PublishAsync(domainEvent, cancellationToken);
+                await eventBus.PublishAsync(domainEvent, cancellationToken);
 
-            return Result.Success();
+            return Result<Guid>.Success(product.Id);
         }
         catch (Exception ex)
         {
-            return Result.Failure(Error.FromException(ex).Message);
+            return Result<Guid>.Failure(Error.FromException(ex).Message);
         }
     }
+
 }

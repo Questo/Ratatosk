@@ -17,22 +17,15 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<Dispatcher>();
         services.AddScoped<ICatalogService, CatalogService>();
 
-        services.AddCommands();
-        services.AddQueries();
+        services.AddRequestHandlers();
         services.AddProjections();
 
         return services;
     }
 
-    private static IServiceCollection AddCommands(this IServiceCollection services)
+    public static IServiceCollection AddRequestHandlers(this IServiceCollection services)
     {
-        services.AddImplementationsOfOpenGeneric(typeof(IHandler<>), typeof(AddProductCommandHandler).Assembly);
-        return services;
-    }
-
-    private static IServiceCollection AddQueries(this IServiceCollection services)
-    {
-        services.AddImplementationsOfOpenGeneric(typeof(IHandler<,>), typeof(GetProductByIdQueryHandler).Assembly);
+        services.AddImplementationsOfOpenGeneric(typeof(IRequestHandler<,>), typeof(AddProductCommandHandler).Assembly);
         return services;
     }
 

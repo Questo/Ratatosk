@@ -1,5 +1,6 @@
 using Ratatosk.Application.Catalog;
 using Ratatosk.Application.Catalog.Commands;
+using Ratatosk.Application.Catalog.Queries;
 
 namespace Ratatosk.API.Products;
 
@@ -16,9 +17,20 @@ public static class ProductsEndpoints
 
             return result.IsFailure
                 ? Results.BadRequest(result.Error)
-                : Results.Created();
+                : Results.Created($"/products/{result.Value}", result.Value);
+        });
 
-            //: Results.Created($"/products/{result.Value}", result.Value);
+        app.MapGet("/products/{id:guid}", async (
+            Guid id,
+            ICatalogService catalogService,
+            CancellationToken ct) =>
+        {
+            var query = new GetProductByIdQuery(id);
+            var result = await catalogService.GetProductByIdAsync(query, ct);
+
+            return result.IsFailure
+                ? Results.NotFound()
+                : Results.Ok(result.Value);
         });
     }
 }

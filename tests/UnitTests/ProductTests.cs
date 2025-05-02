@@ -15,9 +15,8 @@ public class ProductTests
             .WithPrice(100m)
             .Build();
 
-        var result = product.Update("New Name", "New Description", Price.Create(120m).Value);
+        product.Update("New Name", "New Description", Price.Create(120m).Value);
 
-        Assert.IsTrue(result.IsSuccess);
         var @event = product.UncommittedEvents
             .OfType<ProductUpdated>()
             .FirstOrDefault();
@@ -29,7 +28,7 @@ public class ProductTests
     }
 
     [TestMethod]
-    public void Update_WithNoChanges_ShouldReturnFailure()
+    public void Update_WithNoChanges_ShouldNotRaiseEvent()
     {
         var product = new ProductBuilder()
             .WithName("Same Name")
@@ -37,10 +36,8 @@ public class ProductTests
             .WithPrice(100m)
             .Build();
 
-        var result = product.Update("Same Name", "Same Description", Price.Create(100m).Value);
+        product.Update("Same Name", "Same Description", Price.Create(100m).Value);
 
-        Assert.IsTrue(result.IsFailure);
-        Assert.AreEqual("Nothing has changed", result.Error);
         Assert.AreEqual(0, product.UncommittedEvents.Count);
     }
 }
