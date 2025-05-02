@@ -15,7 +15,7 @@ public class Product : AggregateRoot
     {
         switch (domainEvent)
         {
-            case ProductAdded e:
+            case ProductCreated e:
                 Id = e.ProductId;
                 Name = e.Name;
                 Sku = e.Sku;
@@ -53,8 +53,7 @@ public class Product : AggregateRoot
 
         var product = new Product();
 
-        product.RaiseEvent(new ProductAdded(product.Id, name, sku, priceResult.Value!));
-        product.RaiseEvent(new ProductUpdated(product.Id, name, description, priceResult.Value!));
+        product.RaiseEvent(new ProductCreated(product.Id, name, sku, description, priceResult.Value!));
 
         return product;
     }

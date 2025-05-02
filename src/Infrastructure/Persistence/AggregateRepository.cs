@@ -45,7 +45,7 @@ public class AggregateRepository<T>(IEventStore eventStore, ISnapshotStore snaps
     {
         var streamName = StreamName.For<T>(aggregate.Id);
         var uncommitted = aggregate.UncommittedEvents;
-        await eventStore.AppendEventsAsync(streamName, uncommitted, aggregate.Version, cancellationToken);
+        await eventStore.AppendEventsAsync(streamName, uncommitted, aggregate.PersistedVersion, cancellationToken);
 
         if (!aggregate.ShouldCreateSnapshot())
             return;

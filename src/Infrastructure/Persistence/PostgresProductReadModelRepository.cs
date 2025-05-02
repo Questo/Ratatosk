@@ -11,29 +11,42 @@ public class PostgresProductReadModelRepository(IOptions<DatabaseOptions> option
 {
     private readonly IDbConnection _db = new NpgsqlConnection(options.Value.ConnectionString);
 
+    static PostgresProductReadModelRepository()
+    {
+        DefaultTypeMap.MatchNamesWithUnderscores = true;
+    }
+
     public async Task<ProductReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         const string sql = """
-            SELECT Id, Name, Description, Price, LastUpdatedUtc
-            FROM ProductReadModels
-            WHERE Id = @Id
+            SELECT id, name, description, price, last_updated_utc
+            FROM product_read_models
+            WHERE id = @Id
         """;
 
-        return await _db.QueryFirstOrDefaultAsync<ProductReadModel>(sql, new { Id = id });
+        return await _db.QueryFirstOrDefaultAsync<ProductReadModel>(new CommandDefinition(
+            sql,
+            new { Id = id },
+            cancellationToken: cancellationToken
+        ));
     }
 
     public async Task SaveAsync(ProductReadModel product, CancellationToken cancellationToken = default)
     {
         const string sql = """
-            INSERT INTO ProductReadModels (Id, Name, Description, Price, LastUpdatedUtc)
+            INSERT INTO product_read_models (id, name, description, price, last_updated_utc)
             VALUES (@Id, @Name, @Description, @Price, @LastUpdatedUtc)
             ON CONFLICT (Id) DO UPDATE SET
-                Name = @Name,
-                Description = @Description,
-                Price = @Price,
-                LastUpdatedUtc = @LastUpdatedUtc
+                name = @Name,
+                description = @Description,
+                price = @Price,
+                last_updated_utc = @LastUpdatedUtc
         """;
 
-        await _db.ExecuteAsync(sql, product);
+        await _db.ExecuteAsync(new CommandDefinition(
+            sql,
+            product,
+            cancellationToken: cancellationToken
+        ));
     }
 }

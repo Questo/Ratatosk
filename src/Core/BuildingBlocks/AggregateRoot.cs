@@ -11,6 +11,8 @@ public abstract class AggregateRoot
     public Guid Id { get; protected set; } = Guid.NewGuid();
     public int Version { get; protected set; } = 0;
 
+    public int PersistedVersion => Version - UncommittedEvents.Count;
+
     public IReadOnlyCollection<DomainEvent> UncommittedEvents => [.. _uncommittedEvents];
 
     /// <summary>

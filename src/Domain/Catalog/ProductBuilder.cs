@@ -48,12 +48,8 @@ public class ProductBuilder : IBuilder<Product>
     {
         var product = new Product();
 
-        var created = new ProductAdded(_id, _name, _sku, _price);
+        var created = new ProductCreated(_id, _name, _sku, _description, _price);
         product.LoadFromHistory([created]);
-
-        // Raise a ProductUpdated event to set optional fields like Description/Price
-        var updated = new ProductUpdated(_id, _name, _description, _price);
-        product.LoadFromHistory([updated]);
 
         return product;
     }

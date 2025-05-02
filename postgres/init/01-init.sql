@@ -20,3 +20,13 @@ CREATE TABLE IF NOT EXISTS snapshots(
 
 CREATE INDEX IF NOT EXISTS idx_snapshot_aggregate_id ON snapshots(aggregate_id);
 
+CREATE TABLE IF NOT EXISTS product_read_models(
+    id uuid PRIMARY KEY,
+    name text NOT NULL,
+    description text NOT NULL,
+    price decimal NOT NULL,
+    last_updated_utc timestamptz NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_product_read_models_id ON product_read_models(id);
+
