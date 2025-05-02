@@ -47,9 +47,9 @@ public class SqlSnapshotStore(IOptions<DatabaseOptions> options, ISnapshotSerial
 
         await _db.ExecuteAsync(sql, new
         {
-            AggregateId = snapshot.AggregateId,
-            Version = snapshot.Version,
-            AggregateType = snapshot.AggregateType,
+            snapshot.AggregateId,
+            snapshot.Version,
+            snapshot.AggregateType,
             SnapshotData = serializer.Serialize(snapshot),
             TimeStamp = snapshot.TakenAtUtc
         });
