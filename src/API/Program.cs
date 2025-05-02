@@ -1,3 +1,4 @@
+using Ratatosk.API.Products;
 using Ratatosk.Application.Configuration;
 using Ratatosk.Infrastructure.Configuration;
 
@@ -30,6 +31,6 @@ if (app.Environment.IsDevelopment())
 
 
 app.UseHttpsRedirection();
-app.MapControllers();
+app.MapProductsEndpoints();
 
 app.Run();
