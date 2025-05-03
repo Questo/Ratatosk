@@ -11,7 +11,7 @@ public class PriceTests
         var result = Price.Create(99.99m, "SEK");
 
         Assert.IsTrue(result.IsSuccess);
-        Assert.AreEqual(99.99m, result.Value.Amount);
+        Assert.AreEqual(99.99m, result.Value!.Amount);
         Assert.AreEqual("SEK", result.Value.Currency);
     }
 
@@ -21,7 +21,7 @@ public class PriceTests
         var result = Price.Create(50.5m, "usd");
 
         Assert.IsTrue(result.IsSuccess);
-        Assert.AreEqual("USD", result.Value.Currency);
+        Assert.AreEqual("USD", result.Value!.Currency);
     }
 
     [TestMethod]
@@ -30,7 +30,7 @@ public class PriceTests
         var result = Price.Create(0m); // Should default to SEK
 
         Assert.IsTrue(result.IsSuccess);
-        Assert.AreEqual("SEK", result.Value.Currency);
+        Assert.AreEqual("SEK", result.Value!.Currency);
     }
 
     [TestMethod]

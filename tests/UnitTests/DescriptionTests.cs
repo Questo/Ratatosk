@@ -13,7 +13,7 @@ public class DescriptionTests
         var result = Description.Create(validText);
 
         Assert.IsTrue(result.IsSuccess);
-        Assert.AreEqual(validText, result.Value.Value);
+        Assert.AreEqual(validText, result.Value!.Value);
     }
 
     [TestMethod]
@@ -25,7 +25,7 @@ public class DescriptionTests
         var result = Description.Create(input);
 
         Assert.IsTrue(result.IsSuccess);
-        Assert.AreEqual(expected, result.Value.Value);
+        Assert.AreEqual(expected, result.Value!.Value);
     }
 
     [TestMethod]

@@ -23,7 +23,7 @@ public class SKUTests
 
             // Assert
             Assert.IsTrue(result.IsSuccess);
-            Assert.AreEqual(validSku, result.Value.Value);
+            Assert.AreEqual(validSku, result.Value!.Value);
         }
     }
 
@@ -49,7 +49,7 @@ public class SKUTests
 
         foreach (var invalidSku in invalidSkus)
         {
-            var result = SKU.Create(invalidSku);
+            var result = SKU.Create(invalidSku!);
 
             Assert.IsTrue(result.IsFailure, $"Expected failure for SKU '{invalidSku}'");
             Assert.AreEqual("Invalid SKU format", result.Error);

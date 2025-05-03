@@ -12,7 +12,7 @@ namespace Ratatosk.Domain.Catalog.ValueObjects;
 public sealed partial class ProductName : ValueObject
 {
     [GeneratedRegex("^[A-Za-z0-9 '&-]{3,100}$", RegexOptions.Compiled | RegexOptions.CultureInvariant)]
-    private static partial Regex SkuPattern();
+    private static partial Regex NamePattern();
 
     public string Value { get; } = default!;
 
@@ -23,7 +23,7 @@ public sealed partial class ProductName : ValueObject
 
     public static Result<ProductName> Create(string value)
     {
-        if (string.IsNullOrWhiteSpace(value) || !SkuPattern().IsMatch(value))
+        if (string.IsNullOrWhiteSpace(value) || !NamePattern().IsMatch(value))
         {
             return Result<ProductName>.Failure("Invalid product name format");
         }
