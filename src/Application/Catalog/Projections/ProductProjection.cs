@@ -15,7 +15,7 @@ public class ProductProjection(IProductReadModelRepository repo) :
             Id = domainEvent.ProductId,
             Name = domainEvent.Name,
             Price = domainEvent.Price.Amount,
-            Description = domainEvent.Description,
+            Description = domainEvent.Description.Value,
             LastUpdatedUtc = domainEvent.OccurredAtUtc.UtcDateTime
         };
 
@@ -28,7 +28,7 @@ public class ProductProjection(IProductReadModelRepository repo) :
         if (existing == null) return;
 
         existing.Name = domainEvent.Name;
-        existing.Description = domainEvent.Description;
+        existing.Description = domainEvent.Description.Value;
         existing.Price = domainEvent.Price.Amount;
         existing.LastUpdatedUtc = domainEvent.OccurredAtUtc.UtcDateTime;
 

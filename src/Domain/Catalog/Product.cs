@@ -1,14 +1,15 @@
 using Ratatosk.Core.BuildingBlocks;
 using Ratatosk.Core.Primitives;
 using Ratatosk.Domain.Catalog.Events;
+using Ratatosk.Domain.Catalog.ValueObjects;
 
 namespace Ratatosk.Domain.Catalog;
 
 public class Product : AggregateRoot
 {
     public string Name { get; private set; } = default!;
-    public string Sku { get; private set; } = default!;
-    public string Description { get; private set; } = default!;
+    public SKU Sku { get; private set; } = default!;
+    public Description Description { get; private set; } = default!;
     public Price Price { get; private set; } = default!;
 
     protected override void ApplyEvent(DomainEvent domainEvent)
@@ -48,18 +49,26 @@ public class Product : AggregateRoot
         Guard.AgainstNullOrEmpty(sku, nameof(sku));
         Guard.AgainstNullOrEmpty(description, nameof(description));
 
+        var skuResult = SKU.Create(sku);
+        if (skuResult.IsFailure)
+            throw new ArgumentException(skuResult.Error);
+
+        var descriptionResult = Description.Create(description);
+        if (descriptionResult.IsFailure)
+            throw new ArgumentException(descriptionResult.Error);
+
         var priceResult = Price.Create(price);
         if (priceResult.IsFailure)
             throw new ArgumentException(priceResult.Error);
 
         var product = new Product();
 
-        product.RaiseEvent(new ProductCreated(product.Id, name, sku, description, priceResult.Value!));
+        product.RaiseEvent(new ProductCreated(product.Id, name, skuResult.Value!, descriptionResult.Value!, priceResult.Value!));
 
         return product;
     }
 
-    public void Update(string name, string? description, Price? price)
+    public void Update(string name, Description? description, Price? price)
     {
         Guard.AgainstNullOrEmpty(name, nameof(name));
 

@@ -1,5 +1,6 @@
 using Ratatosk.Domain.Catalog;
 using Ratatosk.Domain.Catalog.Events;
+using Ratatosk.Domain.Catalog.ValueObjects;
 
 namespace Ratatosk.UnitTests;
 
@@ -15,7 +16,7 @@ public class ProductTests
             .WithPrice(100m)
             .Build();
 
-        product.Update("New Name", "New Description", Price.Create(120m).Value);
+        product.Update("New Name", Description.Create("New Description").Value, Price.Create(120m).Value);
 
         var @event = product.UncommittedEvents
             .OfType<ProductUpdated>()
@@ -23,7 +24,7 @@ public class ProductTests
 
         Assert.IsNotNull(@event);
         Assert.AreEqual("New Name", @event.Name);
-        Assert.AreEqual("New Description", @event.Description);
+        Assert.AreEqual("New Description", @event.Description.Value);
         Assert.AreEqual(120m, @event.Price.Amount);
     }
 
@@ -36,7 +37,7 @@ public class ProductTests
             .WithPrice(100m)
             .Build();
 
-        product.Update("Same Name", "Same Description", Price.Create(100m).Value);
+        product.Update("Same Name", Description.Create("Same Description").Value, Price.Create(100m).Value);
 
         Assert.AreEqual(0, product.UncommittedEvents.Count);
     }
