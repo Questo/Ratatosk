@@ -14,6 +14,7 @@ public class ProductProjection(IProductReadModelRepository repo) :
         {
             Id = domainEvent.ProductId,
             Name = domainEvent.Name.Value,
+            Sku = domainEvent.Sku.Value,
             Price = domainEvent.Price.Amount,
             Description = domainEvent.Description.Value,
             LastUpdatedUtc = domainEvent.OccurredAtUtc.UtcDateTime

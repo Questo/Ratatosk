@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Ratatosk.Application.Catalog.Projections;
 using Ratatosk.Application.Catalog.ReadModels;
 using Ratatosk.Core.Abstractions;
 using Ratatosk.Domain.Catalog;
@@ -50,9 +49,7 @@ public static class InfrastructureServiceCollectionExtensions
 
         services.AddScoped(typeof(IAggregateRepository<>), typeof(AggregateRepository<>));
         services.AddScoped<IProductReadModelRepository, PostgresProductReadModelRepository>();
-
-        var provider = services.BuildServiceProvider();
-        var repo = provider.GetService<IAggregateRepository<Product>>();
+        services.AddScoped<ISkuUniqueness, PostgresSkuUniqueness>();
 
         services.AddHostedService<ProjectionRegistrationService>();
 
