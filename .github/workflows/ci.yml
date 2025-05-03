@@ -1,5 +1,11 @@
 name: CI
 
+on:
+  push:
+    branches:
+      - main
+      - 'refs/tags/*'
+
 jobs:
   build-and-test:
     name: Build and Unit Test Docker Image
