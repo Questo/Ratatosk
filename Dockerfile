@@ -13,13 +13,14 @@ RUN dotnet build src/API -c Release --no-restore
 # Run tests (fail fast if they break)
 RUN dotnet test tests/UnitTests --no-restore --no-build --verbosity normal
 
-RUN dotnet publish src/API -c Release -o /app/publish
+# Publish application
+RUN dotnet publish src/API -c Release -o /publish
 
 # Stage 2: Final runtime image
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 
+# Copy published artifact from build stage
+COPY --from=build /publish/. .
 
-WORKDIR /app
-COPY --from=build /app/publish ./
-
+# Start the actual application
 ENTRYPOINT ["dotnet", "Ratatosk.API.dll"]
