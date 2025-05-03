@@ -7,7 +7,7 @@ namespace Ratatosk.Domain.Catalog;
 
 public class Product : AggregateRoot
 {
-    public string Name { get; private set; } = default!;
+    public ProductName Name { get; private set; } = default!;
     public SKU Sku { get; private set; } = default!;
     public Description Description { get; private set; } = default!;
     public Price Price { get; private set; } = default!;
@@ -49,6 +49,10 @@ public class Product : AggregateRoot
         Guard.AgainstNullOrEmpty(sku, nameof(sku));
         Guard.AgainstNullOrEmpty(description, nameof(description));
 
+        var nameResult = ProductName.Create(name);
+        if (nameResult.IsFailure)
+            throw new ArgumentException(nameResult.Error);
+
         var skuResult = SKU.Create(sku);
         if (skuResult.IsFailure)
             throw new ArgumentException(skuResult.Error);
@@ -63,15 +67,13 @@ public class Product : AggregateRoot
 
         var product = new Product();
 
-        product.RaiseEvent(new ProductCreated(product.Id, name, skuResult.Value!, descriptionResult.Value!, priceResult.Value!));
+        product.RaiseEvent(new ProductCreated(product.Id, nameResult.Value!, skuResult.Value!, descriptionResult.Value!, priceResult.Value!));
 
         return product;
     }
 
-    public void Update(string name, Description? description, Price? price)
+    public void Update(ProductName name, Description? description, Price? price)
     {
-        Guard.AgainstNullOrEmpty(name, nameof(name));
-
         bool nameChanged = !Name.Equals(name);
         bool descChanged = !Description.Equals(description);
         bool priceChanged = !Price.Equals(price);

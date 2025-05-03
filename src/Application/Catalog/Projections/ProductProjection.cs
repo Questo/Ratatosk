@@ -13,7 +13,7 @@ public class ProductProjection(IProductReadModelRepository repo) :
         var readModel = new ProductReadModel
         {
             Id = domainEvent.ProductId,
-            Name = domainEvent.Name,
+            Name = domainEvent.Name.Value,
             Price = domainEvent.Price.Amount,
             Description = domainEvent.Description.Value,
             LastUpdatedUtc = domainEvent.OccurredAtUtc.UtcDateTime
@@ -27,7 +27,7 @@ public class ProductProjection(IProductReadModelRepository repo) :
         var existing = await repo.GetByIdAsync(domainEvent.ProductId, cancellationToken);
         if (existing == null) return;
 
-        existing.Name = domainEvent.Name;
+        existing.Name = domainEvent.Name.Value;
         existing.Description = domainEvent.Description.Value;
         existing.Price = domainEvent.Price.Amount;
         existing.LastUpdatedUtc = domainEvent.OccurredAtUtc.UtcDateTime;
