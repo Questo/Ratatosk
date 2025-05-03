@@ -31,6 +31,7 @@ if (app.Environment.IsDevelopment())
 
 
 app.UseHttpsRedirection();
+app.MapGet("/healthz", () => Results.Ok("Healthy"));
 app.MapProductsEndpoints();
 
 app.Run();
