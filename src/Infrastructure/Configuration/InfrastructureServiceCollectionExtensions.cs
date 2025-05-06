@@ -1,9 +1,11 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Ratatosk.Application.Authentication;
 using Ratatosk.Application.Catalog.ReadModels;
 using Ratatosk.Core.Abstractions;
 using Ratatosk.Domain.Catalog;
+using Ratatosk.Infrastructure.Authentication;
 using Ratatosk.Infrastructure.EventStore;
 using Ratatosk.Infrastructure.Persistence;
 using Ratatosk.Infrastructure.Persistence.EventStore;
@@ -14,6 +16,7 @@ public static class InfrastructureServiceCollectionExtensions
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
+        services.Configure<AuthOptions>(configuration.GetSection(AuthOptions.SectionName));
         services.Configure<DatabaseOptions>(configuration.GetSection(DatabaseOptions.SectionName));
         services.Configure<EventStoreOptions>(configuration.GetSection(EventStoreOptions.SectionName));
 
@@ -50,6 +53,8 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped(typeof(IAggregateRepository<>), typeof(AggregateRepository<>));
         services.AddScoped<IProductReadModelRepository, PostgresProductReadModelRepository>();
         services.AddScoped<ISkuUniqueness, PostgresSkuUniqueness>();
+
+        services.AddScoped<IAuthenticationService, JwtAuthenticationService>();
 
         services.AddHostedService<ProjectionRegistrationService>();
 

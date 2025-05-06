@@ -19,7 +19,7 @@ public class PostgresProductReadModelRepository(IOptions<DatabaseOptions> option
     public async Task<ProductReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         const string sql = """
-            SELECT id, name, description, price, last_updated_utc
+            SELECT id, name, sku, description, price, last_updated_utc
             FROM product_read_models
             WHERE id = @Id
         """;
@@ -34,10 +34,11 @@ public class PostgresProductReadModelRepository(IOptions<DatabaseOptions> option
     public async Task SaveAsync(ProductReadModel product, CancellationToken cancellationToken = default)
     {
         const string sql = """
-            INSERT INTO product_read_models (id, name, description, price, last_updated_utc)
-            VALUES (@Id, @Name, @Description, @Price, @LastUpdatedUtc)
+            INSERT INTO product_read_models (id, name, sku, description, price, last_updated_utc)
+            VALUES (@Id, @Name, @Sku, @Description, @Price, @LastUpdatedUtc)
             ON CONFLICT (Id) DO UPDATE SET
                 name = @Name,
+                sku = @Sku,
                 description = @Description,
                 price = @Price,
                 last_updated_utc = @LastUpdatedUtc

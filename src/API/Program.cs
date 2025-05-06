@@ -1,5 +1,10 @@
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using Ratatosk.API.Auth;
 using Ratatosk.API.Products;
 using Ratatosk.Application.Configuration;
+using Ratatosk.Core.Primitives;
 using Ratatosk.Infrastructure.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,6 +17,31 @@ builder.Services.AddApplication();
 builder.Services.AddOpenApi();
 
 builder.Services.AddControllers();
+
+var authOptions = builder.Configuration.GetSection(AuthOptions.SectionName).Get<AuthOptions>();
+Guard.AgainstNull(authOptions, nameof(authOptions));
+var key = Encoding.UTF8.GetBytes(authOptions!.Secret);
+
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = authOptions.Issuer,
+
+            ValidateAudience = false,
+            ValidAudience = authOptions.Audience,
+
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(key),
+
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero
+        };
+    });
+builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
@@ -29,9 +59,11 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-
 app.UseHttpsRedirection();
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapGet("/healthz", () => Results.Ok("Healthy"));
+app.MapAuthEndpoints();
 app.MapProductsEndpoints();
 
 app.Run();

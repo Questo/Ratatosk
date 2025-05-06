@@ -18,7 +18,8 @@ public static class ProductsEndpoints
             return result.IsFailure
                 ? Results.BadRequest(result.Error)
                 : Results.Created($"/products/{result.Value}", result.Value);
-        });
+        })
+        .RequireAuthorization();
 
         app.MapGet("/products/{id:guid}", async (
             Guid id,
@@ -31,6 +32,7 @@ public static class ProductsEndpoints
             return result.IsFailure
                 ? Results.NotFound()
                 : Results.Ok(result.Value);
-        });
+        })
+        .RequireAuthorization();
     }
 }
