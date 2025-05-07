@@ -58,5 +58,69 @@ public class QuantityTests
         Assert.AreEqual("Unit 'invalid_unit' is not supported", result.Error);
     }
 
+    [TestMethod]
+    public void Operator_Add_WithSameUnit_ShouldReturnCorrectResult()
+    {
+        var q1 = Quantity.Create(5, "pcs").Value!;
+        var q2 = Quantity.Create(3, "pcs").Value!;
 
+        var result = q1 + q2;
+
+        Assert.AreEqual(8, result.Amount);
+        Assert.AreEqual("pcs", result.Unit);
+    }
+
+    [TestMethod]
+    public void Operator_Subtract_WithSameUnit_ShouldReturnCorrectResult()
+    {
+        var q1 = Quantity.Create(5, "pcs").Value!;
+        var q2 = Quantity.Create(2, "pcs").Value!;
+
+        var result = q1 - q2;
+
+        Assert.AreEqual(3, result.Amount);
+        Assert.AreEqual("pcs", result.Unit);
+    }
+
+    [TestMethod]
+    public void Operator_Subtract_ResultingInNegative_ShouldThrow()
+    {
+        var q1 = Quantity.Create(2, "pcs").Value!;
+        var q2 = Quantity.Create(5, "pcs").Value!;
+
+        Assert.ThrowsException<InvalidOperationException>(() => q1 - q2);
+    }
+
+    [TestMethod]
+    public void Operator_Add_WithDifferentUnits_ShouldThrow()
+    {
+        var q1 = Quantity.Create(5, "pcs").Value!;
+        var q2 = Quantity.Create(2, "kg").Value!;
+
+        Assert.ThrowsException<InvalidOperationException>(() => q1 + q2);
+    }
+
+    [TestMethod]
+    public void Operator_Comparison_ShouldBehaveAsExpected()
+    {
+        var q1 = Quantity.Create(5, "kg").Value!;
+        var q2 = Quantity.Create(10, "kg").Value!;
+        var q3 = Quantity.Create(5, "kg").Value!;
+
+        Assert.IsTrue(q2 > q1);
+        Assert.IsTrue(q1 < q2);
+        Assert.IsTrue(q1 <= q2);
+        Assert.IsTrue(q2 >= q1);
+        Assert.IsTrue(q1 >= q3);
+        Assert.IsTrue(q1 <= q3);
+    }
+
+    [TestMethod]
+    public void Operator_Comparison_WithDifferentUnits_ShouldThrow()
+    {
+        var q1 = Quantity.Create(5, "kg").Value!;
+        var q2 = Quantity.Create(10, "pcs").Value!;
+
+        Assert.ThrowsException<InvalidOperationException>(() => q1 > q2);
+    }
 }
