@@ -5,13 +5,13 @@ using Npgsql;
 using Ratatosk.Domain.Catalog;
 using Ratatosk.Infrastructure.Configuration;
 
-namespace Ratatosk.Infrastructure.Persistence;
+namespace Ratatosk.Infrastructure.Services;
 
-public class PostgresSkuUniqueness(IOptions<DatabaseOptions> options) : ISkuUniqueness
+public class ProductDomainService(IOptions<DatabaseOptions> options) : IProductDomainService
 {
     private readonly IDbConnection _db = new NpgsqlConnection(options.Value.ConnectionString);
 
-    public async Task<bool> IsUniqueAsync(string sku, CancellationToken cancellationToken = default)
+    public async Task<bool> IsSkuUniqueAsync(string sku, CancellationToken cancellationToken = default)
     {
         const string sql = """
             SELECT COUNT(1)

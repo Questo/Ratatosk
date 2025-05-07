@@ -11,7 +11,7 @@ public interface ICatalogService
 {
     Task<Result<Guid>> AddProductAsync(AddProductCommand command, CancellationToken cancellationToken = default);
     Task<Result> UpdateProductAsync(UpdateProductCommand command, CancellationToken cancellationToken = default);
-
+    Task<Result> RemoveProductAsync(RemoveProductCommand command, CancellationToken cancellationToken = default);
     Task<Result<ProductReadModel>> GetProductByIdAsync(GetProductByIdQuery query, CancellationToken cancellationToken = default);
 }
 
@@ -36,6 +36,16 @@ public class CatalogService(Dispatcher dispatcher, ILogger<CatalogService> logge
             logger.LogError("Failed to fetch product: {Error}", result.Error);
         }
 
+        return result;
+    }
+
+    public async Task<Result> RemoveProductAsync(RemoveProductCommand command, CancellationToken cancellationToken = default)
+    {
+        var result = await dispatcher.DispatchAsync(command, cancellationToken);
+        if (result.IsFailure)
+        {
+            logger.LogError("Failed to remove product: {Error}", result.Error);
+        }
         return result;
     }
 

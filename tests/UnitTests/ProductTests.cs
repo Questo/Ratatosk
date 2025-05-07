@@ -41,4 +41,23 @@ public class ProductTests
 
         Assert.AreEqual(0, product.UncommittedEvents.Count);
     }
+
+    [TestMethod]
+    public void Remove_ShouldRaiseProductRemovedEvent()
+    {
+        var product = new ProductBuilder()
+            .WithName("Product Name")
+            .WithDescription("Product Description")
+            .WithPrice(100m)
+            .Build();
+
+        product.Remove();
+
+        var @event = product.UncommittedEvents
+            .OfType<ProductRemoved>()
+            .FirstOrDefault();
+
+        Assert.IsNotNull(@event);
+        Assert.AreEqual(product.Id, @event.ProductId);
+    }
 }

@@ -5,8 +5,9 @@ using Ratatosk.Domain.Catalog.Events;
 namespace Ratatosk.Application.Catalog.Projections;
 
 public class ProductProjection(IProductReadModelRepository repo) :
-    IProjection<ProductCreated>,
-    IProjection<ProductUpdated>
+    IDomainEventHandler<ProductCreated>,
+    IDomainEventHandler<ProductUpdated>,
+    IDomainEventHandler<ProductRemoved>
 {
     public async Task WhenAsync(ProductCreated domainEvent, CancellationToken cancellationToken)
     {
@@ -34,5 +35,10 @@ public class ProductProjection(IProductReadModelRepository repo) :
         existing.LastUpdatedUtc = domainEvent.OccurredAtUtc.UtcDateTime;
 
         await repo.SaveAsync(existing, cancellationToken);
+    }
+
+    public async Task WhenAsync(ProductRemoved domainEvent, CancellationToken cancellationToken = default)
+    {
+        await repo.DeleteAsync(domainEvent.ProductId, cancellationToken);
     }
 }

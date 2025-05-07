@@ -16,6 +16,20 @@ public class PostgresProductReadModelRepository(IOptions<DatabaseOptions> option
         DefaultTypeMap.MatchNamesWithUnderscores = true;
     }
 
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        const string sql = """
+            DELETE FROM product_read_models
+            WHERE id = @Id
+        """;
+
+        await _db.ExecuteAsync(new CommandDefinition(
+            sql,
+            new { Id = id },
+            cancellationToken: cancellationToken
+        ));
+    }
+
     public async Task<ProductReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         const string sql = """

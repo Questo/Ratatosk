@@ -13,7 +13,7 @@ public class ProjectionRegistrationService(IServiceProvider serviceProvider, IEv
             using var scope = serviceProvider.CreateScope();
 
             var domainEventType = domainEvent.GetType();
-            var projectionType = typeof(IProjection<>).MakeGenericType(domainEventType);
+            var projectionType = typeof(IDomainEventHandler<>).MakeGenericType(domainEventType);
 
             var projections = scope.ServiceProvider.GetServices(projectionType);
             foreach (var projection in projections)

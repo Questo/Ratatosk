@@ -31,7 +31,7 @@ public static class ApplicationServiceCollectionExtensions
 
     private static IServiceCollection AddProjections(this IServiceCollection services)
     {
-        services.AddImplementationsOfOpenGeneric(typeof(IProjection<>), typeof(ProductProjection).Assembly);
+        services.AddImplementationsOfOpenGeneric(typeof(IDomainEventHandler<>), typeof(ProductProjection).Assembly);
         return services;
     }
 

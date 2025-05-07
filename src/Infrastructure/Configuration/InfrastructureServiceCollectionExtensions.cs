@@ -9,6 +9,7 @@ using Ratatosk.Infrastructure.Authentication;
 using Ratatosk.Infrastructure.EventStore;
 using Ratatosk.Infrastructure.Persistence;
 using Ratatosk.Infrastructure.Persistence.EventStore;
+using Ratatosk.Infrastructure.Services;
 
 namespace Ratatosk.Infrastructure.Configuration;
 
@@ -52,7 +53,7 @@ public static class InfrastructureServiceCollectionExtensions
 
         services.AddScoped(typeof(IAggregateRepository<>), typeof(AggregateRepository<>));
         services.AddScoped<IProductReadModelRepository, PostgresProductReadModelRepository>();
-        services.AddScoped<ISkuUniqueness, PostgresSkuUniqueness>();
+        services.AddScoped<IProductDomainService, ProductDomainService>();
 
         services.AddScoped<IAuthenticationService, JwtAuthenticationService>();
 

@@ -88,4 +88,9 @@ public class Product : AggregateRoot
         ProductUpdated @event = new(Id, name, description, price);
         RaiseEvent(@event);
     }
+
+    public void Remove(string? reason = null)
+    {
+        RaiseEvent(new ProductRemoved(Id, reason));
+    }
 }

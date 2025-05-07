@@ -14,14 +14,14 @@ public sealed record AddProductCommand(
 public class AddProductCommandHandler(
     IAggregateRepository<Product> repository,
     IEventBus eventBus,
-    ISkuUniqueness skuUniqueness)
+    IProductDomainService domainService)
     : IRequestHandler<AddProductCommand, Result<Guid>>
 {
     public async Task<Result<Guid>> HandleAsync(AddProductCommand request, CancellationToken cancellationToken = default)
     {
         try
         {
-            var skuIsUnique = await skuUniqueness.IsUniqueAsync(request.Sku, cancellationToken);
+            var skuIsUnique = await domainService.IsSkuUniqueAsync(request.Sku, cancellationToken);
             if (!skuIsUnique)
                 return Result<Guid>.Failure($"SKU {request.Sku} is already in use");
 
@@ -39,5 +39,4 @@ public class AddProductCommandHandler(
             return Result<Guid>.Failure(Error.FromException(ex).Message);
         }
     }
-
 }

@@ -34,5 +34,19 @@ public static class ProductsEndpoints
                 : Results.Ok(result.Value);
         })
         .RequireAuthorization();
+
+        app.MapDelete("/products/{id:guid}", async (
+            Guid id,
+            ICatalogService catalogService,
+            CancellationToken ct) =>
+        {
+            var command = new RemoveProductCommand(id);
+            var result = await catalogService.RemoveProductAsync(command, ct);
+
+            return result.IsFailure
+                ? Results.NotFound(result.Error)
+                : Results.NoContent();
+        })
+        .RequireAuthorization();
     }
 }

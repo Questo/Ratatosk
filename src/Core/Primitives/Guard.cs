@@ -7,6 +7,13 @@ public static class Guard
         if (input == Guid.Empty)
             throw new ArgumentException(paramName);
     }
+
+    public static void AgainstNegativeOrZero(int input, string paramName)
+    {
+        if (input <= 0)
+            throw new ArgumentOutOfRangeException(paramName, "Value must be greater than zero.");
+    }
+
     public static void AgainstNull(object? input, string paramName)
     {
         if (input is null)
