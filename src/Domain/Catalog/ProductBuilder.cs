@@ -6,17 +6,10 @@ namespace Ratatosk.Domain.Catalog;
 
 public class ProductBuilder : IBuilder<Product>
 {
-    private Guid _id = Guid.NewGuid();
     private ProductName _name = ProductName.Create("Default Product").Value!;
     private SKU _sku = SKU.Create(SkuGenerator.Generate("TEST")).Value!;
     private Description _description = Description.Create("Default Description").Value!;
     private Price _price = Price.Free();
-
-    public ProductBuilder WithId(Guid id)
-    {
-        _id = id;
-        return this;
-    }
 
     public ProductBuilder WithName(string name)
     {
@@ -58,7 +51,7 @@ public class ProductBuilder : IBuilder<Product>
     {
         var product = new Product();
 
-        var created = new ProductCreated(_id, _name, _sku, _description, _price);
+        var created = new ProductCreated(product.Id, _name, _sku, _description, _price);
         product.LoadFromHistory([created]);
 
         return product;
