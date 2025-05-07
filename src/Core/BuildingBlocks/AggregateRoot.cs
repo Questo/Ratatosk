@@ -1,5 +1,4 @@
 ﻿using System.Text.Json.Serialization;
-using Ratatosk.Core.Abstractions;
 using Ratatosk.Core.Primitives;
 
 namespace Ratatosk.Core.BuildingBlocks;
