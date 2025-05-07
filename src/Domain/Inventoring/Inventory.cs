@@ -1,77 +1,72 @@
 using Ratatosk.Core.BuildingBlocks;
 using Ratatosk.Core.Primitives;
+using Ratatosk.Domain.Catalog.ValueObjects;
+using Ratatosk.Domain.Inventoring.Events;
 
 namespace Ratatosk.Domain.Inventoring;
 
-public sealed class InventoryUpdated(string sku, int quantity) : DomainEvent
-{
-    public string Sku { get; } = sku;
-    public int Quantity { get; } = quantity;
-}
-
 public class Inventory : AggregateRoot
 {
-    private readonly Dictionary<string, int> _products = [];
+    private readonly Dictionary<SKU, StockEntry> _stockBySku = [];
 
     protected override void ApplyEvent(DomainEvent domainEvent)
     {
+        StockEntry? entry;
+
         switch (domainEvent)
         {
-            case InventoryUpdated e:
-                if (_products.ContainsKey(e.Sku))
-                {
-                    _products[e.Sku] = e.Quantity;
-                }
-                else
-                {
-                    _products.Add(e.Sku, e.Quantity);
-                }
+            case StockAdded stockAdded:
+                entry = GetStockEntry(stockAdded.SKU);
+                entry = entry with { Available = entry.Available + stockAdded.Quantity };
+                _stockBySku[stockAdded.SKU] = entry;
                 break;
+
+            case StockReserved stockReserved:
+                entry = GetStockEntry(stockReserved.SKU);
+                entry = entry with { Reserved = entry.Reserved + stockReserved.Quantity };
+                _stockBySku[stockReserved.SKU] = entry;
+                break;
+
         }
     }
 
-    public void Add(string sku, int quantity)
+    public static Inventory Create()
     {
-        Guard.AgainstNullOrEmpty(sku, nameof(sku));
+        var inventory = new Inventory();
+        inventory.RaiseEvent(new InventoryCreated(inventory.Id));
+        return inventory;
+    }
+
+    private StockEntry GetStockEntry(SKU sku)
+    {
+        return _stockBySku.TryGetValue(sku, out var stockEntry)
+            ? stockEntry
+            : new StockEntry(0, 0);
+    }
+
+    public void AddStock(SKU sku, int quantity)
+    {
         Guard.AgainstNegativeOrZero(quantity, nameof(quantity));
 
-        var @event = new InventoryUpdated(
-            sku,
-            quantity: !_products.TryGetValue(sku, out int value)
-                ? quantity
-                : value + quantity);
-
-        RaiseEvent(@event);
+        RaiseEvent(new StockAdded(Id, sku, quantity));
     }
 
-    public void Update(string productSku, int quantity)
+    public void ReserveStock(SKU sku, int quantity)
     {
-        // Logic to update the product in inventory
-        // This is a placeholder for the actual implementation
-        throw new NotImplementedException();
-    }
-    public void Reserve(string productSku, int quantity)
-    {
-        // Logic to reserve the product in inventory
-        // This is a placeholder for the actual implementation
-        throw new NotImplementedException();
-    }
-    public void Unreserve(string productSku, int quantity)
-    {
-        // Logic to unreserve the product in inventory
-        // This is a placeholder for the actual implementation
-        throw new NotImplementedException();
-    }
-    public void Restock(string productSku, int quantity)
-    {
-        // Logic to restock the product in inventory
-        // This is a placeholder for the actual implementation
-        throw new NotImplementedException();
-    }
-    public void Remove(string productSku)
-    {
-        // Logic to remove the product from inventory
-        // This is a placeholder for the actual implementation
-        throw new NotImplementedException();
+        Guard.AgainstNegativeOrZero(quantity, nameof(quantity));
+
+        if (!_stockBySku.TryGetValue(sku, out var stockEntry))
+        {
+            throw new InvalidOperationException($"SKU {sku} not found in inventory");
+        }
+
+        if (stockEntry.Available - stockEntry.Reserved < quantity)
+        {
+            throw new InvalidOperationException($"Not enough stock available for SKU {sku}");
+        }
+
+        RaiseEvent(new StockReserved(Id, sku, quantity));
     }
 }
+
+public sealed record StockEntry(int Available, int Reserved);
