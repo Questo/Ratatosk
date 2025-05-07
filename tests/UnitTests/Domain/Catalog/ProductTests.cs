@@ -2,7 +2,7 @@ using Ratatosk.Domain.Catalog;
 using Ratatosk.Domain.Catalog.Events;
 using Ratatosk.Domain.Catalog.ValueObjects;
 
-namespace Ratatosk.UnitTests;
+namespace Ratatosk.UnitTests.Domain.Catalog;
 
 [TestClass]
 public class ProductTests

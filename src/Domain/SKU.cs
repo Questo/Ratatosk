@@ -2,7 +2,7 @@ using System.Text.RegularExpressions;
 using Ratatosk.Core.BuildingBlocks;
 using Ratatosk.Core.Primitives;
 
-namespace Ratatosk.Domain.Catalog.ValueObjects;
+namespace Ratatosk.Domain;
 
 /// <summary>
 /// Represents a Stock Keeping Unit (SKU), a unique identifier for a product used in inventory systems.

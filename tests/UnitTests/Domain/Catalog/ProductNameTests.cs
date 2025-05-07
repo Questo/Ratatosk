@@ -1,6 +1,6 @@
 using Ratatosk.Domain.Catalog.ValueObjects;
 
-namespace Ratatosk.UnitTests;
+namespace Ratatosk.UnitTests.Domain.Catalog;
 
 [TestClass]
 public class ProductNameTests
