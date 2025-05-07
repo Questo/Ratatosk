@@ -50,7 +50,15 @@ public class Inventory : AggregateRoot
 
     public void AddStock(SKU sku, Quantity quantity)
     {
-        RaiseEvent(new StockAdded(Id, sku, quantity));
+        var @event = new StockAdded(Id, sku, quantity);
+        var stockEntry = _stockBySku.GetValueOrDefault(sku);
+
+        if (stockEntry != null && stockEntry.Available.Unit != quantity.Unit)
+        {
+            throw new ArgumentException($"Unit mismatch for SKU {sku}. Expected {stockEntry.Available.Unit}, but got {quantity.Unit}");
+        }
+
+        RaiseEvent(@event);
     }
 
     public void ReserveStock(SKU sku, int quantity)

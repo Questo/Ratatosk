@@ -28,6 +28,18 @@ public class InventoryTests
     }
 
     [TestMethod]
+    public void AddStock_WithDifferentUnit_ShouldThrowException()
+    {
+        var inventory = Inventory.Create();
+        var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
+        var quantity = Quantity.Pieces(10);
+
+        inventory.AddStock(sku, quantity);
+
+        Assert.ThrowsException<ArgumentException>(() => inventory.AddStock(sku, Quantity.Create(10, "kg").Value!));
+    }
+
+    [TestMethod]
     public void ReserveStock_ShouldRaiseStockReservedEvent()
     {
         var inventory = Inventory.Create();
