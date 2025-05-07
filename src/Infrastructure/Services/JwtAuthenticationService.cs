@@ -7,7 +7,7 @@ using Ratatosk.Application.Authentication;
 using Ratatosk.Core.Primitives;
 using Ratatosk.Infrastructure.Configuration;
 
-namespace Ratatosk.Infrastructure.Authentication;
+namespace Ratatosk.Infrastructure.Services;
 
 public class JwtAuthenticationService(IOptions<AuthOptions> options) : IAuthenticationService
 {

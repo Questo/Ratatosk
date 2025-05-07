@@ -5,7 +5,6 @@ using Ratatosk.Application.Authentication;
 using Ratatosk.Application.Catalog.ReadModels;
 using Ratatosk.Core.Abstractions;
 using Ratatosk.Domain.Catalog;
-using Ratatosk.Infrastructure.Authentication;
 using Ratatosk.Infrastructure.EventStore;
 using Ratatosk.Infrastructure.Persistence;
 using Ratatosk.Infrastructure.Persistence.EventStore;
