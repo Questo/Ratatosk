@@ -13,8 +13,8 @@ namespace Ratatosk.Domain;
 /// <para>- <c>Quantity.Create(200, "ml")</c> (two hundred milliliters)  </para>
 ///
 /// <para>Rules enforced:</para>
-/// - <c>amount</c> must be zero or positive  
-/// - <c>unit</c> must be a non-empty string (e.g., "pcs", "kg", "L")  
+/// <para>- <c>amount</c> must be zero or positive  </para>
+/// <para>- <c>unit</c> must be one of the supported units (e.g., "pcs", "kg", "g", "L", "ml", "m", "cm", "mm")  </para>
 /// </summary>
 public sealed class Quantity : ValueObject
 {
