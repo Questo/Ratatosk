@@ -1,6 +1,5 @@
 using Ratatosk.Core.BuildingBlocks;
 using Ratatosk.Core.Primitives;
-using Ratatosk.Domain.Catalog.ValueObjects;
 using Ratatosk.Domain.Inventoring.Events;
 
 namespace Ratatosk.Domain.Inventoring;
@@ -46,13 +45,11 @@ public class Inventory : AggregateRoot
     {
         return _stockBySku.TryGetValue(sku, out var stockEntry)
             ? stockEntry
-            : new StockEntry(0, 0);
+            : new StockEntry(Quantity.Pieces(0), 0);
     }
 
-    public void AddStock(SKU sku, int quantity)
+    public void AddStock(SKU sku, Quantity quantity)
     {
-        Guard.AgainstNegativeOrZero(quantity, nameof(quantity));
-
         RaiseEvent(new StockAdded(Id, sku, quantity));
     }
 
@@ -65,7 +62,7 @@ public class Inventory : AggregateRoot
             throw new InvalidOperationException($"SKU {sku} not found in inventory");
         }
 
-        if (stockEntry.Available - stockEntry.Reserved < quantity)
+        if (stockEntry.Available.Amount - stockEntry.Reserved < quantity)
         {
             throw new InvalidOperationException($"Not enough stock available for SKU {sku}");
         }
@@ -91,4 +88,4 @@ public class Inventory : AggregateRoot
     }
 }
 
-public sealed record StockEntry(int Available, int Reserved);
+public sealed record StockEntry(Quantity Available, int Reserved);

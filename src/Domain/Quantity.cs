@@ -55,6 +55,55 @@ public sealed class Quantity : ValueObject
     public static Quantity Centimeters(int amount) => new(amount, "cm");
     public static Quantity Millimeters(int amount) => new(amount, "mm");
 
+    public static Quantity operator +(Quantity left, Quantity right)
+    {
+        EnsureSameUnit(left, right);
+        return new Quantity(left.Amount + right.Amount, left.Unit);
+    }
+
+    public static Quantity operator -(Quantity left, Quantity right)
+    {
+        EnsureSameUnit(left, right);
+
+        var resultAmount = left.Amount - right.Amount;
+        if (resultAmount < 0)
+            throw new InvalidOperationException("Resulting quantity cannot be negative.");
+
+        return new Quantity(resultAmount, left.Unit);
+    }
+
+    public static bool operator >(Quantity left, Quantity right)
+    {
+        EnsureSameUnit(left, right);
+        return left.Amount > right.Amount;
+    }
+
+    public static bool operator <(Quantity left, Quantity right)
+    {
+        EnsureSameUnit(left, right);
+        return left.Amount < right.Amount;
+    }
+
+    public static bool operator >=(Quantity left, Quantity right)
+    {
+        EnsureSameUnit(left, right);
+        return left.Amount >= right.Amount;
+    }
+
+    public static bool operator <=(Quantity left, Quantity right)
+    {
+        EnsureSameUnit(left, right);
+        return left.Amount <= right.Amount;
+    }
+
+    private static void EnsureSameUnit(Quantity a, Quantity b)
+    {
+        if (!string.Equals(a.Unit, b.Unit, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException($"Cannot operate on quantities with different units: '{a.Unit}' vs '{b.Unit}'.");
+        }
+    }
+
     protected override IEnumerable<object> GetEqualityComponents()
     {
         yield return Amount;

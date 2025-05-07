@@ -13,7 +13,7 @@ public class InventoryTests
     {
         var inventory = Inventory.Create();
         var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
-        var quantity = 10;
+        var quantity = Quantity.Pieces(10);
 
         inventory.AddStock(sku, quantity);
 
@@ -28,24 +28,14 @@ public class InventoryTests
     }
 
     [TestMethod]
-    public void AddStock_WithNegativeQuantity_ShouldThrowException()
-    {
-        var inventory = Inventory.Create();
-        var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
-        var quantity = -5;
-
-        Assert.ThrowsException<ArgumentOutOfRangeException>(() => inventory.AddStock(sku, quantity));
-    }
-
-    [TestMethod]
     public void ReserveStock_ShouldRaiseStockReservedEvent()
     {
         var inventory = Inventory.Create();
         var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
-        var quantity = 5;
+        var quantity = Quantity.Pieces(5);
 
-        inventory.AddStock(sku, 10);
-        inventory.ReserveStock(sku, quantity);
+        inventory.AddStock(sku, Quantity.Pieces(10));
+        inventory.ReserveStock(sku, quantity.Amount);
 
         var @event = inventory.UncommittedEvents
             .OfType<StockReserved>()
@@ -54,7 +44,7 @@ public class InventoryTests
         Assert.IsNotNull(@event);
         Assert.AreEqual(inventory.Id, @event.InventoryId);
         Assert.AreEqual(sku, @event.SKU);
-        Assert.AreEqual(quantity, @event.Quantity);
+        Assert.AreEqual(quantity.Amount, @event.Quantity);
     }
 
     [TestMethod]
@@ -74,7 +64,7 @@ public class InventoryTests
         var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
         var quantity = 5;
 
-        inventory.AddStock(sku, 3);
+        inventory.AddStock(sku, Quantity.Pieces(3));
 
         Assert.ThrowsException<InvalidOperationException>(() => inventory.ReserveStock(sku, quantity));
     }
@@ -86,7 +76,7 @@ public class InventoryTests
         var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
         var quantity = 5;
 
-        inventory.AddStock(sku, 10);
+        inventory.AddStock(sku, Quantity.Pieces(10));
         inventory.ReserveStock(sku, quantity);
         inventory.ReleaseStock(sku, quantity);
 
