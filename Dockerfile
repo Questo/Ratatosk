@@ -11,7 +11,7 @@ RUN dotnet restore
 RUN dotnet build src/API -c Release --no-restore
 
 # Run tests (fail fast if they break)
-RUN dotnet test tests/UnitTests --no-restore --no-build --verbosity normal
+RUN dotnet test tests/UnitTests --no-restore --verbosity normal
 
 # Publish application
 RUN dotnet publish src/API -c Release -o /publish
