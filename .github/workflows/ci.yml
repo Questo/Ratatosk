@@ -6,60 +6,67 @@ on:
       - main
       - 'refs/tags/*'
 
-env:
-  IMAGE_NAME: ghcr.io/${{ github.repository }}
-  IMAGE_TAG: ${{ github.sha }}
-  TEST_POSTGRES_DB: ratatest
-  TEST_POSTGRES_USER: testuser
-  TEST_POSTGRES_PASSWORD: testpass
-
 jobs:
-  build-and-test:
+  build-and-unit-test:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
 
     steps:
-      - name: Checkout code
+      - name: Checkout source code
         uses: actions/checkout@v4
 
-      - name: Log in to GHCR
+      - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set lowercase image name and tag
+        run: |
+          echo "IMAGE_NAME=ghcr.io/${GITHUB_REPOSITORY,,}/ratatosk-api" >> $GITHUB_ENV
+          echo "IMAGE_TAG=ci" >> $GITHUB_ENV
 
       - name: Build image (includes unit tests)
-        run: |
-          docker build -t $IMAGE_NAME:$IMAGE_TAG .
+        run: docker build -t $IMAGE_NAME:$IMAGE_TAG .
 
       - name: Push image to GHCR
-        run: |
-          docker push $IMAGE_NAME:$IMAGE_TAG
+        run: docker push $IMAGE_NAME:$IMAGE_TAG
 
   integration-tests:
-    needs: build-and-test
+    needs: build-and-unit-test
     runs-on: ubuntu-latest
+
+    env:
+      TEST_POSTGRES_DB: ratatest
+      TEST_POSTGRES_USER: testuser
+      TEST_POSTGRES_PASSWORD: testpass
+
     steps:
-      - name: Checkout code
+      - name: Checkout source code
         uses: actions/checkout@v4
 
-      - name: Log in to GHCR
+      - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Pull built image
+      - name: Set lowercase image name and tag
+        run: |
+          echo "IMAGE_NAME=ghcr.io/${GITHUB_REPOSITORY,,}/ratatosk-api" >> $GITHUB_ENV
+          echo "IMAGE_TAG=ci" >> $GITHUB_ENV
+
+      - name: Pull the CI image
         run: docker pull $IMAGE_NAME:$IMAGE_TAG
 
-      - name: Run integration tests via docker-compose
+      - name: Run integration tests
         run: |
           docker-compose -f docker-compose.test.yml --profile ci up --abort-on-container-exit --exit-code-from ratatosk-api-ci
 
-      - name: Tear down test stack
+      - name: Tear down test environment
         if: always()
         run: docker-compose -f docker-compose.test.yml --profile ci down -v
