@@ -2,7 +2,7 @@ using Ratatosk.Core.BuildingBlocks;
 
 namespace Ratatosk.UnitTests.Shared;
 
-public class TestEvent(string name) : DomainEvent
+public class TestEvent(string value) : DomainEvent
 {
-    public string Name { get; } = name;
+    public string Value { get; } = value;
 }

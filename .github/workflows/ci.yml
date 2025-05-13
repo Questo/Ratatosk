@@ -57,7 +57,7 @@ jobs:
             -reports:"$report_file" \
             -targetdir:"coverage-report" \
             -reporttypes:Html,XmlSummary \
-            -assemblyfilters:+Ratatosk* \
+            -assemblyfilters:+Ratatosk.Core*,+Ratatosk.Domain*,+Ratatosk.Application* \
             -classfilters:-System.Text.RegularExpressions.Generated.* \
             -filefilters:-*RegexGenerator.g.cs,-*obj/*
 
