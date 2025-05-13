@@ -111,4 +111,46 @@ public class InventoryTests
 
         Assert.ThrowsException<ArgumentOutOfRangeException>(() => inventory.ReleaseStock(sku, quantity));
     }
+
+    [TestMethod]
+    public void RemoveStock_ShouldRaiseStockRemovedEvent()
+    {
+        var inventory = Inventory.Create();
+        var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
+        var quantity = Quantity.Pieces(5);
+
+        inventory.AddStock(sku, Quantity.Pieces(10));
+        inventory.RemoveStock(sku, quantity);
+
+        var @event = inventory.UncommittedEvents
+            .OfType<StockRemoved>()
+            .FirstOrDefault();
+
+        Assert.IsNotNull(@event);
+        Assert.AreEqual(inventory.Id, @event.InventoryId);
+        Assert.AreEqual(sku, @event.SKU);
+        Assert.AreEqual(quantity, @event.Quantity);
+    }
+
+    [TestMethod]
+    public void RemoveStock_WithNegativeQuantity_ShouldThrowException()
+    {
+        var inventory = Inventory.Create();
+        var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
+        var quantity = Quantity.Pieces(5);
+
+        inventory.AddStock(sku, quantity);
+
+        Assert.ThrowsException<InvalidOperationException>(() => inventory.RemoveStock(sku, Quantity.Pieces(6)));
+    }
+
+    [TestMethod]
+    public void RemoveStock_WhenSkuNotFound_ShouldThrowException()
+    {
+        var inventory = Inventory.Create();
+        var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
+        var quantity = Quantity.Pieces(5);
+
+        Assert.ThrowsException<InvalidOperationException>(() => inventory.RemoveStock(sku, quantity));
+    }
 }
