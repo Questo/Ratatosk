@@ -29,8 +29,47 @@ jobs:
           echo "IMAGE_NAME=ghcr.io/${GITHUB_REPOSITORY,,}/ratatosk-api" >> $GITHUB_ENV
           echo "IMAGE_TAG=ci" >> $GITHUB_ENV
 
-      - name: Build image (includes unit tests)
+      - name: Build image
         run: docker build -t $IMAGE_NAME:$IMAGE_TAG .
+
+      - name: Run unit tests inside container and generate coverage report
+        run: |
+          mkdir -p coverage
+          docker run --rm \
+            -v ${{ github.workspace }}/coverage:/coverage \
+            -e COVERAGE_THRESHOLD=70 \
+            $IMAGE_NAME:$IMAGE_TAG \
+            dotnet test tests/UnitTests \
+              --collect:"XPlat Code Coverage" \
+              --results-directory /coverage \
+              --logger trx
+      
+      - name: Parse coverage and enforce threshold
+        run: |
+          report_file=$(find coverage -name 'coverage.cobertura.xml' | head -n 1)
+          if [ -z "$report_file" ]; then
+            echo "No coverage report found"
+            exit 1
+          fi
+
+          # Extract total coverage from cobertura XML
+          coverage=$(xmllint --xpath \
+            "string(//coverage/@line-rate)" \
+            "$report_file")
+
+          percent=$(awk "BEGIN { printf(\"%.0f\", $coverage * 100) }")
+          echo "Coverage: $percent% (threshold: 70%)"
+
+          if [ "$percent" -lt "$COVERAGE_THRESHOLD" ]; then
+            echo "Coverage below threshold!"
+            exit 1
+          fi
+      
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage
 
       - name: Push image to GHCR
         run: docker push $IMAGE_NAME:$IMAGE_TAG
