@@ -63,11 +63,13 @@ jobs:
           coverage = float(root.attrib["line-rate"])
           percent = round(coverage * 100)
 
-          print(f"Coverage: {percent}% (threshold: {os.environ['COVERAGE_THRESHOLD']}%)")
+          print(f"📊 Coverage: {percent}% (threshold: {os.environ['COVERAGE_THRESHOLD']}%)")
 
           if percent < int(os.environ["COVERAGE_THRESHOLD"]):
-              print("Coverage below threshold!")
+              print("❌ Coverage below threshold!")
               sys.exit(1)
+
+          print("✅ Coverage threshold met.")
         shell: python
 
       - name: Upload coverage report
