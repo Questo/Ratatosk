@@ -17,5 +17,5 @@ WORKDIR /app
 COPY --from=build /publish ./
 COPY --from=build /src/tests ./tests
 
-ENTRYPOINT ["dotnet", "Ratatosk.API.dll"]
+CMD ["dotnet", "Ratatosk.API.dll"]
 
