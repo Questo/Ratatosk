@@ -43,6 +43,9 @@ jobs:
           docker cp "$container_id:/coverage" ./coverage
           docker rm "$container_id"
 
+      - name: Install xmllint
+        run: sudo apt-get update && sudo apt-get install -y libxml2-utils
+
       - name: Parse coverage and enforce threshold
         run: |
           report_file=$(find coverage -name 'coverage.cobertura.xml' | head -n 1)
