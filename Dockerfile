@@ -11,4 +11,5 @@ RUN dotnet publish src/API -c Release -o /publish
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
 WORKDIR /app
 COPY --from=build /publish ./
+COPY --from=build /coverage /coverage
 CMD ["dotnet", "Ratatosk.API.dll"]
