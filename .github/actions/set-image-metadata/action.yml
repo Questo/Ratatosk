@@ -1,0 +1,9 @@
+name: "Set Image Metadata"
+description: "Sets lowercase IMAGE_NAME and IMAGE_TAG env vars"
+runs:
+  using: "composite"
+  steps:
+    - run: |
+        echo "IMAGE_NAME=ghcr.io/${GITHUB_REPOSITORY,,}/ratatosk-api" >> $GITHUB_ENV
+        echo "IMAGE_TAG=ci" >> $GITHUB_ENV
+      shell: bash

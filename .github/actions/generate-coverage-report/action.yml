@@ -1,0 +1,28 @@
+name: "Generate Coverage Report"
+description: "Uses reportgenerator to create HTML and Summary coverage"
+inputs:
+  input-dir:
+    required: true
+    description: "Path to coverage XML input directory"
+  output-dir:
+    required: true
+    description: "Path to output HTML report"
+runs:
+  using: "composite"
+  steps:
+    - run: |
+        dotnet tool install --global dotnet-reportgenerator-globaltool --version 5.*
+        echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
+        report_file=$(find "${{ inputs.input-dir }}" -name 'coverage.cobertura.xml' | head -n 1)
+        if [ -z "$report_file" ]; then
+          echo "❌ No coverage.cobertura.xml found"
+          exit 1
+        fi
+        reportgenerator \
+          -reports:"$report_file" \
+          -targetdir:"${{ inputs.output-dir }}" \
+          -reporttypes:Html;XmlSummary \
+          -assemblyfilters:+Ratatosk.Core*,+Ratatosk.Domain*,+Ratatosk.Application* \
+          -classfilters:-System.Text.RegularExpressions.Generated.* \
+          -filefilters:-*RegexGenerator.g.cs;-*obj/*
+      shell: bash

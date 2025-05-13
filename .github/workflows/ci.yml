@@ -27,67 +27,28 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set lowercase image name and tag
-        run: |
-          echo "IMAGE_NAME=ghcr.io/${GITHUB_REPOSITORY,,}/ratatosk-api" >> $GITHUB_ENV
-          echo "IMAGE_TAG=ci" >> $GITHUB_ENV
+        uses: ./.github/actions/setup-image-metadata
 
       - name: Build Docker image (includes tests + coverage)
         run: docker build -t $IMAGE_NAME:$IMAGE_TAG .
 
       - name: Copy coverage report from container
-        run: |
-          mkdir -p coverage
-          container_id=$(docker create $IMAGE_NAME:$IMAGE_TAG)
-          docker cp "$container_id:/coverage" ./coverage
-          docker rm "$container_id"
-
-      - name: Install reportgenerator
-        run: |
-          dotnet tool install --global dotnet-reportgenerator-globaltool --version 5.*
-          echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
+        uses: ./.github/actions/copy-container-coverage
+        with:
+          container-tag: $IMAGE_NAME:$IMAGE_TAG
+          target_path: coverage
 
       - name: Generate HTML and Summary.xml
-        run: |
-          report_file=$(find coverage -name 'coverage.cobertura.xml' | head -n 1)
-          if [ -z "$report_file" ]; then
-            echo "❌ No coverage.cobertura.xml found"
-            exit 1
-          fi
-          reportgenerator \
-            -reports:"$report_file" \
-            -targetdir:"coverage-report" \
-            -reporttypes:Html,XmlSummary \
-            -assemblyfilters:+Ratatosk.Core*,+Ratatosk.Domain*,+Ratatosk.Application* \
-            -classfilters:-System.Text.RegularExpressions.Generated.* \
-            -filefilters:-*RegexGenerator.g.cs,-*obj/*
+        uses: ././github/actions/generate-coverage-report
+        with:
+          input-dir: coverage
+          output-dir: coverage-report
 
-      - name: Enforce coverage threshold from Summary.xml
-        run: |
-          import xml.etree.ElementTree as ET
-          import os
-          import sys
-
-          summary_path = "coverage-report/Summary.xml"
-          if not os.path.exists(summary_path):
-              print("❌ Summary.xml not found")
-              sys.exit(1)
-
-          try:
-              tree = ET.parse(summary_path)
-              line_coverage = tree.find(".//Linecoverage")
-              percent = round(float(line_coverage.text))
-          except Exception as e:
-              print("❌ Failed to parse Linecoverage:", str(e))
-              sys.exit(1)
-
-          print(f"📊 Filtered Coverage: {percent}% (threshold: {os.environ['COVERAGE_THRESHOLD']}%)")
-
-          if percent < int(os.environ["COVERAGE_THRESHOLD"]):
-              print("❌ Coverage below threshold!")
-              sys.exit(1)
-
-          print("✅ Coverage threshold met.")
-        shell: python
+      - name: Enforce coverage threshold
+        uses: ././github/actions/enforce-coverage-threshold
+        with:
+          summary-path: coverage-report/Summary.xml
+          threshold: ${{ env.COVERAGE_THRESHOLD }}
 
       - name: Upload coverage reports
         uses: actions/upload-artifact@v4
@@ -97,9 +58,6 @@ jobs:
 
       - name: Push image to GHCR
         run: docker push $IMAGE_NAME:$IMAGE_TAG
-
-
-
 
   # integration-tests:
   #   needs: build-and-unit-test

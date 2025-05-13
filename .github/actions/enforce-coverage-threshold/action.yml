@@ -1,0 +1,33 @@
+name: "Enforce Coverage Threshold"
+description: "Fails the build if coverage is below a threshold"
+inputs:
+  summary-path:
+    required: true
+    description: "Path to Summary.xml"
+  threshold:
+    required: true
+    description: "Minimum required line coverage percentage"
+runs:
+  using: "composite"
+  steps:
+    - run: |
+        python3 - <<EOF
+        import xml.etree.ElementTree as ET
+        import sys, os
+        summary = "${{ inputs.summary-path }}"
+        if not os.path.exists(summary):
+          print("❌ Summary.xml not found")
+          sys.exit(1)
+        try:
+          tree = ET.parse(summary)
+          percent = round(float(tree.find(".//Linecoverage").text))
+        except Exception as e:
+          print("❌ Failed to parse Linecoverage:", str(e))
+          sys.exit(1)
+        print(f"📊 Coverage: {percent}% (threshold: ${{ inputs.threshold }}%)")
+        if percent < int("${{ inputs.threshold }}"):
+          print("❌ Coverage below threshold!")
+          sys.exit(1)
+        print("✅ Coverage threshold met.")
+        EOF
+      shell: bash
