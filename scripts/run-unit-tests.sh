@@ -34,7 +34,9 @@ reportgenerator \
   -reports:"$REPORT_FILE" \
   -targetdir:"$HTML_REPORT_DIR" \
   -reporttypes:Html,XmlSummary,Cobertura \
-  -assemblyfilters:+Ratatosk*
+  -assemblyfilters:+Ratatosk* \
+  -classfilters:-System.Text.RegularExpressions.Generated.* \
+  -filefilters:-*RegexGenerator.g.cs,-*obj/*
 
 SUMMARY_FILE="$HTML_REPORT_DIR/Summary.xml"
 

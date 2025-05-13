@@ -57,7 +57,9 @@ jobs:
             -reports:"$report_file" \
             -targetdir:"coverage-report" \
             -reporttypes:Html,XmlSummary \
-            -assemblyfilters:+Ratatosk*
+            -assemblyfilters:+Ratatosk* \
+            -classfilters:-System.Text.RegularExpressions.Generated.* \
+            -filefilters:-*RegexGenerator.g.cs,-*obj/*
 
       - name: Enforce coverage threshold from Summary.xml
         run: |
