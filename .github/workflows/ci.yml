@@ -41,29 +41,44 @@ jobs:
           docker cp "$container_id:/coverage" ./coverage
           docker rm "$container_id"
 
-      - name: Check coverage threshold (Python)
+      - name: Install reportgenerator
+        run: |
+          dotnet tool install --global dotnet-reportgenerator-globaltool --version 5.*
+          echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
+
+      - name: Generate HTML and Summary.xml
+        run: |
+          report_file=$(find coverage -name 'coverage.cobertura.xml' | head -n 1)
+          if [ -z "$report_file" ]; then
+            echo "❌ No coverage.cobertura.xml found"
+            exit 1
+          fi
+          reportgenerator \
+            -reports:"$report_file" \
+            -targetdir:"coverage-report" \
+            -reporttypes:Html;XmlSummary \
+            -assemblyfilters:+Ratatosk*
+
+      - name: Enforce coverage threshold from Summary.xml
         run: |
           import xml.etree.ElementTree as ET
           import os
           import sys
 
-          report_path = None
-          for root, dirs, files in os.walk("coverage"):
-              for file in files:
-                  if file.endswith("coverage.cobertura.xml"):
-                      report_path = os.path.join(root, file)
-                      break
-
-          if not report_path:
-              print("No coverage report found")
+          summary_path = "coverage-report/Summary.xml"
+          if not os.path.exists(summary_path):
+              print("❌ Summary.xml not found")
               sys.exit(1)
 
-          tree = ET.parse(report_path)
-          root = tree.getroot()
-          coverage = float(root.attrib["line-rate"])
-          percent = round(coverage * 100)
+          try:
+              tree = ET.parse(summary_path)
+              line_coverage = tree.find(".//Linecoverage")
+              percent = round(float(line_coverage.text))
+          except Exception as e:
+              print("❌ Failed to parse Linecoverage:", str(e))
+              sys.exit(1)
 
-          print(f"📊 Coverage: {percent}% (threshold: {os.environ['COVERAGE_THRESHOLD']}%)")
+          print(f"📊 Filtered Coverage: {percent}% (threshold: {os.environ['COVERAGE_THRESHOLD']}%)")
 
           if percent < int(os.environ["COVERAGE_THRESHOLD"]):
               print("❌ Coverage below threshold!")
@@ -72,14 +87,15 @@ jobs:
           print("✅ Coverage threshold met.")
         shell: python
 
-      - name: Upload coverage report
+      - name: Upload coverage reports
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-report
-          path: coverage
+          name: coverage-html
+          path: coverage-report
 
       - name: Push image to GHCR
         run: docker push $IMAGE_NAME:$IMAGE_TAG
+
 
 
 
