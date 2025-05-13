@@ -1,0 +1,19 @@
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat code coverage">
+        <Configuration>
+          <Include>
+            <ModulePath>.*Ratatosk.*</ModulePath>
+          </Include>
+          <Exclude>
+            <ModulePath>.*\.Tests</ModulePath>
+            <ModulePath>.*xunit.*</ModulePath>
+            <ModulePath>.*Microsoft.*</ModulePath>
+            <ModulePath>.*System.*</ModulePath>
+          </Exclude>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>
