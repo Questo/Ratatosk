@@ -12,6 +12,7 @@ HTML_REPORT_DIR="$REPO_ROOT/coverage-report"
 
 mkdir -p "$HTML_REPORT_DIR"
 
+rm -rf "$TEST_RESULTS_DIR"/*
 rm -rf "$HTML_REPORT_DIR"/*
 
 echo "Running unit tests..."
