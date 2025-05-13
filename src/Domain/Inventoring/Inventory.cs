@@ -31,6 +31,12 @@ public class Inventory : AggregateRoot
                 entry = entry with { Reserved = entry.Reserved - stockReleased.Quantity };
                 _stockBySku[stockReleased.SKU] = entry;
                 break;
+
+            case StockRemoved stockRemoved:
+                entry = GetStockEntry(stockRemoved.SKU);
+                entry = entry with { Available = entry.Available - stockRemoved.Quantity };
+                _stockBySku[stockRemoved.SKU] = entry;
+                break;
         }
     }
 
@@ -93,6 +99,21 @@ public class Inventory : AggregateRoot
         }
 
         RaiseEvent(new StockReleased(Id, sku, quantity));
+    }
+
+    public void RemoveStock(SKU sku, Quantity quantity)
+    {
+        if (!_stockBySku.TryGetValue(sku, out var stockEntry))
+        {
+            throw new InvalidOperationException($"SKU {sku} not found in inventory");
+        }
+
+        if (stockEntry.Available < quantity)
+        {
+            throw new InvalidOperationException($"Not enough available stock for SKU {sku}");
+        }
+
+        RaiseEvent(new StockRemoved(Id, sku, quantity));
     }
 }
 
