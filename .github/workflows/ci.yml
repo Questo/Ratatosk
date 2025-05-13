@@ -2,16 +2,14 @@ name: CI
 
 on:
   push:
-    branches:
-      - main
-    tags:
-      - '*'
+    branches: [main]
+    tags: ["*"]
 
 env:
   COVERAGE_THRESHOLD: 70
 
 jobs:
-  build-and-unit-test:
+  build-and-test:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -33,35 +31,44 @@ jobs:
           echo "IMAGE_NAME=ghcr.io/${GITHUB_REPOSITORY,,}/ratatosk-api" >> $GITHUB_ENV
           echo "IMAGE_TAG=ci" >> $GITHUB_ENV
 
-      - name: Build image (includes unit tests + coverage)
+      - name: Build Docker image (includes tests + coverage)
         run: docker build -t $IMAGE_NAME:$IMAGE_TAG .
 
-      - name: Copy coverage report out of image
+      - name: Copy coverage report from container
         run: |
           mkdir -p coverage
           container_id=$(docker create $IMAGE_NAME:$IMAGE_TAG)
           docker cp "$container_id:/coverage" ./coverage
           docker rm "$container_id"
 
-      - name: Install xmllint
-        run: sudo apt-get update && sudo apt-get install -y libxml2-utils
-
-      - name: Parse coverage and enforce threshold
+      - name: Check coverage threshold (Python)
         run: |
-          report_file=$(find coverage -name 'coverage.cobertura.xml' | head -n 1)
-          if [ -z "$report_file" ]; then
-            echo "No coverage report found"
-            exit 1
-          fi
+          import xml.etree.ElementTree as ET
+          import os
+          import sys
 
-          coverage=$(xmllint --xpath "string(//coverage/@line-rate)" "$report_file")
-          percent=$(awk "BEGIN { printf(\"%.0f\", $coverage * 100) }")
-          echo "Coverage: $percent% (threshold: $COVERAGE_THRESHOLD%)"
+          report_path = None
+          for root, dirs, files in os.walk("coverage"):
+              for file in files:
+                  if file.endswith("coverage.cobertura.xml"):
+                      report_path = os.path.join(root, file)
+                      break
 
-          if [ "$percent" -lt "$COVERAGE_THRESHOLD" ]; then
-            echo "Coverage below threshold!"
-            exit 1
-          fi
+          if not report_path:
+              print("No coverage report found")
+              sys.exit(1)
+
+          tree = ET.parse(report_path)
+          root = tree.getroot()
+          coverage = float(root.attrib["line-rate"])
+          percent = round(coverage * 100)
+
+          print(f"Coverage: {percent}% (threshold: {os.environ['COVERAGE_THRESHOLD']}%)")
+
+          if percent < int(os.environ["COVERAGE_THRESHOLD"]):
+              print("Coverage below threshold!")
+              sys.exit(1)
+        shell: python
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
@@ -71,6 +78,7 @@ jobs:
 
       - name: Push image to GHCR
         run: docker push $IMAGE_NAME:$IMAGE_TAG
+
 
 
   # integration-tests:
