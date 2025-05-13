@@ -36,7 +36,7 @@ jobs:
         uses: ./.github/actions/copy-container-coverage
         with:
           container-tag: $IMAGE_NAME:$IMAGE_TAG
-          target_path: coverage
+          target-path: coverage
 
       - name: Generate HTML and Summary.xml
         uses: ././github/actions/generate-coverage-report
