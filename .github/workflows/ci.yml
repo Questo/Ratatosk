@@ -56,7 +56,7 @@ jobs:
           reportgenerator \
             -reports:"$report_file" \
             -targetdir:"coverage-report" \
-            -reporttypes:Html;XmlSummary \
+            -reporttypes:Html,XmlSummary \
             -assemblyfilters:+Ratatosk*
 
       - name: Enforce coverage threshold from Summary.xml
