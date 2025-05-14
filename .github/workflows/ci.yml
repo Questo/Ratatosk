@@ -4,6 +4,12 @@ on:
   push:
     branches: [main]
     tags: ["*"]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'Dockerfile'
+      - '**/*.cs'
+      - '**/*.csproj'
 
 env:
   COVERAGE_THRESHOLD: 70
