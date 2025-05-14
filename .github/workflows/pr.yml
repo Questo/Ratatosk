@@ -1,0 +1,61 @@
+name: Pull Request Checks
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set image name and tag
+        uses: ./.github/actions/setup-image-metadata
+        with:
+          image-tag: pr-${{ github.sha }}
+
+      - name: Build Docker image (runs unit tests inside)
+        run: docker build -t $IMAGE_NAME:$IMAGE_TAG .
+
+      - name: Copy coverage from container
+        uses: ./.github/actions/copy-container-coverage
+        with:
+          container-tag: $IMAGE_NAME:$IMAGE_TAG
+          target-path: coverage
+
+      - name: Generate HTML and Summary.xml
+        uses: ./.github/actions/generate-coverage-report
+        with:
+          input-dir: coverage
+          output-dir: coverage-report
+
+      - name: Publish unit test results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Unit Tests
+          path: coverage/**/*.trx
+          reporter: dotnet-trx
+          fail-on-error: false
+
+      - name: Upload PR coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-coverage-html
+          path: coverage-report
+
+  check-formatting:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Verify formatting
+        run: dotnet format --verify-no-changes --severity error

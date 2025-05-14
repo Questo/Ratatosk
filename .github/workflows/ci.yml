@@ -28,7 +28,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set lowercase image name and tag
-        uses: ./.github/actions/set-image-metadata
+        uses: ./.github/actions/setup-image-metadata
 
       - name: Build Docker image (includes tests + coverage)
         run: docker build -t $IMAGE_NAME:$IMAGE_TAG .
