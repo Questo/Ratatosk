@@ -39,13 +39,13 @@ jobs:
           target-path: coverage
 
       - name: Generate HTML and Summary.xml
-        uses: ././github/actions/generate-coverage-report
+        uses: ./.github/actions/generate-coverage-report
         with:
           input-dir: coverage
           output-dir: coverage-report
 
       - name: Enforce coverage threshold
-        uses: ././github/actions/enforce-coverage-threshold
+        uses: ./.github/actions/enforce-coverage-threshold
         with:
           summary-path: coverage-report/Summary.xml
           threshold: ${{ env.COVERAGE_THRESHOLD }}
