@@ -1,6 +1,6 @@
 # 🐿️ Ratatosk
 
-**Ratatosk** is a small, event-driven C# application based on Domain-Driven Design (DDD) principles. It leverages event sourcing, CQRS, and snapshotting to manage domain logic and state.
+**Ratatosk** is an-driven C# application based on Domain-Driven Design (DDD) principles. It leverages event sourcing, CQRS, and snapshotting to manage domain logic and state.
 
 ## 🚀 Features
 - **Event Sourcing**: Stores all changes to the application state as a sequence of events.
