@@ -13,6 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      checks: write
       packages: write
 
     steps:
@@ -57,7 +58,7 @@ jobs:
           path: coverage-report
 
       - name: Publish unit test report
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@v2
         with:
           name: Unit Tests
           path: coverage/**/*.trx
