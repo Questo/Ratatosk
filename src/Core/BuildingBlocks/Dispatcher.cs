@@ -3,7 +3,12 @@ using Ratatosk.Core.Abstractions;
 
 namespace Ratatosk.Core.BuildingBlocks;
 
-public class Dispatcher(IServiceProvider serviceProvider)
+public interface IDispatcher
+{
+    Task<TResponse> DispatchAsync<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default);
+}
+
+public class Dispatcher(IServiceProvider serviceProvider) : IDispatcher
 {
     public async Task<TResponse> DispatchAsync<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
     {

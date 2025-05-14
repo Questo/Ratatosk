@@ -15,7 +15,7 @@ public interface ICatalogService
     Task<Result<ProductReadModel>> GetProductByIdAsync(GetProductByIdQuery query, CancellationToken cancellationToken = default);
 }
 
-public class CatalogService(Dispatcher dispatcher, ILogger<CatalogService> logger) : ICatalogService
+public class CatalogService(IDispatcher dispatcher, ILogger<CatalogService> logger) : ICatalogService
 {
     public async Task<Result<Guid>> AddProductAsync(AddProductCommand command, CancellationToken cancellationToken = default)
     {
