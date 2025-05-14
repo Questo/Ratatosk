@@ -20,6 +20,7 @@ services:
         depends_on:
             - db
         environment:
+            Authentication__Secret: "${AUTHENTICATION_SECRET}"
             Database__ConnectionString: "Host=ratatosk-db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
             Eventstore__Type: 2
 
