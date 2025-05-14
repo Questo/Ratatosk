@@ -21,8 +21,8 @@ runs:
         reportgenerator \
           -reports:"$report_file" \
           -targetdir:"${{ inputs.output-dir }}" \
-          -reporttypes:Html;XmlSummary \
+          -reporttypes:Html,XmlSummary,Cobertura \
           -assemblyfilters:+Ratatosk.Core*,+Ratatosk.Domain*,+Ratatosk.Application* \
           -classfilters:-System.Text.RegularExpressions.Generated.* \
-          -filefilters:-*RegexGenerator.g.cs;-*obj/*
+          -filefilters:-*RegexGenerator.g.cs,-*obj/*
       shell: bash
