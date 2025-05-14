@@ -14,7 +14,7 @@ public static class ApplicationServiceCollectionExtensions
 {
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
-        services.AddScoped<Dispatcher>();
+        services.AddScoped<IDispatcher, Dispatcher>();
         services.AddScoped<ICatalogService, CatalogService>();
 
         services.AddRequestHandlers();
