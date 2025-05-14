@@ -4,7 +4,7 @@ WORKDIR /src
 COPY . ./
 RUN dotnet restore
 RUN dotnet build --no-restore -c Release
-RUN dotnet test tests/UnitTests --collect:"XPlat Code Coverage" --results-directory /coverage
+RUN dotnet test tests/UnitTests --collect:"XPlat Code Coverage" --logger "trx" --results-directory /coverage
 RUN dotnet publish src/API -c Release -o /publish
 
 # Stage 2: minimal runtime image

@@ -16,7 +16,7 @@ rm -rf "$TEST_RESULTS_DIR"/*
 rm -rf "$HTML_REPORT_DIR"/*
 
 echo "Running unit tests..."
-dotnet test "$TEST_PROJECT" --collect:"XPlat Code Coverage"
+dotnet test "$TEST_PROJECT" --collect:"XPlat Code Coverage" --logger "trx"
 
 echo "Locating Cobertura coverage report..."
 REPORT_FILE=$(find "$TEST_RESULTS_DIR" -name 'coverage.cobertura.xml' | head -n 1)

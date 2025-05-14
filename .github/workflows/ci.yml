@@ -56,6 +56,14 @@ jobs:
           name: coverage-html
           path: coverage-report
 
+      - name: Publish unit test report
+        uses: dorny/test-reporter@v1
+        with:
+          name: Unit Tests
+          path: coverage/**/*.trx
+          reporter: dotnet-trx
+          fail-on-error: true
+
       - name: Push image to GHCR
         run: docker push $IMAGE_NAME:$IMAGE_TAG
 
