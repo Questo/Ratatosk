@@ -35,6 +35,20 @@ public static class ProductsEndpoints
         })
         .RequireAuthorization();
 
+        app.MapGet("/products", async (
+            [AsParameters] SearchProductsRequest request,
+            ICatalogService catalogService,
+            CancellationToken ct) =>
+            {
+                var query = new SearchProductsQuery(request.SearchTerm, request.Page, request.PageSize);
+                var result = await catalogService.GetProductsAsync(query, ct);
+
+                return result.IsFailure
+                    ? Results.BadRequest(result.Error)
+                    : Results.Ok(result.Value);
+            })
+            .RequireAuthorization();
+
         app.MapDelete("/products/{id:guid}", async (
             Guid id,
             ICatalogService catalogService,

@@ -1,4 +1,5 @@
 using System.Data;
+using System.Text;
 using Dapper;
 using Microsoft.Extensions.Options;
 using Npgsql;
@@ -29,6 +30,41 @@ public class PostgresProductReadModelRepository(IOptions<DatabaseOptions> option
             cancellationToken: cancellationToken
         ));
     }
+
+    public async Task<IEnumerable<ProductReadModel>> GetAllAsync(
+        string? searchTerm = null,
+        int page = 1,
+        int pageSize = 25,
+        CancellationToken cancellationToken = default)
+    {
+        var sql = new StringBuilder("""
+            SELECT *
+            FROM product_read_models
+        """);
+
+        var parameters = new DynamicParameters();
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            sql.AppendLine("""
+                WHERE name ILIKE @searchPattern
+                    OR sku ILIKE @searchPattern
+                    OR description ILIKE @searchPattern
+            """);
+
+            parameters.Add("searchPattern", $"%{searchTerm}%");
+        }
+
+        sql.AppendLine(" ORDER BY last_updated_utc DESC");
+        sql.AppendLine("OFFSET @offset LIMIT @limit");
+
+        parameters.Add("offset", (page - 1) * pageSize);
+        parameters.Add("limit", pageSize);
+
+        return await _db.QueryAsync<ProductReadModel>(
+            new CommandDefinition(sql.ToString(), parameters, cancellationToken: cancellationToken));
+    }
+
 
     public async Task<ProductReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
