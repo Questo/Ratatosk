@@ -4,6 +4,7 @@ using Dapper;
 using Microsoft.Extensions.Options;
 using Npgsql;
 using Ratatosk.Application.Catalog.ReadModels;
+using Ratatosk.Application.Shared;
 using Ratatosk.Infrastructure.Configuration;
 
 namespace Ratatosk.Infrastructure.Persistence;
@@ -31,12 +32,13 @@ public class PostgresProductReadModelRepository(IOptions<DatabaseOptions> option
         ));
     }
 
-    public async Task<IEnumerable<ProductReadModel>> GetAllAsync(
+    public async Task<Pagination<ProductReadModel>> GetAllAsync(
         string? searchTerm = null,
         int page = 1,
         int pageSize = 25,
         CancellationToken cancellationToken = default)
     {
+        const string countSql = "SELECT COUNT(*) FROM product_read_models";
         var sql = new StringBuilder("""
             SELECT *
             FROM product_read_models
@@ -61,8 +63,21 @@ public class PostgresProductReadModelRepository(IOptions<DatabaseOptions> option
         parameters.Add("offset", (page - 1) * pageSize);
         parameters.Add("limit", pageSize);
 
-        return await _db.QueryAsync<ProductReadModel>(
+        var totalItems = await _db.ExecuteScalarAsync<int>(new CommandDefinition(
+            countSql,
+            cancellationToken: cancellationToken
+        ));
+
+        var items = await _db.QueryAsync<ProductReadModel>(
             new CommandDefinition(sql.ToString(), parameters, cancellationToken: cancellationToken));
+
+        return new Pagination<ProductReadModel>
+        {
+            Items = items.ToList(),
+            TotalItems = totalItems,
+            Page = page,
+            PageSize = pageSize
+        };
     }
 
 

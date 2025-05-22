@@ -6,32 +6,30 @@ export TEST_POSTGRES_DB=ratatosk_test
 export TEST_POSTGRES_USER=postgres
 export TEST_POSTGRES_PASSWORD=postgres
 
+# Resolve paths
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$SCRIPT_DIR/.."
+TEST_PROJECT="$REPO_ROOT/tests/IntegrationTests"
+COVERAGE_THRESHOLD="${COVERAGE_THRESHOLD:-80}"
+
+TEST_RESULTS_DIR="$TEST_PROJECT/TestResults"
+HTML_REPORT_DIR="$REPO_ROOT/coverage-report/integration"
+
+mkdir -p "$HTML_REPORT_DIR"
+
+rm -rf "$TEST_RESULTS_DIR"/*
+rm -rf "$HTML_REPORT_DIR"/*
+
 echo "Starting containers..."
-docker compose --profile local -f docker-compose.test.yml up -d --remove-orphans
-
-echo "Waiting for API to become healthy..."
-for i in {1..10}; do
-  STATUS=$(docker inspect -f '{{.State.Health.Status}}' ratatosk-api-local || echo "notfound")
-  if [ "$STATUS" == "healthy" ]; then
-    echo "✅ API is healthy!"
-    break
-  fi
-  echo "⏳ Waiting... ($i/10)"
-  sleep 3
-done
-
-if [ "$STATUS" != "healthy" ]; then
-  echo "❌ API did not become healthy in time."
-  docker compose -f docker-compose.test.yml logs
-  docker compose -f docker-compose.test.yml down
-  exit 1
-fi
+docker compose --profile local -f ../docker-compose.test.yml up ratatosk-testdb -d --remove-orphans
 
 echo "Running integration tests..."
-dotnet test tests/IntegrationTests \
+dotnet test ../tests/IntegrationTests \
   --configuration Release \
   --no-restore \
-  --verbosity normal
+  --verbosity normal \
+  --collect:"XPlat Code Coverage" \
+  --logger "trx"
 
 echo "Tearing down containers..."
-docker compose -f docker-compose.test.yml down
+docker compose -f ../docker-compose.test.yml down

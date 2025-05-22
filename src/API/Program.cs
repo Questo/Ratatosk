@@ -50,7 +50,7 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
     app.UseSwaggerUI(options =>
-    {
+        {
         options.SwaggerEndpoint("/openapi/v1.json", "Ratatosk API v1");
     });
     app.UseReDoc(options =>
