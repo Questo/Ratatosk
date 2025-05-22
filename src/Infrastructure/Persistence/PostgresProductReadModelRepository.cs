@@ -1,18 +1,13 @@
 using System.Data;
 using System.Text;
 using Dapper;
-using Microsoft.Extensions.Options;
-using Npgsql;
 using Ratatosk.Application.Catalog.ReadModels;
 using Ratatosk.Application.Shared;
-using Ratatosk.Infrastructure.Configuration;
 
 namespace Ratatosk.Infrastructure.Persistence;
 
-public class PostgresProductReadModelRepository(IOptions<DatabaseOptions> options) : IProductReadModelRepository
+public class PostgresProductReadModelRepository(IDbConnection db, IDbTransaction transaction) : IProductReadModelRepository
 {
-    private readonly IDbConnection _db = new NpgsqlConnection(options.Value.ConnectionString);
-
     static PostgresProductReadModelRepository()
     {
         DefaultTypeMap.MatchNamesWithUnderscores = true;
@@ -25,9 +20,10 @@ public class PostgresProductReadModelRepository(IOptions<DatabaseOptions> option
             WHERE id = @Id
         """;
 
-        await _db.ExecuteAsync(new CommandDefinition(
+        await db.ExecuteAsync(new CommandDefinition(
             sql,
             new { Id = id },
+            transaction: transaction,
             cancellationToken: cancellationToken
         ));
     }
@@ -63,13 +59,14 @@ public class PostgresProductReadModelRepository(IOptions<DatabaseOptions> option
         parameters.Add("offset", (page - 1) * pageSize);
         parameters.Add("limit", pageSize);
 
-        var totalItems = await _db.ExecuteScalarAsync<int>(new CommandDefinition(
+        var totalItems = await db.ExecuteScalarAsync<int>(new CommandDefinition(
             countSql,
+            transaction: transaction,
             cancellationToken: cancellationToken
         ));
 
-        var items = await _db.QueryAsync<ProductReadModel>(
-            new CommandDefinition(sql.ToString(), parameters, cancellationToken: cancellationToken));
+        var items = await db.QueryAsync<ProductReadModel>(
+            new CommandDefinition(sql.ToString(), parameters, transaction: transaction, cancellationToken: cancellationToken));
 
         return new Pagination<ProductReadModel>
         {
@@ -89,9 +86,10 @@ public class PostgresProductReadModelRepository(IOptions<DatabaseOptions> option
             WHERE id = @Id
         """;
 
-        return await _db.QueryFirstOrDefaultAsync<ProductReadModel>(new CommandDefinition(
+        return await db.QueryFirstOrDefaultAsync<ProductReadModel>(new CommandDefinition(
             sql,
             new { Id = id },
+            transaction: transaction,
             cancellationToken: cancellationToken
         ));
     }
@@ -109,9 +107,10 @@ public class PostgresProductReadModelRepository(IOptions<DatabaseOptions> option
                 last_updated_utc = @LastUpdatedUtc
         """;
 
-        await _db.ExecuteAsync(new CommandDefinition(
+        await db.ExecuteAsync(new CommandDefinition(
             sql,
             product,
+            transaction: transaction,
             cancellationToken: cancellationToken
         ));
     }
