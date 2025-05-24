@@ -126,4 +126,47 @@ public class PostgresProductReadModelRepositoryTests
         Assert.AreEqual(1, searchResult.Items.Count);
         Assert.AreEqual("Ratatosk Product B", searchResult.Items.First().Name);
     }
+
+    [TestMethod]
+    public async Task GetAllAsync_WhenSelectedSpecificPage_ShouldReturnExpectedProducts()
+    {
+        await _conn.ExecuteAsync("""
+            INSERT INTO product_read_models (
+                id, name, sku,
+                description, price,
+                last_updated_utc
+            ) VALUES
+            (
+                '31111111-1111-1111-1111-111111111111',
+                'Ratatosk Product A',
+                'RAT-A-001',
+                'Lightweight and nimble widget for fast squirrel logistics.',
+                29.99,
+                NOW()
+            ),
+            (
+                '42222222-1111-1111-1111-111111111111',
+                'Ratatosk Product B',
+                'RAT-B-002',
+                'Lightweight and nimble widget for fast squirrel logistics.',
+                29.99,
+                NOW()
+            ),
+            (
+                '52222222-1111-1111-1111-111111111111',
+                'Ratatosk Product C',
+                'RAT-B-003',
+                'Lightweight and nimble widget for fast squirrel logistics.',
+                29.99,
+                NOW()
+            )
+        """, transaction: _transaction);
+
+        var searchResult = await _repo.GetAllAsync(page: 3, pageSize: 1);
+
+        Assert.AreEqual(1, searchResult.Items.Count);
+        Assert.AreEqual(3, searchResult.TotalItems);
+        Assert.AreEqual(3, searchResult.TotalPages);
+        Assert.AreEqual("Ratatosk Product C", searchResult.Items.First().Name);
+    }
 }

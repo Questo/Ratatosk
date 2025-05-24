@@ -26,6 +26,7 @@ public class PostgresProductReadModelRepository(IDbConnection db, IDbTransaction
             transaction: transaction,
             cancellationToken: cancellationToken
         ));
+        transaction.Commit();
     }
 
     public async Task<Pagination<ProductReadModel>> GetAllAsync(
@@ -113,5 +114,6 @@ public class PostgresProductReadModelRepository(IDbConnection db, IDbTransaction
             transaction: transaction,
             cancellationToken: cancellationToken
         ));
+        transaction.Commit();
     }
 }

@@ -1,8 +1,6 @@
 using Dapper;
-using Microsoft.Extensions.Options;
 using Npgsql;
 using Ratatosk.Core.BuildingBlocks;
-using Ratatosk.Infrastructure.Configuration;
 using Ratatosk.Infrastructure.Persistence.EventStore;
 
 namespace Ratatosk.IntegrationTests;
@@ -11,17 +9,18 @@ namespace Ratatosk.IntegrationTests;
 public class PostgresEventStoreTests
 {
     private const string ConnectionString = "Host=localhost;Port=5433;Database=ratatosk_test;Username=testuser;Password=testpass";
+    private NpgsqlConnection _conn = null!;
+    private NpgsqlTransaction _transaction = null!;
     private PostgresEventStore _eventStore = null!;
 
     [TestInitialize]
     public async Task InitializeAsync()
     {
-        var options = Options.Create(new DatabaseOptions { ConnectionString = ConnectionString });
         var serializer = new JsonEventSerializer();
-        _eventStore = new PostgresEventStore(options, serializer);
 
         await using var conn = new NpgsqlConnection(ConnectionString);
         await conn.OpenAsync();
+        _transaction = await _conn.BeginTransactionAsync();
 
         await conn.ExecuteAsync("""
             DROP TABLE IF EXISTS events;
@@ -34,7 +33,17 @@ public class PostgresEventStoreTests
                 version INTEGER NOT NULL,
                 UNIQUE (stream_name, version)
             );
-        """);
+        """, transaction: _transaction);
+
+        _conn = conn;
+        _eventStore = new PostgresEventStore(conn, _transaction, serializer);
+    }
+
+    [TestCleanup]
+    public async Task CleanupAsync()
+    {
+        await _transaction.RollbackAsync();
+        await _conn.DisposeAsync();
     }
 
     [TestMethod]

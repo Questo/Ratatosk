@@ -1,6 +1,8 @@
+using System.Data;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Npgsql;
 using Ratatosk.Application.Authentication;
 using Ratatosk.Application.Catalog.ReadModels;
 using Ratatosk.Core.Abstractions;
@@ -29,10 +31,15 @@ public static class InfrastructureServiceCollectionExtensions
             var databaseOptions = provider.GetRequiredService<IOptions<DatabaseOptions>>();
             var serializer = provider.GetRequiredService<IEventSerializer>();
 
+            var connection = new NpgsqlConnection(databaseOptions.Value.ConnectionString);
+            connection.Open();
+
+            var transaction = connection.BeginTransaction();
+
             return eventStoreOptions.Type switch
             {
                 StoreType.File => new FileEventStore(eventStoreOptions, serializer),
-                StoreType.Sql => new PostgresEventStore(databaseOptions, serializer),
+                StoreType.Sql => new PostgresEventStore(connection, transaction, serializer),
                 StoreType.InMemory or _ => new InMemoryEventStore()
             };
         });
@@ -48,6 +55,20 @@ public static class InfrastructureServiceCollectionExtensions
                 StoreType.InMemory => new InMemorySnapshotStore(),
                 _ => throw new NotImplementedException()
             };
+        });
+
+        services.AddScoped<IDbConnection>(provider =>
+        {
+            var options = provider.GetRequiredService<IOptions<DatabaseOptions>>();
+            var connection = new NpgsqlConnection(options.Value.ConnectionString);
+            connection.Open();
+            return connection;
+        });
+
+        services.AddScoped<IDbTransaction>(provider =>
+        {
+            var connection = provider.GetRequiredService<IDbConnection>();
+            return connection.BeginTransaction();
         });
 
         services.AddScoped(typeof(IAggregateRepository<>), typeof(AggregateRepository<>));

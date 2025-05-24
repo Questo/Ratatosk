@@ -28,8 +28,8 @@ dotnet test ../tests/IntegrationTests \
   --configuration Release \
   --no-restore \
   --verbosity normal \
-  --collect:"XPlat Code Coverage" \
-  --logger "trx"
+#  --collect:"XPlat Code Coverage" \
+  #--logger "trx"
 
 echo "Tearing down containers..."
 docker compose -f ../docker-compose.test.yml down
