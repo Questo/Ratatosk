@@ -17,7 +17,7 @@ public interface ICatalogService
     Task<Result<ProductReadModel>> GetProductByIdAsync(GetProductByIdQuery query, CancellationToken cancellationToken = default);
 }
 
-public class CatalogService(IDispatcher dispatcher, ILogger<CatalogService> logger) : ICatalogService
+public class CatalogService(IDispatcher dispatcher, IUnitOfWork uow, ILogger<CatalogService> logger) : ICatalogService
 {
     public async Task<Result<Guid>> AddProductAsync(AddProductCommand command, CancellationToken cancellationToken = default)
     {
@@ -27,6 +27,7 @@ public class CatalogService(IDispatcher dispatcher, ILogger<CatalogService> logg
             logger.LogError("Failed to create product: {Error}", result.Error);
         }
 
+        uow.Commit();
         return result;
     }
 
@@ -59,6 +60,8 @@ public class CatalogService(IDispatcher dispatcher, ILogger<CatalogService> logg
         {
             logger.LogError("Failed to remove product: {Error}", result.Error);
         }
+
+        uow.Commit();
         return result;
     }
 
@@ -70,6 +73,7 @@ public class CatalogService(IDispatcher dispatcher, ILogger<CatalogService> logg
             logger.LogError("Failed to update product: {Error}", result.Error);
         }
 
+        uow.Commit();
         return result;
     }
 }

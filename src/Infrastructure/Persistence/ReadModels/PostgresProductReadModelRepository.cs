@@ -4,9 +4,9 @@ using Dapper;
 using Ratatosk.Application.Catalog.ReadModels;
 using Ratatosk.Application.Shared;
 
-namespace Ratatosk.Infrastructure.Persistence;
+namespace Ratatosk.Infrastructure.Persistence.ReadModels;
 
-public class PostgresProductReadModelRepository(IDbConnection db, IDbTransaction transaction) : IProductReadModelRepository
+public class PostgresProductReadModelRepository(IUnitOfWork uow) : IProductReadModelRepository
 {
     static PostgresProductReadModelRepository()
     {
@@ -20,13 +20,12 @@ public class PostgresProductReadModelRepository(IDbConnection db, IDbTransaction
             WHERE id = @Id
         """;
 
-        await db.ExecuteAsync(new CommandDefinition(
+        await uow.Connection.ExecuteAsync(new CommandDefinition(
             sql,
             new { Id = id },
-            transaction: transaction,
+            transaction: uow.Transaction,
             cancellationToken: cancellationToken
         ));
-        transaction.Commit();
     }
 
     public async Task<Pagination<ProductReadModel>> GetAllAsync(
@@ -60,24 +59,23 @@ public class PostgresProductReadModelRepository(IDbConnection db, IDbTransaction
         parameters.Add("offset", (page - 1) * pageSize);
         parameters.Add("limit", pageSize);
 
-        var totalItems = await db.ExecuteScalarAsync<int>(new CommandDefinition(
+        var totalItems = await uow.Connection.ExecuteScalarAsync<int>(new CommandDefinition(
             countSql,
-            transaction: transaction,
+            transaction: uow.Transaction,
             cancellationToken: cancellationToken
         ));
 
-        var items = await db.QueryAsync<ProductReadModel>(
-            new CommandDefinition(sql.ToString(), parameters, transaction: transaction, cancellationToken: cancellationToken));
+        var items = await uow.Connection.QueryAsync<ProductReadModel>(
+            new CommandDefinition(sql.ToString(), parameters, transaction: uow.Transaction, cancellationToken: cancellationToken));
 
         return new Pagination<ProductReadModel>
         {
-            Items = items.ToList(),
+            Items = [.. items],
             TotalItems = totalItems,
             Page = page,
             PageSize = pageSize
         };
     }
-
 
     public async Task<ProductReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
@@ -87,10 +85,10 @@ public class PostgresProductReadModelRepository(IDbConnection db, IDbTransaction
             WHERE id = @Id
         """;
 
-        return await db.QueryFirstOrDefaultAsync<ProductReadModel>(new CommandDefinition(
+        return await uow.Connection.QueryFirstOrDefaultAsync<ProductReadModel>(new CommandDefinition(
             sql,
             new { Id = id },
-            transaction: transaction,
+            transaction: uow.Transaction,
             cancellationToken: cancellationToken
         ));
     }
@@ -108,12 +106,11 @@ public class PostgresProductReadModelRepository(IDbConnection db, IDbTransaction
                 last_updated_utc = @LastUpdatedUtc
         """;
 
-        await db.ExecuteAsync(new CommandDefinition(
+        await uow.Connection.ExecuteAsync(new CommandDefinition(
             sql,
             product,
-            transaction: transaction,
+            transaction: uow.Transaction,
             cancellationToken: cancellationToken
         ));
-        transaction.Commit();
     }
 }

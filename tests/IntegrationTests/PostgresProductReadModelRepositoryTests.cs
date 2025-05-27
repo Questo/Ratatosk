@@ -1,7 +1,10 @@
+using System.Numerics;
 using Dapper;
 using Npgsql;
 using Ratatosk.Application.Catalog.ReadModels;
+using Ratatosk.Application.Shared;
 using Ratatosk.Infrastructure.Persistence;
+using Ratatosk.Infrastructure.Persistence.ReadModels;
 
 namespace Ratatosk.IntegrationTests;
 
@@ -9,22 +12,18 @@ namespace Ratatosk.IntegrationTests;
 public class PostgresProductReadModelRepositoryTests
 {
     private const string ConnectionString = "Host=localhost;Port=5433;Database=ratatosk_test;Username=testuser;Password=testpass";
-    private NpgsqlConnection _conn = null!;
-    private NpgsqlTransaction _transaction = null!;
+    private IUnitOfWork _uow = null!;
     private PostgresProductReadModelRepository _repo = null!;
 
     [TestInitialize]
     public async Task InitializeAsync()
     {
-        _conn = new NpgsqlConnection(ConnectionString);
-        await _conn.OpenAsync();
-        _transaction = await _conn.BeginTransactionAsync();
-
-        await using var conn = new NpgsqlConnection(ConnectionString);
-        await conn.OpenAsync();
+        _uow = new UnitOfWork(ConnectionString);
+        _uow.Begin();
 
         // Ensure tables exists, then truncate
-        await conn.ExecuteAsync("""
+        await _uow.Connection.ExecuteAsync("""
+            DROP TABLE IF EXISTS product_read_models;
             CREATE TABLE IF NOT EXISTS product_read_models(
                 id uuid PRIMARY KEY,
                 name text NOT NULL,
@@ -35,16 +34,21 @@ public class PostgresProductReadModelRepositoryTests
                 UNIQUE (id, sku)
             );
             TRUNCATE TABLE product_read_models;
-        """, transaction: _transaction);
+        """, transaction: _uow.Transaction);
 
-        _repo = new PostgresProductReadModelRepository(_conn, _transaction);
+        _repo = new PostgresProductReadModelRepository(_uow);
     }
 
     [TestCleanup]
-    public async Task CleanupAsync()
+    public void Cleanup()
     {
-        await _transaction.RollbackAsync();
-        await _conn.DisposeAsync();
+        if (_uow == null)
+        {
+            return;
+        }
+
+        _uow.Rollback();
+        _uow.Dispose();
     }
 
     [TestMethod]
@@ -65,7 +69,7 @@ public class PostgresProductReadModelRepositoryTests
     [TestMethod]
     public async Task GetAllAsync_ShouldReturnAllProducts()
     {
-        await _conn.ExecuteAsync("""
+        await _uow.Connection.ExecuteAsync("""
             INSERT INTO product_read_models (
                 id, name, sku,
                 description, price,
@@ -87,7 +91,7 @@ public class PostgresProductReadModelRepositoryTests
                 29.99,
                 NOW()
             )
-        """, transaction: _transaction);
+        """, transaction: _uow.Transaction);
 
         var searchResult = await _repo.GetAllAsync();
 
@@ -97,7 +101,7 @@ public class PostgresProductReadModelRepositoryTests
     [TestMethod]
     public async Task GetAllAsync_WhenUsingSearchTerm_ShouldReturnExpectedProducts()
     {
-        await _conn.ExecuteAsync("""
+        await _uow.Connection.ExecuteAsync("""
             INSERT INTO product_read_models (
                 id, name, sku,
                 description, price,
@@ -119,7 +123,7 @@ public class PostgresProductReadModelRepositoryTests
                 29.99,
                 NOW()
             )
-        """, transaction: _transaction);
+        """, transaction: _uow.Transaction);
 
         var searchResult = await _repo.GetAllAsync("Product B");
 
@@ -130,7 +134,7 @@ public class PostgresProductReadModelRepositoryTests
     [TestMethod]
     public async Task GetAllAsync_WhenSelectedSpecificPage_ShouldReturnExpectedProducts()
     {
-        await _conn.ExecuteAsync("""
+        await _uow.Connection.ExecuteAsync("""
             INSERT INTO product_read_models (
                 id, name, sku,
                 description, price,
@@ -160,7 +164,7 @@ public class PostgresProductReadModelRepositoryTests
                 29.99,
                 NOW()
             )
-        """, transaction: _transaction);
+        """, transaction: _uow.Transaction);
 
         var searchResult = await _repo.GetAllAsync(page: 3, pageSize: 1);
 

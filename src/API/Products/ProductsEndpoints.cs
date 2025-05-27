@@ -35,6 +35,19 @@ public static class ProductsEndpoints
         })
         .RequireAuthorization();
 
+        app.MapPut("/products/{id:guid}", async (
+            Guid id,
+            UpdateProductCommand cmd,
+            ICatalogService service,
+            CancellationToken ct) =>
+            {
+                var result = await service.UpdateProductAsync(cmd, ct);
+
+                return result.IsFailure
+                    ? Results.BadRequest(result.Error)
+                    : Results.Ok();
+            }).RequireAuthorization();
+
         app.MapGet("/products", async (
             [AsParameters] SearchProductsRequest request,
             ICatalogService catalogService,

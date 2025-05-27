@@ -4,6 +4,7 @@ using Ratatosk.Application.Catalog;
 using Ratatosk.Application.Catalog.Commands;
 using Ratatosk.Application.Catalog.Queries;
 using Ratatosk.Application.Catalog.ReadModels;
+using Ratatosk.Application.Shared;
 using Ratatosk.Core.Abstractions;
 using Ratatosk.Core.BuildingBlocks;
 using Ratatosk.Core.Primitives;
@@ -16,6 +17,7 @@ public class CatalogServiceTests
 {
     private Mock<IDispatcher> _dispatcherMock = null!;
     private Mock<ILogger<CatalogService>> _loggerMock = null!;
+    private Mock<IUnitOfWork> _unitOfWorkMock = null!;
     private ICatalogService _catalogService = null!;
 
     [TestInitialize]
@@ -23,7 +25,8 @@ public class CatalogServiceTests
     {
         _dispatcherMock = new Mock<IDispatcher>();
         _loggerMock = new Mock<ILogger<CatalogService>>();
-        _catalogService = new CatalogService(_dispatcherMock.Object, _loggerMock.Object);
+        _unitOfWorkMock = new Mock<IUnitOfWork>();
+        _catalogService = new CatalogService(_dispatcherMock.Object, _unitOfWorkMock.Object, _loggerMock.Object);
         _dispatcherMock
             .Setup(x => x.DispatchAsync(It.IsAny<IRequest<Result<Guid>>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<Guid>.Success(Guid.NewGuid()));

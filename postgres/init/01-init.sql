@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS snapshots(
     aggregate_id uuid PRIMARY KEY,
     version integer NOT NULL,
     aggregate_type text NOT NULL,
+    aggregate_data text NOT NULL,
     taken_at_utc timestamptz NOT NULL,
     UNIQUE (aggregate_id, version)
 );

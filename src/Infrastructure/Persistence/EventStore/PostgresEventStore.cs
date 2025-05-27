@@ -1,11 +1,11 @@
-using System.Data;
 using Dapper;
+using Ratatosk.Application.Shared;
 using Ratatosk.Core.BuildingBlocks;
 using Ratatosk.Infrastructure.EventStore;
 
 namespace Ratatosk.Infrastructure.Persistence.EventStore;
 
-public class PostgresEventStore(IDbConnection connection, IDbTransaction transaction, IEventSerializer serializer) : IEventStore
+public class PostgresEventStore(IUnitOfWork uow, IEventSerializer serializer) : IEventStore
 {
     public async Task AppendEventsAsync(string streamName, IEnumerable<DomainEvent> events, int startingVersion, CancellationToken cancellationToken = default)
     {
@@ -23,7 +23,7 @@ public class PostgresEventStore(IDbConnection connection, IDbTransaction transac
             domainEvent.Version = version;
 
             var eventData = serializer.Serialize(domainEvent);
-            await connection.ExecuteAsync(sql, new
+            await uow.Connection.ExecuteAsync(sql, new
             {
                 EventId = Guid.NewGuid(),
                 StreamName = streamName,
@@ -31,22 +31,26 @@ public class PostgresEventStore(IDbConnection connection, IDbTransaction transac
                 EventData = eventData,
                 CreatedAt = DateTime.UtcNow,
                 Version = version
-            });
-            transaction.Commit();
+            }, uow.Transaction);
+
+            // ❌ Don't commit here; let the caller commit via IUnitOfWork
         }
     }
 
     public async Task<IReadOnlyCollection<DomainEvent>> LoadEventsAsync(string streamName, int startingVersion = 0, CancellationToken cancellationToken = default)
     {
-        var events = new List<DomainEvent>();
-
         const string sql = """
             SELECT event_data FROM events
             WHERE stream_name = @StreamName AND version > @StartingVersion
             ORDER BY version ASC
         """;
 
-        var eventJsonData = await connection.QueryAsync<string>(sql, new { StreamName = streamName, StartingVersion = startingVersion });
+        var eventJsonData = await uow.Connection.QueryAsync<string>(
+            sql,
+            new { StreamName = streamName, StartingVersion = startingVersion },
+            uow.Transaction);
+
+        var events = new List<DomainEvent>();
         foreach (var jsonData in eventJsonData)
         {
             var domainEvent = serializer.Deserialize(jsonData);

@@ -1,25 +1,25 @@
 using System.Data;
 using Dapper;
-using Microsoft.Extensions.Options;
-using Npgsql;
+using Ratatosk.Application.Shared;
 using Ratatosk.Core.BuildingBlocks;
-using Ratatosk.Infrastructure.Configuration;
 using Ratatosk.Infrastructure.EventStore;
 
 namespace Ratatosk.Infrastructure.Persistence.EventStore;
 
-public class PostgresSnapshotStore(IOptions<DatabaseOptions> options, ISnapshotSerializer serializer) : ISnapshotStore
+public class PostgresSnapshotStore(IUnitOfWork uow, ISnapshotSerializer serializer) : ISnapshotStore
 {
-    private readonly IDbConnection _db = new NpgsqlConnection(options.Value.ConnectionString);
-
     public async Task<Snapshot?> LoadSnapshotAsync(Guid aggregateId, CancellationToken cancellationToken)
     {
         const string sql = """
-            SELECT SnapshotData FROM Snapshots
-            WHERE AggregateId = @AggregateId
+            SELECT aggregate_data FROM Snapshots
+            WHERE aggregate_id = @AggregateId
         """;
 
-        var snapshotJsonData = await _db.QueryFirstOrDefaultAsync<string>(sql, new { Aggregateid = aggregateId });
+        var snapshotJsonData = await uow.Connection.QueryFirstOrDefaultAsync<string>(
+            sql,
+            new { AggregateId = aggregateId },
+            uow.Transaction);
+
         if (string.IsNullOrWhiteSpace(snapshotJsonData))
         {
             return null;
@@ -31,27 +31,35 @@ public class PostgresSnapshotStore(IOptions<DatabaseOptions> options, ISnapshotS
     public async Task SaveSnapshotAsync(Snapshot snapshot, CancellationToken cancellationToken)
     {
         const string sql = """
-            MERGE INTO Snapshots AS target
-            USING (SELECT @AggregateId as AggregateId) AS source
-            ON target.AggregateId = source.AggregateId
-            WHEN MATCHED THEN
-                UPDATE SET
-                    Version = @Version,
-                    AggregateType = @AggregateType,
-                    SnapshotData = @SnapshotData,
-                    Timestamp = @Timestamp
-            WHEN NOT MATCHED THEN
-                INSERT (Aggregateid, Version, AggregateType, SnapshotData, Timestamp)
-                VALUES (@Aggregateid, @Version, @AggregateType, @SnapshotData, @Timestamp)
+            INSERT INTO snapshots (
+                aggregate_id,
+                version,
+                aggregate_type,
+                aggregate_data,
+                taken_at_utc
+            ) VALUES (
+                @AggregateId,
+                @Version,
+                @AggregateType,
+                @SnapshotData,
+                @Timestamp
+            )
+            ON CONFLICT (aggregate_id) DO UPDATE SET
+                version = EXCLUDED.version,
+                aggregate_type = EXCLUDED.aggregate_type,
+                aggregate_data = EXCLUDED.aggregate_data,
+                taken_at_utc = EXCLUDED.taken_at_utc
         """;
 
-        await _db.ExecuteAsync(sql, new
+        await uow.Connection.ExecuteAsync(sql, new
         {
             snapshot.AggregateId,
             snapshot.Version,
             snapshot.AggregateType,
             SnapshotData = serializer.Serialize(snapshot),
             TimeStamp = snapshot.TakenAtUtc
-        });
+        }, uow.Transaction);
+
+        // ❌ Don't commit here; let the caller commit via IUnitOfWork
     }
 }

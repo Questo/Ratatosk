@@ -1,6 +1,7 @@
 using Dapper;
 using Npgsql;
 using Ratatosk.Core.BuildingBlocks;
+using Ratatosk.Infrastructure.Persistence;
 using Ratatosk.Infrastructure.Persistence.EventStore;
 
 namespace Ratatosk.IntegrationTests;
@@ -9,8 +10,8 @@ namespace Ratatosk.IntegrationTests;
 public class PostgresEventStoreTests
 {
     private const string ConnectionString = "Host=localhost;Port=5433;Database=ratatosk_test;Username=testuser;Password=testpass";
-    private NpgsqlConnection _conn = null!;
-    private NpgsqlTransaction _transaction = null!;
+
+    private UnitOfWork _uow = null!;
     private PostgresEventStore _eventStore = null!;
 
     [TestInitialize]
@@ -18,11 +19,10 @@ public class PostgresEventStoreTests
     {
         var serializer = new JsonEventSerializer();
 
-        await using var conn = new NpgsqlConnection(ConnectionString);
-        await conn.OpenAsync();
-        _transaction = await _conn.BeginTransactionAsync();
+        _uow = new UnitOfWork(ConnectionString);
+        _uow.Begin();
 
-        await conn.ExecuteAsync("""
+        await _uow.Connection.ExecuteAsync("""
             DROP TABLE IF EXISTS events;
             CREATE TABLE events (
                 event_id UUID PRIMARY KEY,
@@ -33,17 +33,21 @@ public class PostgresEventStoreTests
                 version INTEGER NOT NULL,
                 UNIQUE (stream_name, version)
             );
-        """, transaction: _transaction);
+        """, transaction: _uow.Transaction);
 
-        _conn = conn;
-        _eventStore = new PostgresEventStore(conn, _transaction, serializer);
+        _eventStore = new PostgresEventStore(_uow, serializer);
     }
 
     [TestCleanup]
-    public async Task CleanupAsync()
+    public void Cleanup()
     {
-        await _transaction.RollbackAsync();
-        await _conn.DisposeAsync();
+        if (_uow == null)
+        {
+            return;
+        }
+
+        _uow.Rollback();
+        _uow.Dispose();
     }
 
     [TestMethod]

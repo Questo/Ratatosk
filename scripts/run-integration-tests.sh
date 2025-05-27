@@ -21,10 +21,10 @@ rm -rf "$TEST_RESULTS_DIR"/*
 rm -rf "$HTML_REPORT_DIR"/*
 
 echo "Starting containers..."
-docker compose --profile local -f ../docker-compose.test.yml up ratatosk-testdb -d --remove-orphans
+docker compose --profile local -f docker-compose.test.yml up ratatosk-testdb -d --remove-orphans
 
 echo "Running integration tests..."
-dotnet test ../tests/IntegrationTests \
+dotnet test tests/IntegrationTests \
   --configuration Release \
   --no-restore \
   --verbosity normal \
@@ -32,4 +32,4 @@ dotnet test ../tests/IntegrationTests \
   #--logger "trx"
 
 echo "Tearing down containers..."
-docker compose -f ../docker-compose.test.yml down
+docker compose -f docker-compose.test.yml down
