@@ -1,8 +1,8 @@
 using Dapper;
-using Npgsql;
 using Ratatosk.Core.BuildingBlocks;
 using Ratatosk.Infrastructure.Persistence;
 using Ratatosk.Infrastructure.Persistence.EventStore;
+using Ratatosk.Infrastructure.Serialization;
 
 namespace Ratatosk.IntegrationTests;
 

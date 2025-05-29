@@ -1,6 +1,7 @@
 ﻿using Ratatosk.Core.BuildingBlocks;
 using Ratatosk.Infrastructure.Configuration;
 using Ratatosk.Infrastructure.Persistence.EventStore;
+using Ratatosk.Infrastructure.Serialization;
 
 namespace Ratatosk.UnitTests;
 

@@ -1,6 +1,4 @@
-using System.Numerics;
 using Dapper;
-using Npgsql;
 using Ratatosk.Application.Catalog.ReadModels;
 using Ratatosk.Application.Shared;
 using Ratatosk.Infrastructure.Persistence;
