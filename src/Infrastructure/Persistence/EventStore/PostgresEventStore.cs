@@ -41,7 +41,7 @@ public class PostgresEventStore(IUnitOfWork uow, IEventSerializer serializer) : 
     {
         const string sql = """
             SELECT event_data FROM events
-            WHERE stream_name = @StreamName AND version > @StartingVersion
+            WHERE stream_name = @StreamName AND version >= @StartingVersion
             ORDER BY version ASC
         """;
 

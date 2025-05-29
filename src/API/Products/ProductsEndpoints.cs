@@ -41,7 +41,7 @@ public static class ProductsEndpoints
             ICatalogService service,
             CancellationToken ct) =>
             {
-                var result = await service.UpdateProductAsync(cmd, ct);
+                var result = await service.UpdateProductAsync(cmd with { ProductId = id }, ct);
 
                 return result.IsFailure
                     ? Results.BadRequest(result.Error)

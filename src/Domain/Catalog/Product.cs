@@ -75,8 +75,8 @@ public class Product : AggregateRoot
     public void Update(ProductName name, Description? description, Price? price)
     {
         bool nameChanged = !Name.Equals(name);
-        bool descChanged = !Description.Equals(description);
-        bool priceChanged = !Price.Equals(price);
+        bool descChanged = description != null && !Description.Equals(description);
+        bool priceChanged = price != null && !Price.Equals(price);
 
         bool productChanged = nameChanged || descChanged || priceChanged;
 

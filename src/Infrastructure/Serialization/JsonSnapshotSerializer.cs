@@ -1,8 +1,7 @@
 using Ratatosk.Core.BuildingBlocks;
 using Ratatosk.Infrastructure.EventStore;
-using Ratatosk.Infrastructure.Shared;
 
-namespace Ratatosk.Infrastructure.Persistence.EventStore;
+namespace Ratatosk.Infrastructure.Serialization;
 
 public class JsonSnapshotSerializer : JsonPolymorphicSerializer<Snapshot>, ISnapshotSerializer
 {

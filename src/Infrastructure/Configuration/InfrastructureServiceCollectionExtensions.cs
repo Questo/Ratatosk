@@ -10,6 +10,7 @@ using Ratatosk.Infrastructure.EventStore;
 using Ratatosk.Infrastructure.Persistence;
 using Ratatosk.Infrastructure.Persistence.EventStore;
 using Ratatosk.Infrastructure.Persistence.ReadModels;
+using Ratatosk.Infrastructure.Serialization;
 using Ratatosk.Infrastructure.Services;
 
 namespace Ratatosk.Infrastructure.Configuration;

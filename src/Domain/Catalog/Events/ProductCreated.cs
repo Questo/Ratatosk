@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Ratatosk.Core.BuildingBlocks;
 using Ratatosk.Domain.Catalog.ValueObjects;
 

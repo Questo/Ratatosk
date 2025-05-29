@@ -1,12 +1,24 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Ratatosk.Core.Primitives;
+using Ratatosk.Domain;
+using Ratatosk.Infrastructure.Serialization.Converters;
 
-namespace Ratatosk.Infrastructure.Shared;
+namespace Ratatosk.Infrastructure.Serialization;
 
 public abstract class JsonPolymorphicSerializer<TBase>
 {
-    private readonly JsonSerializerOptions _options = new() { WriteIndented = false };
+    private readonly JsonSerializerOptions _options = new()
+    {
+        WriteIndented = false,
+        Converters =
+        {
+            new ProductNameConverter(),
+            new SKUConverter(),
+            new DescriptionConverter(),
+            new PriceConverter()
+        },
+    };
 
     protected virtual IEnumerable<string> GetPreferredPropertyOrder() => [];
 
@@ -15,7 +27,7 @@ public abstract class JsonPolymorphicSerializer<TBase>
         Guard.AgainstNull(obj, nameof(obj));
 
         var json = JsonSerializer.Serialize(obj, obj!.GetType(), _options);
-        var originalJson = JsonSerializer.Deserialize<JsonObject>(json) ?? throw new ArgumentNullException(nameof(obj));
+        var originalJson = JsonSerializer.Deserialize<JsonObject>(json, _options) ?? throw new ArgumentNullException(nameof(obj));
         originalJson["Type"] = obj.GetType().AssemblyQualifiedName;
 
         var orderedJson = new JsonObject
@@ -44,7 +56,7 @@ public abstract class JsonPolymorphicSerializer<TBase>
 
     public TBase Deserialize(string json)
     {
-        var baseObj = JsonSerializer.Deserialize<JsonElement>(json);
+        var baseObj = JsonSerializer.Deserialize<JsonElement>(json, _options);
 
         if (!baseObj.TryGetProperty("Type", out var typeProp))
             throw new InvalidOperationException("Missing 'Type' property in serialized data.");
@@ -56,6 +68,6 @@ public abstract class JsonPolymorphicSerializer<TBase>
         var type = Type.GetType(typeName)
                    ?? throw new InvalidOperationException($"Could not resolve type '{typeName}'.");
 
-        return (TBase)JsonSerializer.Deserialize(json, type)!;
+        return (TBase)JsonSerializer.Deserialize(json, type, _options)!;
     }
 }

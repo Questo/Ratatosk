@@ -29,9 +29,12 @@ public class ProductProjection(IProductReadModelRepository repo) :
         var existing = await repo.GetByIdAsync(domainEvent.ProductId, cancellationToken);
         if (existing == null) return;
 
-        existing.Name = domainEvent.Name.Value;
-        existing.Description = domainEvent.Description.Value;
-        existing.Price = domainEvent.Price.Amount;
+        if (domainEvent.Name is not null)
+            existing.Name = domainEvent.Name.Value;
+        if (domainEvent.Description is not null)
+            existing.Description = domainEvent.Description.Value;
+        if (domainEvent.Price is not null)
+            existing.Price = domainEvent.Price.Amount;
         existing.LastUpdatedUtc = domainEvent.OccurredAtUtc.UtcDateTime;
 
         await repo.SaveAsync(existing, cancellationToken);
