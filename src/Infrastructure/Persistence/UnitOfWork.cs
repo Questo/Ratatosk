@@ -47,11 +47,11 @@ public class UnitOfWork(string ConnectionString) : IDisposable, IUnitOfWork
 
     public void Rollback()
     {
-        if (_transaction != null)
+        if (_transaction == null)
         {
             return;
         }
 
-        _transaction!.Rollback();
+        _transaction.Rollback();
     }
 }
