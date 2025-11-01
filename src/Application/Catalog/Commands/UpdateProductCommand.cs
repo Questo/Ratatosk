@@ -26,11 +26,11 @@ public class UpdateProductCommandHandler(
                 return Result.Failure(nameResult.Error!);
 
             var descriptionResult = request.Description is null
-                ? Result<Description>.Success(null)
+                ? Result<Description?>.Success(null)!
                 : Description.Create(request.Description);
 
             var priceResult = request.Price is null
-                ? Result<Price>.Success(null)
+                ? Result<Price?>.Success(null)!
                 : Price.Create(request.Price.Value);
 
             var productResult = await repository.LoadAsync(request.ProductId, cancellationToken);
