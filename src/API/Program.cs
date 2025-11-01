@@ -22,8 +22,8 @@ var authOptions = builder.Configuration.GetSection(AuthOptions.SectionName).Get<
 Guard.AgainstNull(authOptions, nameof(authOptions));
 var key = Encoding.UTF8.GetBytes(authOptions!.Secret);
 
-builder.Services
-    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+builder
+    .Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
         options.TokenValidationParameters = new TokenValidationParameters
@@ -38,7 +38,7 @@ builder.Services
             IssuerSigningKey = new SymmetricSecurityKey(key),
 
             ValidateLifetime = true,
-            ClockSkew = TimeSpan.Zero
+            ClockSkew = TimeSpan.Zero,
         };
     });
 builder.Services.AddAuthorization();
@@ -50,7 +50,7 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
     app.UseSwaggerUI(options =>
-        {
+    {
         options.SwaggerEndpoint("/openapi/v1.json", "Ratatosk API v1");
     });
     app.UseReDoc(options =>

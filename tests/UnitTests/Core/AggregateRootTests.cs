@@ -76,7 +76,8 @@ public class AggregateRootTests
     [TestMethod]
     public void LoadFromHistory_Should_Apply_Events_And_Increment_Version()
     {
-        var events = Enumerable.Range(1, 3)
+        var events = Enumerable
+            .Range(1, 3)
             .Select(i => new TestEvent($"v{i}"))
             .Cast<DomainEvent>()
             .ToArray();
@@ -92,11 +93,7 @@ public class AggregateRootTests
     [TestMethod]
     public void Rehydrate_Should_Reconstruct_From_History()
     {
-        var events = new List<DomainEvent>
-            {
-                new TestEvent("x"),
-                new TestEvent("y")
-            };
+        var events = new List<DomainEvent> { new TestEvent("x"), new TestEvent("y") };
 
         var result = AggregateRoot.Rehydrate<TestAggregate>(events);
         var expected = new string[] { "x", "y" };
@@ -114,3 +111,4 @@ public class AggregateRootTests
         Assert.AreEqual("History cannot be null or empty", result.Error);
     }
 }
+
