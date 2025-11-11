@@ -5,7 +5,7 @@ namespace Ratatosk.Application.Authentication;
 /// different tasks within the application, and will be restricted to perform certain tasks
 /// depending on the user's assigned permissions.
 /// </summary>
-public class User
+public sealed class User
 {
     public required string Email { get; set; }
 
