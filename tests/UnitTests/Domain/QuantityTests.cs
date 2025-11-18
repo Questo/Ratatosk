@@ -88,7 +88,7 @@ public class QuantityTests
         var q1 = Quantity.Create(2, "pcs").Value!;
         var q2 = Quantity.Create(5, "pcs").Value!;
 
-        Assert.ThrowsException<InvalidOperationException>(() => q1 - q2);
+        Assert.Throws<InvalidOperationException>(() => q1 - q2);
     }
 
     [TestMethod]
@@ -97,7 +97,7 @@ public class QuantityTests
         var q1 = Quantity.Create(5, "pcs").Value!;
         var q2 = Quantity.Create(2, "kg").Value!;
 
-        Assert.ThrowsException<InvalidOperationException>(() => q1 + q2);
+        Assert.Throws<InvalidOperationException>(() => q1 + q2);
     }
 
     [TestMethod]
@@ -121,6 +121,6 @@ public class QuantityTests
         var q1 = Quantity.Create(5, "kg").Value!;
         var q2 = Quantity.Create(10, "pcs").Value!;
 
-        Assert.ThrowsException<InvalidOperationException>(() => q1 > q2);
+        Assert.Throws<InvalidOperationException>(() => q1 > q2);
     }
 }

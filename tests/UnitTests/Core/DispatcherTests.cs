@@ -75,6 +75,6 @@ public class DispatcherTests
         var request = new DummyRequest("Missing");
 
         // Act
-        Assert.ThrowsExceptionAsync<InvalidOperationException>(async () => await dispatcher.DispatchAsync<string>(request));
+        Assert.ThrowsAsync<InvalidOperationException>(async () => await dispatcher.DispatchAsync<string>(request));
     }
 }

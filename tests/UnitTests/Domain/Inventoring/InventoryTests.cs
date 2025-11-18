@@ -36,7 +36,7 @@ public class InventoryTests
 
         inventory.AddStock(sku, quantity);
 
-        Assert.ThrowsException<ArgumentException>(() => inventory.AddStock(sku, Quantity.Create(10, "kg").Value!));
+        Assert.Throws<ArgumentException>(() => inventory.AddStock(sku, Quantity.Create(10, "kg").Value!));
     }
 
     [TestMethod]
@@ -66,7 +66,7 @@ public class InventoryTests
         var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
         var quantity = -5;
 
-        Assert.ThrowsException<ArgumentOutOfRangeException>(() => inventory.ReserveStock(sku, quantity));
+        Assert.Throws<ArgumentOutOfRangeException>(() => inventory.ReserveStock(sku, quantity));
     }
 
     [TestMethod]
@@ -78,7 +78,7 @@ public class InventoryTests
 
         inventory.AddStock(sku, Quantity.Pieces(3));
 
-        Assert.ThrowsException<InvalidOperationException>(() => inventory.ReserveStock(sku, quantity));
+        Assert.Throws<InvalidOperationException>(() => inventory.ReserveStock(sku, quantity));
     }
 
     [TestMethod]
@@ -109,7 +109,7 @@ public class InventoryTests
         var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
         var quantity = -5;
 
-        Assert.ThrowsException<ArgumentOutOfRangeException>(() => inventory.ReleaseStock(sku, quantity));
+        Assert.Throws<ArgumentOutOfRangeException>(() => inventory.ReleaseStock(sku, quantity));
     }
 
     [TestMethod]
@@ -141,7 +141,7 @@ public class InventoryTests
 
         inventory.AddStock(sku, quantity);
 
-        Assert.ThrowsException<InvalidOperationException>(() => inventory.RemoveStock(sku, Quantity.Pieces(6)));
+        Assert.Throws<InvalidOperationException>(() => inventory.RemoveStock(sku, Quantity.Pieces(6)));
     }
 
     [TestMethod]
@@ -151,6 +151,6 @@ public class InventoryTests
         var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
         var quantity = Quantity.Pieces(5);
 
-        Assert.ThrowsException<InvalidOperationException>(() => inventory.RemoveStock(sku, quantity));
+        Assert.Throws<InvalidOperationException>(() => inventory.RemoveStock(sku, quantity));
     }
 }

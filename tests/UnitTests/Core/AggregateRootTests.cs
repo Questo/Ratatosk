@@ -34,7 +34,7 @@ public class AggregateRootTests
         agg.DoSomething("foo");
         var expected = new string[] { "foo" };
 
-        Assert.AreEqual(1, agg.UncommittedEvents.Count);
+        Assert.HasCount(1, agg.UncommittedEvents);
         Assert.AreEqual(1, agg.Version);
         CollectionAssert.AreEqual(expected, agg.AppliedValues);
     }
@@ -47,7 +47,7 @@ public class AggregateRootTests
 
         agg.ClearUncommittedEvents();
 
-        Assert.AreEqual(0, agg.UncommittedEvents.Count);
+        Assert.IsEmpty(agg.UncommittedEvents);
     }
 
     [TestMethod]

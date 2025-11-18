@@ -27,7 +27,7 @@ public class MaybeTests
     {
         var maybe = Maybe<int>.None;
 
-        Assert.ThrowsException<InvalidOperationException>(() => _ = maybe.Value);
+        Assert.Throws<InvalidOperationException>(() => _ = maybe.Value);
     }
 
     [TestMethod]
