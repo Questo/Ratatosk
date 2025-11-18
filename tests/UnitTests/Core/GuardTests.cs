@@ -8,7 +8,7 @@ public class GuardTests
     [TestMethod]
     public void AgainstEmpty_Should_Throw_When_Guid_Is_Empty()
     {
-        Assert.ThrowsException<ArgumentException>(() => Guard.AgainstEmpty(Guid.Empty, nameof(AgainstEmpty_Should_Throw_When_Guid_Is_Empty)));
+        Assert.Throws<ArgumentException>(() => Guard.AgainstEmpty(Guid.Empty, nameof(AgainstEmpty_Should_Throw_When_Guid_Is_Empty)));
     }
 
     [TestMethod]
@@ -20,13 +20,13 @@ public class GuardTests
     [TestMethod]
     public void AgainstNegativeOrZero_Should_Throw_When_Zero()
     {
-        Assert.ThrowsException<ArgumentOutOfRangeException>(() => Guard.AgainstNegativeOrZero(0, nameof(AgainstNegativeOrZero_Should_Throw_When_Zero)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Guard.AgainstNegativeOrZero(0, nameof(AgainstNegativeOrZero_Should_Throw_When_Zero)));
     }
 
     [TestMethod]
     public void AgainstNegativeOrZero_Should_Throw_When_Negative()
     {
-        Assert.ThrowsException<ArgumentOutOfRangeException>(() => Guard.AgainstNegativeOrZero(-1, nameof(AgainstNegativeOrZero_Should_Throw_When_Negative)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Guard.AgainstNegativeOrZero(-1, nameof(AgainstNegativeOrZero_Should_Throw_When_Negative)));
     }
 
     [TestMethod]
@@ -38,7 +38,7 @@ public class GuardTests
     [TestMethod]
     public void AgainstNull_Should_Throw_When_Null()
     {
-        Assert.ThrowsException<ArgumentNullException>(() => Guard.AgainstNull(null, nameof(AgainstNull_Should_Throw_When_Null)));
+        Assert.Throws<ArgumentNullException>(() => Guard.AgainstNull(null, nameof(AgainstNull_Should_Throw_When_Null)));
     }
 
     [TestMethod]
@@ -50,19 +50,19 @@ public class GuardTests
     [TestMethod]
     public void AgainstNullOrEmpty_Should_Throw_When_Null()
     {
-        Assert.ThrowsException<ArgumentException>(() => Guard.AgainstNullOrEmpty(null, nameof(AgainstNullOrEmpty_Should_Throw_When_Null)));
+        Assert.Throws<ArgumentException>(() => Guard.AgainstNullOrEmpty(null, nameof(AgainstNullOrEmpty_Should_Throw_When_Null)));
     }
 
     [TestMethod]
     public void AgainstNullOrEmpty_Should_Throw_When_Empty()
     {
-        Assert.ThrowsException<ArgumentException>(() => Guard.AgainstNullOrEmpty("", nameof(AgainstNullOrEmpty_Should_Throw_When_Empty)));
+        Assert.Throws<ArgumentException>(() => Guard.AgainstNullOrEmpty("", nameof(AgainstNullOrEmpty_Should_Throw_When_Empty)));
     }
 
     [TestMethod]
     public void AgainstNullOrEmpty_Should_Throw_When_Whitespace()
     {
-        Assert.ThrowsException<ArgumentException>(() => Guard.AgainstNullOrEmpty("   ", nameof(AgainstNullOrEmpty_Should_Throw_When_Whitespace)));
+        Assert.Throws<ArgumentException>(() => Guard.AgainstNullOrEmpty("   ", nameof(AgainstNullOrEmpty_Should_Throw_When_Whitespace)));
     }
 
     [TestMethod]
@@ -74,13 +74,13 @@ public class GuardTests
     [TestMethod]
     public void AgainstOutOfRange_Should_Throw_When_Below_Min()
     {
-        Assert.ThrowsException<ArgumentOutOfRangeException>(() => Guard.AgainstOutOfRange(2, 3, 5, nameof(AgainstOutOfRange_Should_Throw_When_Below_Min)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Guard.AgainstOutOfRange(2, 3, 5, nameof(AgainstOutOfRange_Should_Throw_When_Below_Min)));
     }
 
     [TestMethod]
     public void AgainstOutOfRange_Should_Throw_When_Above_Max()
     {
-        Assert.ThrowsException<ArgumentOutOfRangeException>(() => Guard.AgainstOutOfRange(10, 3, 5, nameof(AgainstOutOfRange_Should_Throw_When_Above_Max)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Guard.AgainstOutOfRange(10, 3, 5, nameof(AgainstOutOfRange_Should_Throw_When_Above_Max)));
     }
 
     [TestMethod]

@@ -41,7 +41,7 @@ public sealed class FileEventStoreTests
         await _eventStore.AppendEventsAsync(streamName, events, 0);
         var loadedEvents = await _eventStore.LoadEventsAsync(streamName);
 
-        Assert.AreEqual(1, loadedEvents.Count);
+        Assert.HasCount(1, loadedEvents);
         var result = (TestEvent)loadedEvents.First();
         Assert.AreEqual(domainEvent.Name, result.Name);
     }

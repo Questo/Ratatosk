@@ -11,7 +11,7 @@ public class ProductTests
     [TestMethod]
     public void Create_WithInvalidInput_ShouldThrowException()
     {
-        Assert.ThrowsException<ArgumentException>(() =>
+        Assert.Throws<ArgumentException>(() =>
             Product.Create(string.Empty, string.Empty, string.Empty, -1m));
     }
 
@@ -21,7 +21,7 @@ public class ProductTests
     public void Create_WithNullOrEmptyName_ShouldThrow(string invalidName)
     {
         var sku = SKU.Create(SkuGenerator.Generate("TS")).Value;
-        Assert.ThrowsException<ArgumentException>(() =>
+        Assert.Throws<ArgumentException>(() =>
             Product.Create(invalidName, sku!.Value, "A description", 10m));
     }
 
@@ -30,7 +30,7 @@ public class ProductTests
     [DataRow("")]
     public void Create_WithNullOrEmptySku_ShouldThrow(string invalidSku)
     {
-        Assert.ThrowsException<ArgumentException>(() =>
+        Assert.Throws<ArgumentException>(() =>
             Product.Create("Product Name", invalidSku, "A description", 10m));
     }
 
@@ -40,7 +40,7 @@ public class ProductTests
     public void Create_WithNullOrEmptyDescription_ShouldThrow(string invalidDesc)
     {
         var sku = SKU.Create(SkuGenerator.Generate("TS")).Value;
-        Assert.ThrowsException<ArgumentException>(() =>
+        Assert.Throws<ArgumentException>(() =>
             Product.Create("Product Name", sku!.Value, invalidDesc, 10m));
     }
 
@@ -49,16 +49,16 @@ public class ProductTests
     {
         // Assuming this name fails internal validation
         var invalidName = new string('!', 300); // too long or invalid
-        var ex = Assert.ThrowsException<ArgumentException>(() =>
+        var ex = Assert.Throws<ArgumentException>(() =>
             Product.Create(invalidName, "SKU123", "Valid description", 10m));
-        StringAssert.Contains(ex.Message, "name"); // or whatever error your VO returns
+        Assert.Contains("name", ex.Message); // or whatever error your VO returns
     }
 
     [TestMethod]
     public void Create_WithInvalidSKU_ShouldThrow()
     {
         var invalidSku = "!!!@@@###";
-        var ex = Assert.ThrowsException<ArgumentException>(() =>
+        var ex = Assert.Throws<ArgumentException>(() =>
             Product.Create("Valid Name", invalidSku, "Valid description", 10m));
     }
 
@@ -67,7 +67,7 @@ public class ProductTests
     {
         var sku = SKU.Create(SkuGenerator.Generate("TS")).Value;
         var invalidDesc = new string('x', 1001); // Assume max is 1000
-        var ex = Assert.ThrowsException<ArgumentException>(() =>
+        var ex = Assert.Throws<ArgumentException>(() =>
             Product.Create("Valid Name", sku!.Value, invalidDesc, 10m));
     }
 
@@ -75,7 +75,7 @@ public class ProductTests
     public void Create_WithInvalidPrice_ShouldThrow()
     {
         var sku = SKU.Create(SkuGenerator.Generate("TS")).Value;
-        var ex = Assert.ThrowsException<ArgumentException>(() =>
+        var ex = Assert.Throws<ArgumentException>(() =>
             Product.Create("Valid Name", sku!.Value, "Valid description", -10m));
     }
 
@@ -151,7 +151,7 @@ public class ProductTests
 
         product.Update(ProductName.Create("Same Name").Value!, Description.Create("Same Description").Value, Price.Create(100m).Value);
 
-        Assert.AreEqual(0, product.UncommittedEvents.Count);
+        Assert.IsEmpty(product.UncommittedEvents);
     }
 
     [TestMethod]

@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 using Ratatosk.Infrastructure.Serialization;
-using Ratatosk.UnitTests.Core;
 using Ratatosk.UnitTests.Shared;
 
 namespace Ratatosk.UnitTests;
@@ -25,8 +24,8 @@ public class JsonEventSerializerTests
         var serialized = _serializer.Serialize(domainEvent);
         var normalizedSerialized = RegexHelper.DecodeUnicodeEscapeSequences(serialized);
 
-        Assert.IsTrue(normalizedSerialized.Contains("Type"));
-        Assert.IsTrue(normalizedSerialized.Contains("Ratatosk.UnitTests.Shared.TestEvent"));
+        Assert.Contains("Type", normalizedSerialized);
+        Assert.Contains("Ratatosk.UnitTests.Shared.TestEvent", normalizedSerialized);
     }
 
     [TestMethod]
@@ -34,7 +33,7 @@ public class JsonEventSerializerTests
     {
         var invalidJson = "{\"SomeProperty\": \"Test\"}"; // Missing 'Type' property
 
-        Assert.ThrowsException<InvalidOperationException>(() => _serializer.Deserialize(invalidJson));
+        Assert.Throws<InvalidOperationException>(() => _serializer.Deserialize(invalidJson));
     }
 
     [TestMethod]

@@ -29,7 +29,7 @@ public class ResultTests
     public void Result_EnsureSuccess_Should_Throw_On_Failure()
     {
         var result = Result.Failure("fail");
-        Assert.ThrowsException<InvalidOperationException>(result.EnsureSuccess);
+        Assert.Throws<InvalidOperationException>(result.EnsureSuccess);
     }
 
     [TestMethod]
@@ -69,7 +69,7 @@ public class ResultGenericTests
     public void ResultT_EnsureSuccess_Should_Throw_On_Failure()
     {
         var result = Result<int>.Failure("bad");
-        Assert.ThrowsException<InvalidOperationException>(result.EnsureSuccess);
+        Assert.Throws<InvalidOperationException>(result.EnsureSuccess);
     }
 
     [TestMethod]
