@@ -14,7 +14,7 @@ services:
 
   ratatosk-api-ci:
     image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/ratatosk-api:ci
-    profiles: [ "ci" ]
+    profiles: ["ci"]
     depends_on:
       - ratatosk-testdb
     ports:
@@ -22,9 +22,17 @@ services:
     environment:
       # Connection string using service name for hostname
       Database__ConnectionString: "Host=ratatosk-testdb;Port=5432;Database=${TEST_POSTGRES_DB};Username=${TEST_POSTGRES_USER};Password=${TEST_POSTGRES_PASSWORD}"
-    command: [ "dotnet", "test", "tests/IntegrationTests", "--no-build", "--verbosity", "normal" ]
+    command:
+      [
+        "dotnet",
+        "test",
+        "tests/IntegrationTests",
+        "--no-build",
+        "--verbosity",
+        "normal",
+      ]
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8080/healthz" ]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -35,16 +43,24 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: ratatosk-api-local
-    profiles: [ "local" ]
+    profiles: ["local"]
     depends_on:
       - ratatosk-testdb
     ports:
       - "5005:8080"
     environment:
       Database__ConnectionString: "Host=ratatosk-testdb;Port=5432;Database=${TEST_POSTGRES_DB};Username=${TEST_POSTGRES_USER};Password=${TEST_POSTGRES_PASSWORD}"
-    command: [ "dotnet", "test", "tests/IntegrationTests", "--no-build", "--verbosity", "normal" ]
+    command:
+      [
+        "dotnet",
+        "test",
+        "tests/IntegrationTests",
+        "--no-build",
+        "--verbosity",
+        "normal",
+      ]
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://ratatosk-api-local:8080/healthz" ]
+      test: ["CMD", "curl", "-f", "http://ratatosk-api-local:8080/healthz"]
       interval: 10s
       timeout: 3s
       retries: 5
