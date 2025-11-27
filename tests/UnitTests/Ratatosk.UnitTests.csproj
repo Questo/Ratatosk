@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <LangVersion>latest</LangVersion>
@@ -29,5 +28,4 @@
     <ProjectReference Include="..\..\src\Infrastructure\Ratatosk.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Domain\Ratatosk.Domain.csproj" />
   </ItemGroup>
-
 </Project>

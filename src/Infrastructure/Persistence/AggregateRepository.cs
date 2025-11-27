@@ -6,7 +6,9 @@ using Ratatosk.Infrastructure.Shared;
 
 namespace Ratatosk.Infrastructure.Persistence;
 
-public class AggregateRepository<T>(IEventStore eventStore, ISnapshotStore snapshotStore) : IAggregateRepository<T> where T : AggregateRoot, new()
+public class AggregateRepository<T>(IEventStore eventStore, ISnapshotStore snapshotStore)
+    : IAggregateRepository<T>
+    where T : AggregateRoot, new()
 {
     public async Task<Result<T>> LoadAsync(Guid id, CancellationToken cancellationToken = default)
     {
@@ -45,7 +47,12 @@ public class AggregateRepository<T>(IEventStore eventStore, ISnapshotStore snaps
     {
         var streamName = StreamName.For<T>(aggregate.Id);
         var uncommitted = aggregate.UncommittedEvents;
-        await eventStore.AppendEventsAsync(streamName, uncommitted, aggregate.PersistedVersion, cancellationToken);
+        await eventStore.AppendEventsAsync(
+            streamName,
+            uncommitted,
+            aggregate.PersistedVersion,
+            cancellationToken
+        );
 
         if (!aggregate.ShouldCreateSnapshot())
             return;

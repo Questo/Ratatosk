@@ -4,20 +4,19 @@ using Ratatosk.Domain.Catalog;
 
 namespace Ratatosk.Application.Catalog.Commands;
 
-public sealed record AddProductCommand(
-    string Name,
-    string Sku,
-    string Description,
-    decimal Price
-) : IRequest<Result<Guid>>;
+public sealed record AddProductCommand(string Name, string Sku, string Description, decimal Price)
+    : IRequest<Result<Guid>>;
 
 public class AddProductCommandHandler(
     IAggregateRepository<Product> repository,
     IEventBus eventBus,
-    IProductDomainService domainService)
-    : IRequestHandler<AddProductCommand, Result<Guid>>
+    IProductDomainService domainService
+) : IRequestHandler<AddProductCommand, Result<Guid>>
 {
-    public async Task<Result<Guid>> HandleAsync(AddProductCommand request, CancellationToken cancellationToken = default)
+    public async Task<Result<Guid>> HandleAsync(
+        AddProductCommand request,
+        CancellationToken cancellationToken = default
+    )
     {
         try
         {
@@ -25,7 +24,12 @@ public class AddProductCommandHandler(
             if (!skuIsUnique)
                 return Result<Guid>.Failure($"SKU {request.Sku} is already in use");
 
-            var product = Product.Create(request.Name, request.Sku, request.Description, request.Price);
+            var product = Product.Create(
+                request.Name,
+                request.Sku,
+                request.Description,
+                request.Price
+            );
 
             await repository.SaveAsync(product, cancellationToken);
 

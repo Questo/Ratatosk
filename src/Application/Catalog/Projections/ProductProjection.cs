@@ -4,10 +4,10 @@ using Ratatosk.Domain.Catalog.Events;
 
 namespace Ratatosk.Application.Catalog.Projections;
 
-public class ProductProjection(IProductReadModelRepository repo) :
-    IDomainEventHandler<ProductCreated>,
-    IDomainEventHandler<ProductUpdated>,
-    IDomainEventHandler<ProductRemoved>
+public class ProductProjection(IProductReadModelRepository repo)
+    : IDomainEventHandler<ProductCreated>,
+        IDomainEventHandler<ProductUpdated>,
+        IDomainEventHandler<ProductRemoved>
 {
     public async Task WhenAsync(ProductCreated domainEvent, CancellationToken cancellationToken)
     {
@@ -18,7 +18,7 @@ public class ProductProjection(IProductReadModelRepository repo) :
             Sku = domainEvent.Sku.Value,
             Price = domainEvent.Price.Amount,
             Description = domainEvent.Description.Value,
-            LastUpdatedUtc = domainEvent.OccurredAtUtc.UtcDateTime
+            LastUpdatedUtc = domainEvent.OccurredAtUtc.UtcDateTime,
         };
 
         await repo.SaveAsync(readModel, cancellationToken);
@@ -27,7 +27,8 @@ public class ProductProjection(IProductReadModelRepository repo) :
     public async Task WhenAsync(ProductUpdated domainEvent, CancellationToken cancellationToken)
     {
         var existing = await repo.GetByIdAsync(domainEvent.ProductId, cancellationToken);
-        if (existing == null) return;
+        if (existing == null)
+            return;
 
         if (domainEvent.Name is not null)
             existing.Name = domainEvent.Name.Value;
@@ -40,7 +41,10 @@ public class ProductProjection(IProductReadModelRepository repo) :
         await repo.SaveAsync(existing, cancellationToken);
     }
 
-    public async Task WhenAsync(ProductRemoved domainEvent, CancellationToken cancellationToken = default)
+    public async Task WhenAsync(
+        ProductRemoved domainEvent,
+        CancellationToken cancellationToken = default
+    )
     {
         await repo.DeleteAsync(domainEvent.ProductId, cancellationToken);
     }

@@ -11,7 +11,11 @@ namespace Ratatosk.Infrastructure.Services;
 
 public class JwtAuthenticationService(IOptions<AuthOptions> options) : IAuthenticationService
 {
-    public Task<Result<string>> LoginAsync(string username, string password, CancellationToken cancellationToken)
+    public Task<Result<string>> LoginAsync(
+        string username,
+        string password,
+        CancellationToken cancellationToken
+    )
     {
         // Replace with real validation logic
         if (username != "ratatosk" || password != "ratatest123")
@@ -19,11 +23,7 @@ public class JwtAuthenticationService(IOptions<AuthOptions> options) : IAuthenti
             return Task.FromResult(Result<string>.Failure("Invalid credentials"));
         }
 
-        var claims = new[]
-        {
-            new Claim(ClaimTypes.Name, username),
-            new Claim("role", "Merchant")
-        };
+        var claims = new[] { new Claim(ClaimTypes.Name, username), new Claim("role", "Merchant") };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(options.Value.Secret));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -33,7 +33,8 @@ public class JwtAuthenticationService(IOptions<AuthOptions> options) : IAuthenti
             audience: options.Value.Audience,
             claims: claims,
             expires: DateTime.UtcNow.AddMinutes(options.Value.ExpiresInMinutes),
-            signingCredentials: creds);
+            signingCredentials: creds
+        );
 
         var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
         return Task.FromResult(Result<string>.Success(tokenString));

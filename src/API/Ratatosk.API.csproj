@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
-
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
@@ -18,5 +17,4 @@
     <ProjectReference Include="..\Core\Ratatosk.Core.csproj" />
     <ProjectReference Include="..\Infrastructure\Ratatosk.Infrastructure.csproj" />
   </ItemGroup>
-
 </Project>

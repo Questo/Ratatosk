@@ -15,7 +15,7 @@ public class ProductNameTests
             "O'Nutty Trail Mix",
             "Berry & Bark Energy Bites",
             "Squirrel-Approved Hammock XL",
-            "Moss-Crafted Nest & Blanket"
+            "Moss-Crafted Nest & Blanket",
         };
 
         foreach (var name in names)
@@ -51,11 +51,11 @@ public class ProductNameTests
     {
         var invalidNames = new[]
         {
-            "Deluxe Nut-Bomb 💥",     // Emoji
-            "Hazelnut@Home",          // @ symbol
-            "Red-Cap <Shroom>",       // HTML-like
-            "Berries #1!",            // Hash and exclamation
-            "Maple Syrup (Premium)"   // Parentheses
+            "Deluxe Nut-Bomb 💥", // Emoji
+            "Hazelnut@Home", // @ symbol
+            "Red-Cap <Shroom>", // HTML-like
+            "Berries #1!", // Hash and exclamation
+            "Maple Syrup (Premium)", // Parentheses
         };
 
         foreach (var name in invalidNames)

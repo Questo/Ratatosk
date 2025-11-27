@@ -5,7 +5,8 @@ namespace Ratatosk.Core.Extensions;
 
 public static class BuilderExtensions
 {
-    public static Result<T> BuildResult<T>(this IBuilder<T> builder) where T : class
+    public static Result<T> BuildResult<T>(this IBuilder<T> builder)
+        where T : class
     {
         try
         {

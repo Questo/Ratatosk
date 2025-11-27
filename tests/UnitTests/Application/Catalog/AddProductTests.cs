@@ -14,12 +14,13 @@ public class AddProductCommandHandlerTests
     private Mock<IProductDomainService> _domainServiceMock = null!;
     private AddProductCommandHandler _handler = null!;
 
-    private AddProductCommand CreateCommand() => new(
-        Name: "Test Product",
-        Sku: SkuGenerator.Generate("TS"),
-        Description: "A test product",
-        Price: 9.99m
-    );
+    private AddProductCommand CreateCommand() =>
+        new(
+            Name: "Test Product",
+            Sku: SkuGenerator.Generate("TS"),
+            Description: "A test product",
+            Price: 9.99m
+        );
 
     [TestInitialize]
     public void Setup()
@@ -64,11 +65,15 @@ public class AddProductCommandHandlerTests
         Assert.AreEqual(command.Description, savedProduct.Description.Value);
         Assert.AreEqual(command.Price, savedProduct.Price.Amount);
 
-        _repositoryMock.Verify(x =>
-            x.SaveAsync(It.IsAny<Product>(), It.IsAny<CancellationToken>()), Times.Once);
+        _repositoryMock.Verify(
+            x => x.SaveAsync(It.IsAny<Product>(), It.IsAny<CancellationToken>()),
+            Times.Once
+        );
 
-        _eventBusMock.Verify(x =>
-            x.PublishAsync(It.IsAny<DomainEvent>(), It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+        _eventBusMock.Verify(
+            x => x.PublishAsync(It.IsAny<DomainEvent>(), It.IsAny<CancellationToken>()),
+            Times.AtLeastOnce
+        );
     }
 
     [TestMethod]
@@ -88,8 +93,14 @@ public class AddProductCommandHandlerTests
         Assert.IsTrue(result.IsFailure);
         Assert.AreEqual($"SKU {command.Sku} is already in use", result.Error);
 
-        _repositoryMock.Verify(x => x.SaveAsync(It.IsAny<Product>(), It.IsAny<CancellationToken>()), Times.Never);
-        _eventBusMock.Verify(x => x.PublishAsync(It.IsAny<DomainEvent>(), It.IsAny<CancellationToken>()), Times.Never);
+        _repositoryMock.Verify(
+            x => x.SaveAsync(It.IsAny<Product>(), It.IsAny<CancellationToken>()),
+            Times.Never
+        );
+        _eventBusMock.Verify(
+            x => x.PublishAsync(It.IsAny<DomainEvent>(), It.IsAny<CancellationToken>()),
+            Times.Never
+        );
     }
 
     [TestMethod]
@@ -109,7 +120,13 @@ public class AddProductCommandHandlerTests
         Assert.IsTrue(result.IsFailure);
         Assert.AreEqual("boom", result.Error);
 
-        _repositoryMock.Verify(x => x.SaveAsync(It.IsAny<Product>(), It.IsAny<CancellationToken>()), Times.Never);
-        _eventBusMock.Verify(x => x.PublishAsync(It.IsAny<DomainEvent>(), It.IsAny<CancellationToken>()), Times.Never);
+        _repositoryMock.Verify(
+            x => x.SaveAsync(It.IsAny<Product>(), It.IsAny<CancellationToken>()),
+            Times.Never
+        );
+        _eventBusMock.Verify(
+            x => x.PublishAsync(It.IsAny<DomainEvent>(), It.IsAny<CancellationToken>()),
+            Times.Never
+        );
     }
 }

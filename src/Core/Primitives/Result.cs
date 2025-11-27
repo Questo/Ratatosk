@@ -12,11 +12,9 @@ public class Result
         Error = error;
     }
 
-    public static Result Success()
-        => new(true, null);
+    public static Result Success() => new(true, null);
 
-    public static Result Failure(string error)
-        => new(false, error);
+    public static Result Failure(string error) => new(false, error);
 
     public void EnsureSuccess()
     {
@@ -39,11 +37,9 @@ public class Result<T>
         Error = error;
     }
 
-    public static Result<T> Success(T value)
-        => new(true, value, null);
+    public static Result<T> Success(T value) => new(true, value, null);
 
-    public static Result<T> Failure(string error)
-        => new(false, default, error);
+    public static Result<T> Failure(string error) => new(false, default, error);
 
     public void EnsureSuccess()
     {

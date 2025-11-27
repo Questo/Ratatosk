@@ -12,5 +12,5 @@ public enum StoreType
 {
     InMemory,
     File,
-    Sql
+    Sql,
 }

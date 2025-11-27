@@ -11,17 +11,13 @@ public class GetProductByIdQueryHandlerTests
     private Mock<IProductReadModelRepository> _readModelRepositoryMock = null!;
     private GetProductByIdQueryHandler _handler = null!;
 
-    private static GetProductByIdQuery CreateQuery() => new(
-        Guid.NewGuid()
-    );
+    private static GetProductByIdQuery CreateQuery() => new(Guid.NewGuid());
 
     [TestInitialize]
     public void Setup()
     {
         _readModelRepositoryMock = new Mock<IProductReadModelRepository>();
-        _handler = new(
-            _readModelRepositoryMock.Object
-        );
+        _handler = new(_readModelRepositoryMock.Object);
     }
 
     [TestMethod]
@@ -41,7 +37,10 @@ public class GetProductByIdQueryHandlerTests
         Assert.IsTrue(result.IsFailure);
         Assert.AreEqual("Product not found", result.Error);
 
-        _readModelRepositoryMock.Verify(x => x.GetByIdAsync(query.Id, It.IsAny<CancellationToken>()), Times.Once);
+        _readModelRepositoryMock.Verify(
+            x => x.GetByIdAsync(query.Id, It.IsAny<CancellationToken>()),
+            Times.Once
+        );
     }
 
     [TestMethod]
@@ -49,7 +48,14 @@ public class GetProductByIdQueryHandlerTests
     {
         // Arrange
         var query = CreateQuery();
-        var productReadModel = new ProductReadModel(query.Id, "Test Product", SkuGenerator.Generate("TS"), "A test product", 9.99m, DateTime.UtcNow);
+        var productReadModel = new ProductReadModel(
+            query.Id,
+            "Test Product",
+            SkuGenerator.Generate("TS"),
+            "A test product",
+            9.99m,
+            DateTime.UtcNow
+        );
 
         _readModelRepositoryMock
             .Setup(x => x.GetByIdAsync(query.Id, It.IsAny<CancellationToken>()))
@@ -63,6 +69,9 @@ public class GetProductByIdQueryHandlerTests
         Assert.IsNotNull(result.Value);
         Assert.AreEqual(productReadModel, result.Value);
 
-        _readModelRepositoryMock.Verify(x => x.GetByIdAsync(query.Id, It.IsAny<CancellationToken>()), Times.Once);
+        _readModelRepositoryMock.Verify(
+            x => x.GetByIdAsync(query.Id, It.IsAny<CancellationToken>()),
+            Times.Once
+        );
     }
 }

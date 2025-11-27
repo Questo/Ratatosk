@@ -23,7 +23,8 @@ public abstract class AggregateRoot
     /// <summary>
     /// Determines if a snapshot should be created based on the Version property.
     /// </summary>
-    public bool ShouldCreateSnapshot() => Version >= SnapshotFrequency && Version % SnapshotFrequency == 0;
+    public bool ShouldCreateSnapshot() =>
+        Version >= SnapshotFrequency && Version % SnapshotFrequency == 0;
 
     protected void RaiseEvent(DomainEvent domainEvent)
     {
@@ -34,7 +35,8 @@ public abstract class AggregateRoot
 
     protected abstract void ApplyEvent(DomainEvent domainEvent);
 
-    public static Result<T> Rehydrate<T>(IEnumerable<DomainEvent> history) where T : AggregateRoot, new()
+    public static Result<T> Rehydrate<T>(IEnumerable<DomainEvent> history)
+        where T : AggregateRoot, new()
     {
         if (history == null || !history.Any())
             return Result<T>.Failure("History cannot be null or empty");

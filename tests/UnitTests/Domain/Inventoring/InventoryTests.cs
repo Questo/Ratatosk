@@ -17,9 +17,7 @@ public class InventoryTests
 
         inventory.AddStock(sku, quantity);
 
-        var @event = inventory.UncommittedEvents
-            .OfType<StockAdded>()
-            .FirstOrDefault();
+        var @event = inventory.UncommittedEvents.OfType<StockAdded>().FirstOrDefault();
 
         Assert.IsNotNull(@event);
         Assert.AreEqual(inventory.Id, @event.InventoryId);
@@ -36,7 +34,9 @@ public class InventoryTests
 
         inventory.AddStock(sku, quantity);
 
-        Assert.Throws<ArgumentException>(() => inventory.AddStock(sku, Quantity.Create(10, "kg").Value!));
+        Assert.Throws<ArgumentException>(() =>
+            inventory.AddStock(sku, Quantity.Create(10, "kg").Value!)
+        );
     }
 
     [TestMethod]
@@ -49,9 +49,7 @@ public class InventoryTests
         inventory.AddStock(sku, Quantity.Pieces(10));
         inventory.ReserveStock(sku, quantity.Amount);
 
-        var @event = inventory.UncommittedEvents
-            .OfType<StockReserved>()
-            .FirstOrDefault();
+        var @event = inventory.UncommittedEvents.OfType<StockReserved>().FirstOrDefault();
 
         Assert.IsNotNull(@event);
         Assert.AreEqual(inventory.Id, @event.InventoryId);
@@ -92,9 +90,7 @@ public class InventoryTests
         inventory.ReserveStock(sku, quantity);
         inventory.ReleaseStock(sku, quantity);
 
-        var @event = inventory.UncommittedEvents
-            .OfType<StockReleased>()
-            .FirstOrDefault();
+        var @event = inventory.UncommittedEvents.OfType<StockReleased>().FirstOrDefault();
 
         Assert.IsNotNull(@event);
         Assert.AreEqual(inventory.Id, @event.InventoryId);
@@ -122,9 +118,7 @@ public class InventoryTests
         inventory.AddStock(sku, Quantity.Pieces(10));
         inventory.RemoveStock(sku, quantity);
 
-        var @event = inventory.UncommittedEvents
-            .OfType<StockRemoved>()
-            .FirstOrDefault();
+        var @event = inventory.UncommittedEvents.OfType<StockRemoved>().FirstOrDefault();
 
         Assert.IsNotNull(@event);
         Assert.AreEqual(inventory.Id, @event.InventoryId);
@@ -141,7 +135,9 @@ public class InventoryTests
 
         inventory.AddStock(sku, quantity);
 
-        Assert.Throws<InvalidOperationException>(() => inventory.RemoveStock(sku, Quantity.Pieces(6)));
+        Assert.Throws<InvalidOperationException>(() =>
+            inventory.RemoveStock(sku, Quantity.Pieces(6))
+        );
     }
 
     [TestMethod]

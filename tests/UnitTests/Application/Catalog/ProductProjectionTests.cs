@@ -37,16 +37,21 @@ public class ProductProjectionTests
         await _projection.WhenAsync(evt, CancellationToken.None);
 
         // Assert
-        _repoMock.Verify(repo => repo.SaveAsync(
-            It.Is<ProductReadModel>(rm =>
-                rm.Id == evt.ProductId &&
-                rm.Name == evt.Name.Value &&
-                rm.Sku == evt.Sku.Value &&
-                rm.Description == evt.Description.Value &&
-                rm.Price == evt.Price.Amount &&
-                rm.LastUpdatedUtc == evt.OccurredAtUtc.UtcDateTime),
-            It.IsAny<CancellationToken>()),
-            Times.Once);
+        _repoMock.Verify(
+            repo =>
+                repo.SaveAsync(
+                    It.Is<ProductReadModel>(rm =>
+                        rm.Id == evt.ProductId
+                        && rm.Name == evt.Name.Value
+                        && rm.Sku == evt.Sku.Value
+                        && rm.Description == evt.Description.Value
+                        && rm.Price == evt.Price.Amount
+                        && rm.LastUpdatedUtc == evt.OccurredAtUtc.UtcDateTime
+                    ),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Once
+        );
     }
 
     [TestMethod]
@@ -61,11 +66,12 @@ public class ProductProjectionTests
             Description = "Old Desc",
             Price = 5.00m,
             Sku = SkuGenerator.Generate("FOO"),
-            LastUpdatedUtc = DateTime.MinValue
+            LastUpdatedUtc = DateTime.MinValue,
         };
 
-        _repoMock.Setup(r => r.GetByIdAsync(productId, It.IsAny<CancellationToken>()))
-                 .ReturnsAsync(existing);
+        _repoMock
+            .Setup(r => r.GetByIdAsync(productId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
 
         var evt = new ProductUpdated(
             productId,
@@ -78,14 +84,19 @@ public class ProductProjectionTests
         await _projection.WhenAsync(evt, CancellationToken.None);
 
         // Assert
-        _repoMock.Verify(repo => repo.SaveAsync(
-            It.Is<ProductReadModel>(rm =>
-                rm.Name == evt.Name.Value &&
-                rm.Description == evt.Description.Value &&
-                rm.Price == evt.Price.Amount &&
-                rm.LastUpdatedUtc == evt.OccurredAtUtc.UtcDateTime),
-            It.IsAny<CancellationToken>()),
-            Times.Once);
+        _repoMock.Verify(
+            repo =>
+                repo.SaveAsync(
+                    It.Is<ProductReadModel>(rm =>
+                        rm.Name == evt.Name.Value
+                        && rm.Description == evt.Description.Value
+                        && rm.Price == evt.Price.Amount
+                        && rm.LastUpdatedUtc == evt.OccurredAtUtc.UtcDateTime
+                    ),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Once
+        );
     }
 
     [TestMethod]
@@ -99,14 +110,18 @@ public class ProductProjectionTests
             Price.Create(15.50m).Value!
         );
 
-        _repoMock.Setup(r => r.GetByIdAsync(evt.ProductId, It.IsAny<CancellationToken>()))
-                 .ReturnsAsync((ProductReadModel?)null);
+        _repoMock
+            .Setup(r => r.GetByIdAsync(evt.ProductId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ProductReadModel?)null);
 
         // Act
         await _projection.WhenAsync(evt, CancellationToken.None);
 
         // Assert
-        _repoMock.Verify(r => r.SaveAsync(It.IsAny<ProductReadModel>(), It.IsAny<CancellationToken>()), Times.Never);
+        _repoMock.Verify(
+            r => r.SaveAsync(It.IsAny<ProductReadModel>(), It.IsAny<CancellationToken>()),
+            Times.Never
+        );
     }
 
     [TestMethod]

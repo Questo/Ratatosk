@@ -32,16 +32,17 @@ public class Product : AggregateRoot
         }
     }
 
-    public override Snapshot? CreateSnapshot() => new ProductSnapshot
-    {
-        AggregateId = Id,
-        Version = Version,
-        AggregateType = GetType().FullName!,
-        Name = Name,
-        Sku = Sku,
-        Description = Description,
-        Price = Price
-    };
+    public override Snapshot? CreateSnapshot() =>
+        new ProductSnapshot
+        {
+            AggregateId = Id,
+            Version = Version,
+            AggregateType = GetType().FullName!,
+            Name = Name,
+            Sku = Sku,
+            Description = Description,
+            Price = Price,
+        };
 
     public static Product Create(string name, string sku, string description, decimal price)
     {
@@ -67,7 +68,15 @@ public class Product : AggregateRoot
 
         var product = new Product();
 
-        product.RaiseEvent(new ProductCreated(product.Id, nameResult.Value!, skuResult.Value!, descriptionResult.Value!, priceResult.Value!));
+        product.RaiseEvent(
+            new ProductCreated(
+                product.Id,
+                nameResult.Value!,
+                skuResult.Value!,
+                descriptionResult.Value!,
+                priceResult.Value!
+            )
+        );
 
         return product;
     }

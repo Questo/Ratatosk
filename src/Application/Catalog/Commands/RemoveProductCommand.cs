@@ -8,10 +8,13 @@ public sealed record RemoveProductCommand(Guid ProductId) : IRequest<Result>;
 
 public class RemoveProductCommandHandler(
     IAggregateRepository<Product> repository,
-    IEventBus eventBus)
-    : IRequestHandler<RemoveProductCommand, Result>
+    IEventBus eventBus
+) : IRequestHandler<RemoveProductCommand, Result>
 {
-    public async Task<Result> HandleAsync(RemoveProductCommand request, CancellationToken cancellationToken = default)
+    public async Task<Result> HandleAsync(
+        RemoveProductCommand request,
+        CancellationToken cancellationToken = default
+    )
     {
         try
         {

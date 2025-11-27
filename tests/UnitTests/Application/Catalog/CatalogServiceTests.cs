@@ -26,9 +26,15 @@ public class CatalogServiceTests
         _dispatcherMock = new Mock<IDispatcher>();
         _loggerMock = new Mock<ILogger<CatalogService>>();
         _unitOfWorkMock = new Mock<IUnitOfWork>();
-        _catalogService = new CatalogService(_dispatcherMock.Object, _unitOfWorkMock.Object, _loggerMock.Object);
+        _catalogService = new CatalogService(
+            _dispatcherMock.Object,
+            _unitOfWorkMock.Object,
+            _loggerMock.Object
+        );
         _dispatcherMock
-            .Setup(x => x.DispatchAsync(It.IsAny<IRequest<Result<Guid>>>(), It.IsAny<CancellationToken>()))
+            .Setup(x =>
+                x.DispatchAsync(It.IsAny<IRequest<Result<Guid>>>(), It.IsAny<CancellationToken>())
+            )
             .ReturnsAsync(Result<Guid>.Success(Guid.NewGuid()));
     }
 
@@ -36,7 +42,12 @@ public class CatalogServiceTests
     public async Task AddProductAsync_WhenCommandValid_ShouldReturnSuccess()
     {
         // Arrange
-        var command = new AddProductCommand("Test Product", SkuGenerator.Generate("TS"), "A test product", 9.99m);
+        var command = new AddProductCommand(
+            "Test Product",
+            SkuGenerator.Generate("TS"),
+            "A test product",
+            9.99m
+        );
         var expectedResult = Result<Guid>.Success(Guid.NewGuid());
 
         _dispatcherMock
@@ -76,7 +87,16 @@ public class CatalogServiceTests
         // Arrange
         var productId = Guid.NewGuid();
         var query = new GetProductByIdQuery(productId);
-        var expectedResult = Result<ProductReadModel>.Success(new ProductReadModel(productId, "Test Product", SkuGenerator.Generate("TS"), "A test product", 9.99m, DateTime.UtcNow));
+        var expectedResult = Result<ProductReadModel>.Success(
+            new ProductReadModel(
+                productId,
+                "Test Product",
+                SkuGenerator.Generate("TS"),
+                "A test product",
+                9.99m,
+                DateTime.UtcNow
+            )
+        );
 
         _dispatcherMock
             .Setup(x => x.DispatchAsync(query, It.IsAny<CancellationToken>()))
@@ -152,7 +172,12 @@ public class CatalogServiceTests
     public async Task UpdateProductAsync_WhenCommandValid_ShouldReturnSuccess()
     {
         // Arrange
-        var command = new UpdateProductCommand(Guid.NewGuid(), "Updated Product", "An updated product", 19.99m);
+        var command = new UpdateProductCommand(
+            Guid.NewGuid(),
+            "Updated Product",
+            "An updated product",
+            19.99m
+        );
         var expectedResult = Result.Success();
 
         _dispatcherMock
@@ -184,5 +209,4 @@ public class CatalogServiceTests
         Assert.IsFalse(result.IsSuccess);
         Assert.AreEqual(expectedResult.Error, result.Error);
     }
-
 }

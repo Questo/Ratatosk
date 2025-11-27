@@ -29,6 +29,9 @@ public static class Guard
     public static void AgainstOutOfRange(int value, int min, int max, string paramName)
     {
         if (value < min || value > max)
-            throw new ArgumentOutOfRangeException(paramName, $"Value must be between {min} and {max}.");
+            throw new ArgumentOutOfRangeException(
+                paramName,
+                $"Value must be between {min} and {max}."
+            );
     }
 }

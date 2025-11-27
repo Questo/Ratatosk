@@ -12,7 +12,10 @@ namespace Ratatosk.Domain.Catalog.ValueObjects;
 /// </summary>
 public sealed partial class ProductName : ValueObject
 {
-    [GeneratedRegex("^[A-Za-z0-9 '&-]{3,100}$", RegexOptions.Compiled | RegexOptions.CultureInvariant)]
+    [GeneratedRegex(
+        "^[A-Za-z0-9 '&-]{3,100}$",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant
+    )]
     private static partial Regex NamePattern();
 
     public string Value { get; } = default!;

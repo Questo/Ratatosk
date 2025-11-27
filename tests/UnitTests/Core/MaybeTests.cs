@@ -35,9 +35,7 @@ public class MaybeTests
     {
         var maybe = Maybe<int>.Some(42);
 
-        var result = maybe.Match(
-            some => $"Got {some}",
-            () => "Nothing");
+        var result = maybe.Match(some => $"Got {some}", () => "Nothing");
 
         Assert.AreEqual("Got 42", result);
     }
@@ -47,9 +45,7 @@ public class MaybeTests
     {
         var maybe = Maybe<int>.None;
 
-        var result = maybe.Match(
-            some => $"Got {some}",
-            () => "Nothing");
+        var result = maybe.Match(some => $"Got {some}", () => "Nothing");
 
         Assert.AreEqual("Nothing", result);
     }

@@ -30,12 +30,16 @@ public sealed partial class Description : ValueObject
 
         if (sanitized.Length < MinLength)
         {
-            return Result<Description>.Failure($"Description must be at least {MinLength} characters long");
+            return Result<Description>.Failure(
+                $"Description must be at least {MinLength} characters long"
+            );
         }
 
         if (sanitized.Length > MaxLength)
         {
-            return Result<Description>.Failure($"Description must not exceed {MaxLength} characters");
+            return Result<Description>.Failure(
+                $"Description must not exceed {MaxLength} characters"
+            );
         }
 
         return Result<Description>.Success(new Description(sanitized));

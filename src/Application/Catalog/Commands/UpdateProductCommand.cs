@@ -14,10 +14,13 @@ public sealed record UpdateProductCommand(
 
 public class UpdateProductCommandHandler(
     IAggregateRepository<Product> repository,
-    IEventBus eventBus)
-    : IRequestHandler<UpdateProductCommand, Result>
+    IEventBus eventBus
+) : IRequestHandler<UpdateProductCommand, Result>
 {
-    public async Task<Result> HandleAsync(UpdateProductCommand request, CancellationToken cancellationToken = default)
+    public async Task<Result> HandleAsync(
+        UpdateProductCommand request,
+        CancellationToken cancellationToken = default
+    )
     {
         try
         {

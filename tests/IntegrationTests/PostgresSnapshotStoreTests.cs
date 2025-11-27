@@ -10,7 +10,8 @@ namespace Ratatosk.IntegrationTests;
 [TestClass]
 public class PostgresSnapshotStoreTests
 {
-    private const string ConnectionString = "Host=localhost;Port=5433;Database=ratatosk_test;Username=testuser;Password=testpass";
+    private const string ConnectionString =
+        "Host=localhost;Port=5433;Database=ratatosk_test;Username=testuser;Password=testpass";
     private IUnitOfWork _uow = null!;
     private PostgresSnapshotStore _snapshotStore = null!;
 
@@ -22,17 +23,20 @@ public class PostgresSnapshotStoreTests
         _uow = new UnitOfWork(ConnectionString);
         _uow.Begin();
 
-        await _uow.Connection.ExecuteAsync("""
-            DROP TABLE IF EXISTS snapshots;
-            CREATE TABLE IF NOT EXISTS snapshots(
-                aggregate_id uuid PRIMARY KEY,
-                version integer NOT NULL,
-                aggregate_type text NOT NULL,
-                aggregate_data text NOT NULL,
-                taken_at_utc timestamptz NOT NULL,
-                UNIQUE (aggregate_id, version)
-            );
-        """, transaction: _uow.Transaction);
+        await _uow.Connection.ExecuteAsync(
+            """
+                DROP TABLE IF EXISTS snapshots;
+                CREATE TABLE IF NOT EXISTS snapshots(
+                    aggregate_id uuid PRIMARY KEY,
+                    version integer NOT NULL,
+                    aggregate_type text NOT NULL,
+                    aggregate_data text NOT NULL,
+                    taken_at_utc timestamptz NOT NULL,
+                    UNIQUE (aggregate_id, version)
+                );
+            """,
+            transaction: _uow.Transaction
+        );
 
         _snapshotStore = new PostgresSnapshotStore(_uow, serializer);
     }
@@ -46,14 +50,17 @@ public class PostgresSnapshotStoreTests
             AggregateId = aggregateId,
             Version = 1,
             AggregateType = "TestAggregate",
-            TakenAtUtc = DateTime.UtcNow
+            TakenAtUtc = DateTime.UtcNow,
         };
 
         // Save the snapshot
         await _snapshotStore.SaveSnapshotAsync(snapshot, CancellationToken.None);
 
         // Load the snapshot
-        var loadedSnapshot = await _snapshotStore.LoadSnapshotAsync(aggregateId, CancellationToken.None);
+        var loadedSnapshot = await _snapshotStore.LoadSnapshotAsync(
+            aggregateId,
+            CancellationToken.None
+        );
 
         Assert.IsNotNull(loadedSnapshot);
         Assert.AreEqual(snapshot.AggregateId, loadedSnapshot.AggregateId);

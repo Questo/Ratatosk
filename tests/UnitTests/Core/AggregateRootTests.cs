@@ -111,4 +111,3 @@ public class AggregateRootTests
         Assert.AreEqual("History cannot be null or empty", result.Error);
     }
 }
-

@@ -6,9 +6,13 @@ namespace Ratatosk.Application.Catalog.Queries;
 
 public sealed record GetProductByIdQuery(Guid Id) : IRequest<Result<ProductReadModel>>;
 
-public class GetProductByIdQueryHandler(IProductReadModelRepository repository) : IRequestHandler<GetProductByIdQuery, Result<ProductReadModel>>
+public class GetProductByIdQueryHandler(IProductReadModelRepository repository)
+    : IRequestHandler<GetProductByIdQuery, Result<ProductReadModel>>
 {
-    public async Task<Result<ProductReadModel>> HandleAsync(GetProductByIdQuery query, CancellationToken cancellationToken = default)
+    public async Task<Result<ProductReadModel>> HandleAsync(
+        GetProductByIdQuery query,
+        CancellationToken cancellationToken = default
+    )
     {
         try
         {

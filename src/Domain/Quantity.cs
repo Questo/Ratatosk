@@ -4,8 +4,8 @@ using Ratatosk.Core.Primitives;
 namespace Ratatosk.Domain;
 
 /// <summary>
-/// Represents a measurable amount of something, such as stock, weight, or volume, 
-/// paired with a unit of measurement. This value object is used to capture both the 
+/// Represents a measurable amount of something, such as stock, weight, or volume,
+/// paired with a unit of measurement. This value object is used to capture both the
 /// magnitude and the semantic meaning of the quantity in domain models.
 ///
 /// <para>Examples:</para>
@@ -23,7 +23,14 @@ public sealed class Quantity : ValueObject
 
     private static readonly HashSet<string> ValidUnits = new(StringComparer.OrdinalIgnoreCase)
     {
-        "pcs", "kg", "g", "L", "ml", "m", "cm", "mm"
+        "pcs",
+        "kg",
+        "g",
+        "L",
+        "ml",
+        "m",
+        "cm",
+        "mm",
     };
 
     private Quantity(int amount, string unit)
@@ -47,12 +54,19 @@ public sealed class Quantity : ValueObject
     }
 
     public static Quantity Pieces(int amount) => new(amount, "pcs");
+
     public static Quantity Kilograms(int amount) => new(amount, "kg");
+
     public static Quantity Grams(int amount) => new(amount, "g");
+
     public static Quantity Liters(int amount) => new(amount, "L");
+
     public static Quantity Milliliters(int amount) => new(amount, "ml");
+
     public static Quantity Meters(int amount) => new(amount, "m");
+
     public static Quantity Centimeters(int amount) => new(amount, "cm");
+
     public static Quantity Millimeters(int amount) => new(amount, "mm");
 
     public static Quantity operator +(Quantity left, Quantity right)
@@ -100,7 +114,9 @@ public sealed class Quantity : ValueObject
     {
         if (!string.Equals(a.Unit, b.Unit, StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException($"Cannot operate on quantities with different units: '{a.Unit}' vs '{b.Unit}'.");
+            throw new InvalidOperationException(
+                $"Cannot operate on quantities with different units: '{a.Unit}' vs '{b.Unit}'."
+            );
         }
     }
 

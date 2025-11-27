@@ -32,19 +32,19 @@ public class SKUTests
     {
         var invalidSkus = new[]
         {
-            "abc-123",              // lowercase letters
-            "TS--1234",             // double hyphen
-            "TS-123$",              // invalid character ($)
-            "TS1234",               // missing hyphen
-            "T-1234",               // prefix too short
-            "TOOLONG-1234",         // prefix too long
-            "TS-123",               // too short second segment
-            "TS-123456789",         // too long second segment
-            "TS-1234-*-BLUE",       // invalid character in segment
-            "TS_1234",              // underscore instead of hyphen
-            "",                     // empty string
-            "   ",                  // whitespace only
-            null                    // null value
+            "abc-123", // lowercase letters
+            "TS--1234", // double hyphen
+            "TS-123$", // invalid character ($)
+            "TS1234", // missing hyphen
+            "T-1234", // prefix too short
+            "TOOLONG-1234", // prefix too long
+            "TS-123", // too short second segment
+            "TS-123456789", // too long second segment
+            "TS-1234-*-BLUE", // invalid character in segment
+            "TS_1234", // underscore instead of hyphen
+            "", // empty string
+            "   ", // whitespace only
+            null, // null value
         };
 
         foreach (var invalidSku in invalidSkus)

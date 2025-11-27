@@ -11,19 +11,20 @@ public class ProductDomainService(IOptions<DatabaseOptions> options) : IProductD
 {
     private readonly IDbConnection _db = new NpgsqlConnection(options.Value.ConnectionString);
 
-    public async Task<bool> IsSkuUniqueAsync(string sku, CancellationToken cancellationToken = default)
+    public async Task<bool> IsSkuUniqueAsync(
+        string sku,
+        CancellationToken cancellationToken = default
+    )
     {
         const string sql = """
-            SELECT COUNT(1)
-            FROM product_read_models
-            WHERE sku = @Sku
-        """;
+                SELECT COUNT(1)
+                FROM product_read_models
+                WHERE sku = @Sku
+            """;
 
-        var count = await _db.ExecuteScalarAsync<int>(new CommandDefinition(
-            sql,
-            new { Sku = sku },
-            cancellationToken: cancellationToken
-        ));
+        var count = await _db.ExecuteScalarAsync<int>(
+            new CommandDefinition(sql, new { Sku = sku }, cancellationToken: cancellationToken)
+        );
 
         return count == 0;
     }

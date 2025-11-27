@@ -1,4 +1,3 @@
-
 using Ratatosk.Core.BuildingBlocks;
 
 namespace Ratatosk.Application.Authentication;

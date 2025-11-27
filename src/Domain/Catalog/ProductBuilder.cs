@@ -14,7 +14,8 @@ public class ProductBuilder : IBuilder<Product>
     public ProductBuilder WithName(string name)
     {
         var result = ProductName.Create(name);
-        if (result.IsFailure) throw new ArgumentException(result.Error!);
+        if (result.IsFailure)
+            throw new ArgumentException(result.Error!);
 
         _name = result.Value!;
         return this;
@@ -23,7 +24,8 @@ public class ProductBuilder : IBuilder<Product>
     public ProductBuilder WithSku(string sku)
     {
         var result = SKU.Create(sku);
-        if (result.IsFailure) throw new ArgumentException(result.Error!);
+        if (result.IsFailure)
+            throw new ArgumentException(result.Error!);
 
         _sku = result.Value!;
         return this;
@@ -32,7 +34,8 @@ public class ProductBuilder : IBuilder<Product>
     public ProductBuilder WithDescription(string description)
     {
         var result = Description.Create(description);
-        if (result.IsFailure) throw new ArgumentException(result.Error!);
+        if (result.IsFailure)
+            throw new ArgumentException(result.Error!);
 
         _description = result.Value!;
         return this;
@@ -41,7 +44,8 @@ public class ProductBuilder : IBuilder<Product>
     public ProductBuilder WithPrice(decimal amount, string currency = "SEK")
     {
         var result = Price.Create(amount, currency);
-        if (result.IsFailure) throw new ArgumentException(result.Error!);
+        if (result.IsFailure)
+            throw new ArgumentException(result.Error!);
 
         _price = result.Value!;
         return this;
@@ -59,7 +63,10 @@ public class ProductBuilder : IBuilder<Product>
 
     public IBuilder<Product> With<TValue>(string propertyName, TValue value)
     {
-        var property = typeof(ProductBuilder).GetField($"_{propertyName}", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var property = typeof(ProductBuilder).GetField(
+            $"_{propertyName}",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance
+        );
         property?.SetValue(this, value);
         return this;
     }

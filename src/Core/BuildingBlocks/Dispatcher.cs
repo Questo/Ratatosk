@@ -5,17 +5,28 @@ namespace Ratatosk.Core.BuildingBlocks;
 
 public interface IDispatcher
 {
-    Task<TResponse> DispatchAsync<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default);
+    Task<TResponse> DispatchAsync<TResponse>(
+        IRequest<TResponse> request,
+        CancellationToken cancellationToken = default
+    );
 }
 
 public class Dispatcher(IServiceProvider serviceProvider) : IDispatcher
 {
-    public async Task<TResponse> DispatchAsync<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
+    public async Task<TResponse> DispatchAsync<TResponse>(
+        IRequest<TResponse> request,
+        CancellationToken cancellationToken = default
+    )
     {
-        var handlerType = typeof(IRequestHandler<,>).MakeGenericType(request.GetType(), typeof(TResponse));
+        var handlerType = typeof(IRequestHandler<,>).MakeGenericType(
+            request.GetType(),
+            typeof(TResponse)
+        );
         var handler = serviceProvider.GetRequiredService(handlerType);
 
-        var method = handlerType.GetMethod(nameof(IRequestHandler<IRequest<TResponse>, TResponse>.HandleAsync))!;
+        var method = handlerType.GetMethod(
+            nameof(IRequestHandler<IRequest<TResponse>, TResponse>.HandleAsync)
+        )!;
         var task = (Task<TResponse>)method.Invoke(handler, [request, cancellationToken])!;
         return await task;
     }

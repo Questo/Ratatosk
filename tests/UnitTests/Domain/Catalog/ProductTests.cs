@@ -12,7 +12,8 @@ public class ProductTests
     public void Create_WithInvalidInput_ShouldThrowException()
     {
         Assert.Throws<ArgumentException>(() =>
-            Product.Create(string.Empty, string.Empty, string.Empty, -1m));
+            Product.Create(string.Empty, string.Empty, string.Empty, -1m)
+        );
     }
 
     [TestMethod]
@@ -22,7 +23,8 @@ public class ProductTests
     {
         var sku = SKU.Create(SkuGenerator.Generate("TS")).Value;
         Assert.Throws<ArgumentException>(() =>
-            Product.Create(invalidName, sku!.Value, "A description", 10m));
+            Product.Create(invalidName, sku!.Value, "A description", 10m)
+        );
     }
 
     [TestMethod]
@@ -31,7 +33,8 @@ public class ProductTests
     public void Create_WithNullOrEmptySku_ShouldThrow(string invalidSku)
     {
         Assert.Throws<ArgumentException>(() =>
-            Product.Create("Product Name", invalidSku, "A description", 10m));
+            Product.Create("Product Name", invalidSku, "A description", 10m)
+        );
     }
 
     [TestMethod]
@@ -41,7 +44,8 @@ public class ProductTests
     {
         var sku = SKU.Create(SkuGenerator.Generate("TS")).Value;
         Assert.Throws<ArgumentException>(() =>
-            Product.Create("Product Name", sku!.Value, invalidDesc, 10m));
+            Product.Create("Product Name", sku!.Value, invalidDesc, 10m)
+        );
     }
 
     [TestMethod]
@@ -50,7 +54,8 @@ public class ProductTests
         // Assuming this name fails internal validation
         var invalidName = new string('!', 300); // too long or invalid
         var ex = Assert.Throws<ArgumentException>(() =>
-            Product.Create(invalidName, "SKU123", "Valid description", 10m));
+            Product.Create(invalidName, "SKU123", "Valid description", 10m)
+        );
         Assert.Contains("name", ex.Message); // or whatever error your VO returns
     }
 
@@ -59,7 +64,8 @@ public class ProductTests
     {
         var invalidSku = "!!!@@@###";
         var ex = Assert.Throws<ArgumentException>(() =>
-            Product.Create("Valid Name", invalidSku, "Valid description", 10m));
+            Product.Create("Valid Name", invalidSku, "Valid description", 10m)
+        );
     }
 
     [TestMethod]
@@ -68,7 +74,8 @@ public class ProductTests
         var sku = SKU.Create(SkuGenerator.Generate("TS")).Value;
         var invalidDesc = new string('x', 1001); // Assume max is 1000
         var ex = Assert.Throws<ArgumentException>(() =>
-            Product.Create("Valid Name", sku!.Value, invalidDesc, 10m));
+            Product.Create("Valid Name", sku!.Value, invalidDesc, 10m)
+        );
     }
 
     [TestMethod]
@@ -76,7 +83,8 @@ public class ProductTests
     {
         var sku = SKU.Create(SkuGenerator.Generate("TS")).Value;
         var ex = Assert.Throws<ArgumentException>(() =>
-            Product.Create("Valid Name", sku!.Value, "Valid description", -10m));
+            Product.Create("Valid Name", sku!.Value, "Valid description", -10m)
+        );
     }
 
     [TestMethod]
@@ -87,9 +95,7 @@ public class ProductTests
 
         Assert.IsNotNull(product);
 
-        var @event = product.UncommittedEvents
-            .OfType<ProductCreated>()
-            .FirstOrDefault();
+        var @event = product.UncommittedEvents.OfType<ProductCreated>().FirstOrDefault();
 
         Assert.IsNotNull(@event);
         Assert.AreEqual("Test Product", @event.Name.Value);
@@ -128,11 +134,13 @@ public class ProductTests
             .WithPrice(100m)
             .Build();
 
-        product.Update(ProductName.Create("New Name").Value!, Description.Create("New Description").Value, Price.Create(120m).Value);
+        product.Update(
+            ProductName.Create("New Name").Value!,
+            Description.Create("New Description").Value,
+            Price.Create(120m).Value
+        );
 
-        var @event = product.UncommittedEvents
-            .OfType<ProductUpdated>()
-            .FirstOrDefault();
+        var @event = product.UncommittedEvents.OfType<ProductUpdated>().FirstOrDefault();
 
         Assert.IsNotNull(@event);
         Assert.AreEqual("New Name", @event.Name.Value);
@@ -149,7 +157,11 @@ public class ProductTests
             .WithPrice(100m)
             .Build();
 
-        product.Update(ProductName.Create("Same Name").Value!, Description.Create("Same Description").Value, Price.Create(100m).Value);
+        product.Update(
+            ProductName.Create("Same Name").Value!,
+            Description.Create("Same Description").Value,
+            Price.Create(100m).Value
+        );
 
         Assert.IsEmpty(product.UncommittedEvents);
     }
@@ -165,9 +177,7 @@ public class ProductTests
 
         product.Remove();
 
-        var @event = product.UncommittedEvents
-            .OfType<ProductRemoved>()
-            .FirstOrDefault();
+        var @event = product.UncommittedEvents.OfType<ProductRemoved>().FirstOrDefault();
 
         Assert.IsNotNull(@event);
         Assert.AreEqual(product.Id, @event.ProductId);

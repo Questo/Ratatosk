@@ -57,10 +57,13 @@ public static partial class RegexHelper
     public static string DecodeUnicodeEscapeSequences(string input)
     {
         var regex = UnicodeEscapeRegex();
-        return regex.Replace(input, match =>
-        {
-            var code = match.Groups[1].Value;
-            return char.ConvertFromUtf32(int.Parse(code, NumberStyles.HexNumber));
-        });
+        return regex.Replace(
+            input,
+            match =>
+            {
+                var code = match.Groups[1].Value;
+                return char.ConvertFromUtf32(int.Parse(code, NumberStyles.HexNumber));
+            }
+        );
     }
 }

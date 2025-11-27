@@ -29,7 +29,7 @@ public class QuantityTests
             ("ml", "ML"),
             ("m", "M"),
             ("cm", "CM"),
-            ("mm", "MM")
+            ("mm", "MM"),
         };
 
         foreach (var (validUnit, unmatchedCasing) in validUnitsAndUnmatchedCasings)

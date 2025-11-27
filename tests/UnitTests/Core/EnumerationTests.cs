@@ -5,7 +5,6 @@ namespace Ratatosk.UnitTests.Core;
 [TestClass]
 public class EnumerationTests
 {
-
     [TestMethod]
     public void Equals_WhenSameObject_ReturnsTrue()
     {

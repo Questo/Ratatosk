@@ -5,47 +5,52 @@ using Ratatosk.Core.Abstractions;
 
 namespace Ratatosk.Infrastructure;
 
-public class ProjectionRegistrationService(IServiceProvider serviceProvider, IEventBus eventBus) : IHostedService
+public class ProjectionRegistrationService(IServiceProvider serviceProvider, IEventBus eventBus)
+    : IHostedService
 {
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        eventBus.Subscribe(async (domainEvent, ct) =>
-        {
-            using var scope = serviceProvider.CreateScope();
-            var provider = scope.ServiceProvider;
-            var uow = provider.GetRequiredService<IUnitOfWork>();
-
-            try
+        eventBus.Subscribe(
+            async (domainEvent, ct) =>
             {
-                var domainEventType = domainEvent.GetType();
-                var projectionType = typeof(IDomainEventHandler<>).MakeGenericType(domainEventType);
+                using var scope = serviceProvider.CreateScope();
+                var provider = scope.ServiceProvider;
+                var uow = provider.GetRequiredService<IUnitOfWork>();
 
-                var projections = scope.ServiceProvider.GetServices(projectionType);
-                foreach (var projection in projections)
+                try
                 {
-                    var whenAsyncMethod = projectionType.GetMethod("WhenAsync");
-                    if (whenAsyncMethod is null)
+                    var domainEventType = domainEvent.GetType();
+                    var projectionType = typeof(IDomainEventHandler<>).MakeGenericType(
+                        domainEventType
+                    );
+
+                    var projections = scope.ServiceProvider.GetServices(projectionType);
+                    foreach (var projection in projections)
                     {
-                        continue;
+                        var whenAsyncMethod = projectionType.GetMethod("WhenAsync");
+                        if (whenAsyncMethod is null)
+                        {
+                            continue;
+                        }
+
+                        var task = (Task?)whenAsyncMethod.Invoke(projection, [domainEvent, ct]);
+                        if (task is null)
+                        {
+                            continue;
+                        }
+
+                        await task;
                     }
 
-                    var task = (Task?)whenAsyncMethod.Invoke(projection, [domainEvent, ct]);
-                    if (task is null)
-                    {
-                        continue;
-                    }
-
-                    await task;
+                    uow.Commit();
                 }
-
-                uow.Commit();
+                catch
+                {
+                    uow.Rollback();
+                    throw;
+                }
             }
-            catch
-            {
-                uow.Rollback();
-                throw;
-            }
-        });
+        );
 
         return Task.CompletedTask;
     }

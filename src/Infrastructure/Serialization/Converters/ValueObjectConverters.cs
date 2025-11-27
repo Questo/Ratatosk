@@ -7,7 +7,11 @@ namespace Ratatosk.Infrastructure.Serialization.Converters;
 
 public class ProductNameConverter : JsonConverter<ProductName>
 {
-    public override ProductName Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override ProductName Read(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options
+    )
     {
         var value = reader.GetString();
         var result = ProductName.Create(value!);
@@ -20,7 +24,11 @@ public class ProductNameConverter : JsonConverter<ProductName>
         return result.Value!;
     }
 
-    public override void Write(Utf8JsonWriter writer, ProductName value, JsonSerializerOptions options)
+    public override void Write(
+        Utf8JsonWriter writer,
+        ProductName value,
+        JsonSerializerOptions options
+    )
     {
         writer.WriteStringValue(value.Value);
     }
@@ -28,7 +36,11 @@ public class ProductNameConverter : JsonConverter<ProductName>
 
 public class SKUConverter : JsonConverter<SKU>
 {
-    public override SKU Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override SKU Read(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options
+    )
     {
         var value = reader.GetString();
         var result = SKU.Create(value!);
@@ -49,7 +61,11 @@ public class SKUConverter : JsonConverter<SKU>
 
 public class DescriptionConverter : JsonConverter<Description>
 {
-    public override Description Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override Description Read(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options
+    )
     {
         var value = reader.GetString();
         var result = Description.Create(value!);
@@ -62,7 +78,11 @@ public class DescriptionConverter : JsonConverter<Description>
         return result.Value!;
     }
 
-    public override void Write(Utf8JsonWriter writer, Description value, JsonSerializerOptions options)
+    public override void Write(
+        Utf8JsonWriter writer,
+        Description value,
+        JsonSerializerOptions options
+    )
     {
         writer.WriteStringValue(value.Value);
     }
@@ -70,7 +90,11 @@ public class DescriptionConverter : JsonConverter<Description>
 
 public class PriceConverter : JsonConverter<Price>
 {
-    public override Price Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override Price Read(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options
+    )
     {
         decimal? amount = null;
         string? currency = null;
@@ -89,7 +113,6 @@ public class PriceConverter : JsonConverter<Price>
 
             if (reader.TokenType != JsonTokenType.PropertyName)
             {
-
                 throw new JsonException("Expected property name in Price object");
             }
 

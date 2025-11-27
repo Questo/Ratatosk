@@ -1,25 +1,44 @@
-using Ratatosk.Core.Primitives;
-using Ratatosk.Application.Catalog.Commands;
-using Ratatosk.Core.BuildingBlocks;
 using Microsoft.Extensions.Logging;
-using Ratatosk.Application.Catalog.ReadModels;
+using Ratatosk.Application.Catalog.Commands;
 using Ratatosk.Application.Catalog.Queries;
+using Ratatosk.Application.Catalog.ReadModels;
 using Ratatosk.Application.Shared;
+using Ratatosk.Core.BuildingBlocks;
+using Ratatosk.Core.Primitives;
 
 namespace Ratatosk.Application.Catalog;
 
 public interface ICatalogService
 {
-    Task<Result<Guid>> AddProductAsync(AddProductCommand command, CancellationToken cancellationToken = default);
-    Task<Result<Pagination<ProductReadModel>>> GetProductsAsync(SearchProductsQuery query, CancellationToken cancellationToken = default);
-    Task<Result> UpdateProductAsync(UpdateProductCommand command, CancellationToken cancellationToken = default);
-    Task<Result> RemoveProductAsync(RemoveProductCommand command, CancellationToken cancellationToken = default);
-    Task<Result<ProductReadModel>> GetProductByIdAsync(GetProductByIdQuery query, CancellationToken cancellationToken = default);
+    Task<Result<Guid>> AddProductAsync(
+        AddProductCommand command,
+        CancellationToken cancellationToken = default
+    );
+    Task<Result<Pagination<ProductReadModel>>> GetProductsAsync(
+        SearchProductsQuery query,
+        CancellationToken cancellationToken = default
+    );
+    Task<Result> UpdateProductAsync(
+        UpdateProductCommand command,
+        CancellationToken cancellationToken = default
+    );
+    Task<Result> RemoveProductAsync(
+        RemoveProductCommand command,
+        CancellationToken cancellationToken = default
+    );
+    Task<Result<ProductReadModel>> GetProductByIdAsync(
+        GetProductByIdQuery query,
+        CancellationToken cancellationToken = default
+    );
 }
 
-public class CatalogService(IDispatcher dispatcher, IUnitOfWork uow, ILogger<CatalogService> logger) : ICatalogService
+public class CatalogService(IDispatcher dispatcher, IUnitOfWork uow, ILogger<CatalogService> logger)
+    : ICatalogService
 {
-    public async Task<Result<Guid>> AddProductAsync(AddProductCommand command, CancellationToken cancellationToken = default)
+    public async Task<Result<Guid>> AddProductAsync(
+        AddProductCommand command,
+        CancellationToken cancellationToken = default
+    )
     {
         var result = await dispatcher.DispatchAsync(command, cancellationToken);
         if (result.IsFailure)
@@ -31,7 +50,10 @@ public class CatalogService(IDispatcher dispatcher, IUnitOfWork uow, ILogger<Cat
         return result;
     }
 
-    public async Task<Result<ProductReadModel>> GetProductByIdAsync(GetProductByIdQuery query, CancellationToken cancellationToken = default)
+    public async Task<Result<ProductReadModel>> GetProductByIdAsync(
+        GetProductByIdQuery query,
+        CancellationToken cancellationToken = default
+    )
     {
         var result = await dispatcher.DispatchAsync(query, cancellationToken);
         if (result.IsFailure)
@@ -42,7 +64,10 @@ public class CatalogService(IDispatcher dispatcher, IUnitOfWork uow, ILogger<Cat
         return result;
     }
 
-    public async Task<Result<Pagination<ProductReadModel>>> GetProductsAsync(SearchProductsQuery query, CancellationToken cancellationToken = default)
+    public async Task<Result<Pagination<ProductReadModel>>> GetProductsAsync(
+        SearchProductsQuery query,
+        CancellationToken cancellationToken = default
+    )
     {
         var result = await dispatcher.DispatchAsync(query, cancellationToken);
         if (result.IsFailure)
@@ -53,7 +78,10 @@ public class CatalogService(IDispatcher dispatcher, IUnitOfWork uow, ILogger<Cat
         return result;
     }
 
-    public async Task<Result> RemoveProductAsync(RemoveProductCommand command, CancellationToken cancellationToken = default)
+    public async Task<Result> RemoveProductAsync(
+        RemoveProductCommand command,
+        CancellationToken cancellationToken = default
+    )
     {
         var result = await dispatcher.DispatchAsync(command, cancellationToken);
         if (result.IsFailure)
@@ -65,7 +93,10 @@ public class CatalogService(IDispatcher dispatcher, IUnitOfWork uow, ILogger<Cat
         return result;
     }
 
-    public async Task<Result> UpdateProductAsync(UpdateProductCommand command, CancellationToken cancellationToken = default)
+    public async Task<Result> UpdateProductAsync(
+        UpdateProductCommand command,
+        CancellationToken cancellationToken = default
+    )
     {
         var result = await dispatcher.DispatchAsync(command, cancellationToken);
         if (result.IsFailure)

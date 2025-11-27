@@ -17,11 +17,16 @@ namespace Ratatosk.Infrastructure.Configuration;
 
 public static class InfrastructureServiceCollectionExtensions
 {
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddInfrastructure(
+        this IServiceCollection services,
+        IConfiguration configuration
+    )
     {
         services.Configure<AuthOptions>(configuration.GetSection(AuthOptions.SectionName));
         services.Configure<DatabaseOptions>(configuration.GetSection(DatabaseOptions.SectionName));
-        services.Configure<EventStoreOptions>(configuration.GetSection(EventStoreOptions.SectionName));
+        services.Configure<EventStoreOptions>(
+            configuration.GetSection(EventStoreOptions.SectionName)
+        );
 
         services.AddSingleton<IEventBus, EventBus>();
         services.AddSingleton<IEventSerializer, JsonEventSerializer>();
@@ -40,14 +45,22 @@ public static class InfrastructureServiceCollectionExtensions
 
         services.AddScoped<IEventStore>(provider =>
         {
-            var eventStoreOptions = provider.GetRequiredService<IOptions<EventStoreOptions>>().Value;
+            var eventStoreOptions = provider
+                .GetRequiredService<IOptions<EventStoreOptions>>()
+                .Value;
             var uow = provider.GetRequiredService<IUnitOfWork>();
 
             return eventStoreOptions.Type switch
             {
-                StoreType.File => new FileEventStore(eventStoreOptions, provider.GetRequiredService<IEventSerializer>()),
-                StoreType.Sql => new PostgresEventStore(uow, provider.GetRequiredService<IEventSerializer>()),
-                StoreType.InMemory or _ => new InMemoryEventStore()
+                StoreType.File => new FileEventStore(
+                    eventStoreOptions,
+                    provider.GetRequiredService<IEventSerializer>()
+                ),
+                StoreType.Sql => new PostgresEventStore(
+                    uow,
+                    provider.GetRequiredService<IEventSerializer>()
+                ),
+                StoreType.InMemory or _ => new InMemoryEventStore(),
             };
         });
 
@@ -61,7 +74,7 @@ public static class InfrastructureServiceCollectionExtensions
             {
                 StoreType.Sql => new PostgresSnapshotStore(uow, serializer),
                 StoreType.InMemory => new InMemorySnapshotStore(),
-                _ => throw new NotImplementedException()
+                _ => throw new NotImplementedException(),
             };
         });
 

@@ -56,7 +56,8 @@ public class DispatcherTests
         Assert.IsTrue(tokenUsed);
     }
 
-    private class TestHandler(Action<CancellationToken> onInvoke) : IRequestHandler<DummyRequest, string>
+    private class TestHandler(Action<CancellationToken> onInvoke)
+        : IRequestHandler<DummyRequest, string>
     {
         public Task<string> HandleAsync(DummyRequest request, CancellationToken cancellationToken)
         {
@@ -75,6 +76,8 @@ public class DispatcherTests
         var request = new DummyRequest("Missing");
 
         // Act
-        Assert.ThrowsAsync<InvalidOperationException>(async () => await dispatcher.DispatchAsync<string>(request));
+        Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await dispatcher.DispatchAsync<string>(request)
+        );
     }
 }

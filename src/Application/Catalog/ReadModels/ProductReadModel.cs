@@ -9,11 +9,16 @@ public class ProductReadModel
     public decimal Price { get; set; }
     public DateTime LastUpdatedUtc { get; set; }
 
-    public ProductReadModel()
-    {
-    }
+    public ProductReadModel() { }
 
-    public ProductReadModel(Guid id, string name, string sku, string description, decimal price, DateTime lastUpdatedUtc)
+    public ProductReadModel(
+        Guid id,
+        string name,
+        string sku,
+        string description,
+        decimal price,
+        DateTime lastUpdatedUtc
+    )
     {
         Id = id;
         Name = name;

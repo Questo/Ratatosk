@@ -9,9 +9,16 @@ public sealed class Price : ValueObject
     public decimal Amount { get; }
     public string Currency { get; } = default!;
 
-    private static readonly HashSet<string> ValidIso4217Currencies = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly HashSet<string> ValidIso4217Currencies = new(
+        StringComparer.OrdinalIgnoreCase
+    )
     {
-        "SEK", "USD", "EUR", "NOK", "DKK", "GBP"
+        "SEK",
+        "USD",
+        "EUR",
+        "NOK",
+        "DKK",
+        "GBP",
     };
 
     private Price(decimal amount, string currency)

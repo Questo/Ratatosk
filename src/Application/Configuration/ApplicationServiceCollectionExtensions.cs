@@ -25,13 +25,19 @@ public static class ApplicationServiceCollectionExtensions
 
     public static IServiceCollection AddRequestHandlers(this IServiceCollection services)
     {
-        services.AddImplementationsOfOpenGeneric(typeof(IRequestHandler<,>), typeof(AddProductCommandHandler).Assembly);
+        services.AddImplementationsOfOpenGeneric(
+            typeof(IRequestHandler<,>),
+            typeof(AddProductCommandHandler).Assembly
+        );
         return services;
     }
 
     private static IServiceCollection AddProjections(this IServiceCollection services)
     {
-        services.AddImplementationsOfOpenGeneric(typeof(IDomainEventHandler<>), typeof(ProductProjection).Assembly);
+        services.AddImplementationsOfOpenGeneric(
+            typeof(IDomainEventHandler<>),
+            typeof(ProductProjection).Assembly
+        );
         return services;
     }
 
@@ -56,7 +62,11 @@ public static class ApplicationServiceCollectionExtensions
     //     return services;
     // }
 
-    private static IServiceCollection AddImplementationsOfOpenGeneric(this IServiceCollection services, Type openGenericInterface, Assembly targetAssembly)
+    private static IServiceCollection AddImplementationsOfOpenGeneric(
+        this IServiceCollection services,
+        Type openGenericInterface,
+        Assembly targetAssembly
+    )
     {
         var typesToRegister = targetAssembly
             .GetTypes()
@@ -67,7 +77,9 @@ public static class ApplicationServiceCollectionExtensions
         {
             var interfaces = implementationType
                 .GetInterfaces()
-                .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == openGenericInterface);
+                .Where(i =>
+                    i.IsGenericType && i.GetGenericTypeDefinition() == openGenericInterface
+                );
 
             foreach (var interfaceType in interfaces)
             {

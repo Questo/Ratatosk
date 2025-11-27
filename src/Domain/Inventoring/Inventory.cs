@@ -61,7 +61,9 @@ public class Inventory : AggregateRoot
 
         if (stockEntry != null && stockEntry.Available.Unit != quantity.Unit)
         {
-            throw new ArgumentException($"Unit mismatch for SKU {sku}. Expected {stockEntry.Available.Unit}, but got {quantity.Unit}");
+            throw new ArgumentException(
+                $"Unit mismatch for SKU {sku}. Expected {stockEntry.Available.Unit}, but got {quantity.Unit}"
+            );
         }
 
         RaiseEvent(@event);

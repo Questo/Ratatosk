@@ -16,7 +16,7 @@ public abstract class JsonPolymorphicSerializer<TBase>
             new ProductNameConverter(),
             new SKUConverter(),
             new DescriptionConverter(),
-            new PriceConverter()
+            new PriceConverter(),
         },
     };
 
@@ -27,13 +27,12 @@ public abstract class JsonPolymorphicSerializer<TBase>
         Guard.AgainstNull(obj, nameof(obj));
 
         var json = JsonSerializer.Serialize(obj, obj!.GetType(), _options);
-        var originalJson = JsonSerializer.Deserialize<JsonObject>(json, _options) ?? throw new ArgumentNullException(nameof(obj));
+        var originalJson =
+            JsonSerializer.Deserialize<JsonObject>(json, _options)
+            ?? throw new ArgumentNullException(nameof(obj));
         originalJson["Type"] = obj.GetType().AssemblyQualifiedName;
 
-        var orderedJson = new JsonObject
-        {
-            ["Type"] = obj.GetType().AssemblyQualifiedName,
-        };
+        var orderedJson = new JsonObject { ["Type"] = obj.GetType().AssemblyQualifiedName };
 
         var preferredOrder = GetPreferredPropertyOrder();
 
@@ -65,8 +64,9 @@ public abstract class JsonPolymorphicSerializer<TBase>
         if (string.IsNullOrEmpty(typeName))
             throw new InvalidOperationException("Empty 'Type' property in serialized data.");
 
-        var type = Type.GetType(typeName)
-                   ?? throw new InvalidOperationException($"Could not resolve type '{typeName}'.");
+        var type =
+            Type.GetType(typeName)
+            ?? throw new InvalidOperationException($"Could not resolve type '{typeName}'.");
 
         return (TBase)JsonSerializer.Deserialize(json, type, _options)!;
     }

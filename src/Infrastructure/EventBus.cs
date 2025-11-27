@@ -13,7 +13,10 @@ public class EventBus : IEventBus
         _subscribers.Add(handler);
     }
 
-    public async Task PublishAsync(DomainEvent domainEvent, CancellationToken cancellationToken = default)
+    public async Task PublishAsync(
+        DomainEvent domainEvent,
+        CancellationToken cancellationToken = default
+    )
     {
         foreach (var subscriber in _subscribers)
         {

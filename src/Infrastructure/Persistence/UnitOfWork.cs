@@ -8,9 +8,11 @@ public class UnitOfWork(string ConnectionString) : IDisposable, IUnitOfWork
     private IDbConnection? _connection;
     private IDbTransaction? _transaction;
 
-    public IDbConnection Connection => _connection ?? throw new InvalidOperationException("Connection not initialized.");
+    public IDbConnection Connection =>
+        _connection ?? throw new InvalidOperationException("Connection not initialized.");
 
-    public IDbTransaction Transaction => _transaction ?? throw new InvalidOperationException("Transaction not started.");
+    public IDbTransaction Transaction =>
+        _transaction ?? throw new InvalidOperationException("Transaction not started.");
 
     public void Begin()
     {

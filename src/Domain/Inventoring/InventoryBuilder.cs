@@ -14,7 +14,10 @@ public class InventoryBuilder : IBuilder<Inventory>
 
     public IBuilder<Inventory> With<TValue>(string propertyName, TValue value)
     {
-        var property = typeof(InventoryBuilder).GetField($"_{propertyName}", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var property = typeof(InventoryBuilder).GetField(
+            $"_{propertyName}",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance
+        );
         property?.SetValue(this, value);
         return this;
     }

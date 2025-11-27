@@ -3,6 +3,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Data.Sqlite;
 
 namespace Ratatosk.UnitTests.Shared;
+
 public static class TestDatabaseHelper
 {
     public static async Task InitializeSchemaAsync(string connectionString)
@@ -11,7 +12,8 @@ public static class TestDatabaseHelper
         await connection.OpenAsync();
 
         var cmd = connection.CreateCommand();
-        cmd.CommandText = @"
+        cmd.CommandText =
+            @"
             IF OBJECT_ID('EventStore', 'U') IS NULL
             CREATE TABLE EventStore (
                 EventId UNIQUEIDENTIFIER PRIMARY KEY,
@@ -52,7 +54,8 @@ public static class TestDatabaseHelper
 
         // Optionally create tables here for testing
         using var command = connection.CreateCommand();
-        command.CommandText = @"
+        command.CommandText =
+            @"
             CREATE TABLE EventStore (
                 EventId TEXT PRIMARY KEY,
                 AggregateId TEXT NOT NULL,
