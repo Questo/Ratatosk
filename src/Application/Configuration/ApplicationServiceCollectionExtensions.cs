@@ -1,10 +1,8 @@
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Ratatosk.Application.Catalog;
 using Ratatosk.Application.Catalog.Commands;
 using Ratatosk.Application.Catalog.Projections;
-using Ratatosk.Application.Catalog.Queries;
 using Ratatosk.Core.Abstractions;
 using Ratatosk.Core.BuildingBlocks;
 
