@@ -1,4 +1,5 @@
 using Ratatosk.Application.Authentication;
+using Ratatosk.Application.Authentication.Commands;
 
 namespace Ratatosk.API.Auth;
 
@@ -8,9 +9,13 @@ public static class AuthEndpoints
     {
         app.MapPost(
             "/auth/login",
-            async (LoginRequest req, IAuthenticationService authService, CancellationToken ct) =>
+            async (
+                LoginCommand cmd,
+                IAuthenticationService authService,
+                CancellationToken ct
+            ) =>
             {
-                var result = await authService.LoginAsync(req.Username, req.Password, ct);
+                var result = await authService.LoginAsync(cmd, ct);
 
                 return result.IsFailure
                     ? Results.BadRequest(result.Error)

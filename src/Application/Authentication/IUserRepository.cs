@@ -1,3 +1,5 @@
+using Ratatosk.Domain.Identity;
+
 namespace Ratatosk.Application.Authentication;
 
 public interface IUserRepository
