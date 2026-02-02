@@ -1,4 +1,3 @@
-using System.Net.Mail;
 using Ratatosk.Core.BuildingBlocks;
 using Ratatosk.Core.Primitives;
 using Ratatosk.Domain.Identity.Events;
@@ -12,7 +11,7 @@ namespace Ratatosk.Domain.Identity;
 /// </summary>
 public sealed class User : AggregateRoot
 {
-    public MailAddress Email { get; private set; } = default!;
+    public Email Email { get; private set; } = default!;
 
     public UserRole Role { get; private set; } = UserRole.User;
 
@@ -25,10 +24,10 @@ public sealed class User : AggregateRoot
         switch (domainEvent)
         {
             case UserCreated userCreated:
-                Email = new MailAddress(userCreated.Email);
+                Email = userCreated.Email;
                 Role = userCreated.Role;
-                Profile = new UserProfile() { Name = userCreated.Email };
                 PasswordHash = userCreated.PasswordHash;
+                Profile = new UserProfile() { Name = userCreated.Email.Value };
                 break;
 
             case UserProfileUpdated profileUpdated:
@@ -42,25 +41,19 @@ public sealed class User : AggregateRoot
         }
     }
 
-    public static User Create(string email, UserRole role, PasswordHash passwordHash)
+    public static User Create(string email, UserRole role, string passwordHash)
     {
-        Guard.AgainstNullOrEmpty(email, nameof(email));
-        Guard.AgainstNull(role, nameof(role));
-        Guard.AgainstNull(passwordHash, nameof(passwordHash));
+        var emailResult = Email.Create(email);
+        if (emailResult.IsFailure)
+            throw new ArgumentException(emailResult.Error, nameof(email));
 
-        MailAddress mailAddress;
-        try
-        {
-            mailAddress = new MailAddress(email);
-        }
-        catch (FormatException)
-        {
-            throw new ArgumentException("Invalid email format.", nameof(email));
-        }
+        var hashResult = PasswordHash.Create(passwordHash);
+        if (hashResult.IsFailure)
+            throw new ArgumentException(hashResult.Error, nameof(passwordHash));
 
         var user = new User();
 
-        user.RaiseEvent(new UserCreated(email, role, passwordHash));
+        user.RaiseEvent(new UserCreated(emailResult.Value!, role, hashResult.Value!));
 
         return user;
     }
