@@ -1,8 +1,8 @@
+using System.Security.Cryptography;
+using System.Text;
 using Konscious.Security.Cryptography;
 using Ratatosk.Application.Authentication;
 using Ratatosk.Domain.Identity;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace Ratatosk.Infrastructure.Authentication;
 
@@ -20,15 +20,13 @@ public sealed class Argon2PasswordHasher : IPasswordHasher
             Salt = salt,
             Iterations = 4,
             MemorySize = 1024 * 64, // 64 MB
-            DegreeOfParallelism = Environment.ProcessorCount
+            DegreeOfParallelism = Environment.ProcessorCount,
         };
 
         var hash = argon2.GetBytes(HashSize);
 
         // Store salt + hash together
-        var combined = Convert.ToBase64String(
-            salt.Concat(hash).ToArray()
-        );
+        var combined = Convert.ToBase64String(salt.Concat(hash).ToArray());
 
         return PasswordHash.Create(combined).Value!;
     }
@@ -45,14 +43,11 @@ public sealed class Argon2PasswordHasher : IPasswordHasher
             Salt = salt,
             Iterations = 4,
             MemorySize = 1024 * 64,
-            DegreeOfParallelism = Environment.ProcessorCount
+            DegreeOfParallelism = Environment.ProcessorCount,
         };
 
         var actualHash = argon2.GetBytes(HashSize);
 
-        return CryptographicOperations.FixedTimeEquals(
-            expectedHash,
-            actualHash
-        );
+        return CryptographicOperations.FixedTimeEquals(expectedHash, actualHash);
     }
 }

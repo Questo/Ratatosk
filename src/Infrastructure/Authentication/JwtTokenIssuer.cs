@@ -14,7 +14,11 @@ public sealed class JwtTokenIssuer(IOptions<AuthOptions> options) : ITokenIssuer
 {
     public Result<string> IssueToken(User user)
     {
-        var claims = new[] { new Claim(ClaimTypes.Name, user.Profile.Name), new Claim("role", "Merchant") };
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.Name, user.Profile.Name),
+            new Claim("role", "Merchant"),
+        };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(options.Value.Secret));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -31,3 +35,4 @@ public sealed class JwtTokenIssuer(IOptions<AuthOptions> options) : ITokenIssuer
         return Result<string>.Success(tokenString);
     }
 }
+
