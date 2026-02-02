@@ -45,8 +45,9 @@ public class CatalogService(IDispatcher dispatcher, IUnitOfWork uow, ILogger<Cat
         {
             logger.LogError("Failed to create product: {Error}", result.Error);
         }
+        else
+            uow.Commit();
 
-        uow.Commit();
         return result;
     }
 
@@ -88,8 +89,9 @@ public class CatalogService(IDispatcher dispatcher, IUnitOfWork uow, ILogger<Cat
         {
             logger.LogError("Failed to remove product: {Error}", result.Error);
         }
+        else
+            uow.Commit();
 
-        uow.Commit();
         return result;
     }
 
@@ -103,8 +105,9 @@ public class CatalogService(IDispatcher dispatcher, IUnitOfWork uow, ILogger<Cat
         {
             logger.LogError("Failed to update product: {Error}", result.Error);
         }
+        else
+            uow.Commit();
 
-        uow.Commit();
         return result;
     }
 }

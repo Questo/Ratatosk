@@ -1,5 +1,6 @@
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
+using Ratatosk.Application.Authentication;
 using Ratatosk.Application.Catalog;
 using Ratatosk.Application.Catalog.Commands;
 using Ratatosk.Application.Catalog.Projections;
@@ -14,6 +15,7 @@ public static class ApplicationServiceCollectionExtensions
     {
         services.AddScoped<IDispatcher, Dispatcher>();
         services.AddScoped<ICatalogService, CatalogService>();
+        services.AddScoped<IAuthenticationService, AuthenticationService>();
 
         services.AddRequestHandlers();
         services.AddProjections();

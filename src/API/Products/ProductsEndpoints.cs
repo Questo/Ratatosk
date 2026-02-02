@@ -17,10 +17,11 @@ public static class ProductsEndpoints
                 ) =>
                 {
                     var result = await catalogService.AddProductAsync(cmd, ct);
+                    var response = Response<Guid>.FromResult(result);
 
                     return result.IsFailure
-                        ? Results.BadRequest(result.Error)
-                        : Results.Created($"/products/{result.Value}", result.Value);
+                        ? Results.BadRequest(response)
+                        : Results.Created($"/products/{result.Value}", response);
                 }
             )
             .RequireAuthorization();
@@ -82,7 +83,7 @@ public static class ProductsEndpoints
                     var command = new RemoveProductCommand(id);
                     var result = await catalogService.RemoveProductAsync(command, ct);
 
-                    return result.IsFailure ? Results.NotFound(result.Error) : Results.NoContent();
+                    return result.IsFailure ? Results.NotFound() : Results.NoContent();
                 }
             )
             .RequireAuthorization();
