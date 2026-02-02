@@ -6,6 +6,7 @@ using Ratatosk.Application.Catalog.ReadModels;
 using Ratatosk.Application.Shared;
 using Ratatosk.Core.Abstractions;
 using Ratatosk.Domain.Catalog;
+using Ratatosk.Infrastructure.Authentication;
 using Ratatosk.Infrastructure.EventStore;
 using Ratatosk.Infrastructure.Persistence;
 using Ratatosk.Infrastructure.Persistence.EventStore;
@@ -82,7 +83,8 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IProductReadModelRepository, PostgresProductReadModelRepository>();
         services.AddScoped<IProductDomainService, ProductDomainService>();
 
-        services.AddScoped<IAuthenticationService, JwtAuthenticationService>();
+        services.AddScoped<IPasswordHasher, Argon2PasswordHasher>();
+        services.AddScoped<ITokenIssuer, JwtTokenIssuer>();
 
         services.AddHostedService<ProjectionRegistrationService>();
 
