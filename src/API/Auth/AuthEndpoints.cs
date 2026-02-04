@@ -9,17 +9,12 @@ public static class AuthEndpoints
     {
         app.MapPost(
             "/auth/login",
-            async (
-                LoginCommand cmd,
-                IAuthenticationService authService,
-                CancellationToken ct
-            ) =>
+            async (LoginCommand cmd, IAuthenticationService authService, CancellationToken ct) =>
             {
                 var result = await authService.LoginAsync(cmd, ct);
+                var response = Response<string>.FromResult(result);
 
-                return result.IsFailure
-                    ? Results.BadRequest(result.Error)
-                    : Results.Ok(new { Token = result.Value });
+                return result.IsFailure ? Results.BadRequest(response) : Results.Ok(response);
             }
         );
     }
