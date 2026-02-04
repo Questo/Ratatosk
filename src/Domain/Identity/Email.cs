@@ -23,7 +23,7 @@ public sealed partial class Email : ValueObject
             return Result<Email>.Failure("Invalid email address");
         }
 
-        return Result<Email>.Success(new Email(value));
+        return Result<Email>.Success(new Email(value.ToLower()));
     }
 
     protected override IEnumerable<object> GetEqualityComponents()
