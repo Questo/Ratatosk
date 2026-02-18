@@ -7,8 +7,7 @@ namespace Ratatosk.Application.Authentication.Commands;
 public sealed record LoginCommand(string Email, string Password) : IRequest<Result<string>>;
 
 public sealed class LoginCommandHandler(
-    IAggregateRepository<User> users,
-    IUserAuthRepository userSummaries,
+    IUserAuthRepository userAuthRepository,
     IPasswordHasher passwordHasher,
     ITokenIssuer tokenIssuer
 ) : IRequestHandler<LoginCommand, Result<string>>
@@ -24,15 +23,13 @@ public sealed class LoginCommandHandler(
             return Result<string>.Failure(Errors.Authentication.InvalidCredentials.Message);
         }
 
-        var userSummary = await userSummaries.GetUserSummaryAsync(request.Email, cancellationToken);
-        if (userSummary is null)
+        var userAuth = await userAuthRepository.GetByEmailAsync(request.Email, cancellationToken);
+        if (userAuth is null)
         {
             return Result<string>.Failure(Errors.Authentication.InvalidCredentials.Message);
         }
 
-        var user = (await users.LoadAsync(userSummary.Id, cancellationToken)).Value!;
-
-        var hashToVerify = user.PasswordHash;
+        var hashToVerify = PasswordHash.Create(userAuth.Hash).Value!;
         var isPasswordValid = passwordHasher.Verify(passwordResult.Value!, hashToVerify);
 
         if (!isPasswordValid)
@@ -40,7 +37,7 @@ public sealed class LoginCommandHandler(
             return Result<string>.Failure(Errors.Authentication.InvalidCredentials.Message);
         }
 
-        var token = tokenIssuer.IssueToken(user);
+        var token = tokenIssuer.IssueToken(userAuth.Email, userAuth.Role, userAuth.Hash);
         if (token.IsFailure)
         {
             return Result<string>.Failure("Could not issue token.");

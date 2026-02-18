@@ -12,11 +12,11 @@ namespace Ratatosk.Infrastructure.Authentication;
 
 public sealed class JwtTokenIssuer(IOptions<AuthOptions> options) : ITokenIssuer
 {
-    public Result<string> IssueToken(User user)
+    public Result<string> IssueToken(string email, string role, string hash)
     {
         var claims = new[]
         {
-            new Claim(ClaimTypes.Name, user.Profile.Name),
+            new Claim(ClaimTypes.Email, email),
             new Claim("role", "Merchant"),
         };
 
