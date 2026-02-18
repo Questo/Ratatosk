@@ -5,19 +5,18 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Ratatosk.Application.Authentication;
 using Ratatosk.Core.Primitives;
-using Ratatosk.Domain.Identity;
 using Ratatosk.Infrastructure.Configuration;
 
 namespace Ratatosk.Infrastructure.Authentication;
 
 public sealed class JwtTokenIssuer(IOptions<AuthOptions> options) : ITokenIssuer
 {
-    public Result<string> IssueToken(string email, string role, string hash)
+    public Result<string> IssueToken(string email, string role)
     {
         var claims = new[]
         {
             new Claim(ClaimTypes.Email, email),
-            new Claim("role", "Merchant"),
+            new Claim("role", role),
         };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(options.Value.Secret));

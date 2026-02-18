@@ -17,14 +17,14 @@ public sealed class LoginCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var passwordResult = Password.Create(request.Password);
-        if (passwordResult.IsFailure)
+        var userAuth = await userAuthRepository.GetByEmailAsync(request.Email, cancellationToken);
+        if (userAuth is null)
         {
             return Result<string>.Failure(Errors.Authentication.InvalidCredentials.Message);
         }
 
-        var userAuth = await userAuthRepository.GetByEmailAsync(request.Email, cancellationToken);
-        if (userAuth is null)
+        var passwordResult = Password.Create(request.Password);
+        if (passwordResult.IsFailure)
         {
             return Result<string>.Failure(Errors.Authentication.InvalidCredentials.Message);
         }
@@ -37,7 +37,7 @@ public sealed class LoginCommandHandler(
             return Result<string>.Failure(Errors.Authentication.InvalidCredentials.Message);
         }
 
-        var token = tokenIssuer.IssueToken(userAuth.Email, userAuth.Role, userAuth.Hash);
+        var token = tokenIssuer.IssueToken(userAuth.Email, userAuth.Role);
         if (token.IsFailure)
         {
             return Result<string>.Failure("Could not issue token.");
