@@ -1,7 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Ratatosk.Core.Primitives;
-using Ratatosk.Domain;
 using Ratatosk.Infrastructure.Serialization.Converters;
 
 namespace Ratatosk.Infrastructure.Serialization;

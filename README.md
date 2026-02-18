@@ -35,3 +35,10 @@
 
 3. **Configuration**:  
     Adjust your configuration settings in `appsettings.json` or environment variables.
+
+## Scripts
+**Run tests**
+```bash
+./scripts/run-unit-tests.sh
+./scripts/run-integration-tests.sh
+```

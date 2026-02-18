@@ -7,11 +7,16 @@ namespace Ratatosk.Application.Authentication.Commands;
 public sealed record LoginCommand(string Email, string Password) : IRequest<Result<string>>;
 
 public sealed class LoginCommandHandler(
-    IUserRepository users,
+    IAggregateRepository<User> users,
+    IUserAuthRepository userSummaries,
     IPasswordHasher passwordHasher,
-    ITokenIssuer tokenIssuer) : IRequestHandler<LoginCommand, Result<string>>
+    ITokenIssuer tokenIssuer
+) : IRequestHandler<LoginCommand, Result<string>>
 {
-    public async Task<Result<string>> HandleAsync(LoginCommand request, CancellationToken cancellationToken = default)
+    public async Task<Result<string>> HandleAsync(
+        LoginCommand request,
+        CancellationToken cancellationToken = default
+    )
     {
         var passwordResult = Password.Create(request.Password);
         if (passwordResult.IsFailure)
@@ -19,11 +24,13 @@ public sealed class LoginCommandHandler(
             return Result<string>.Failure(Errors.Authentication.InvalidCredentials.Message);
         }
 
-        var user = await users.GetUserAsync(request.Email, cancellationToken);
-        if (user is null)
+        var userSummary = await userSummaries.GetUserSummaryAsync(request.Email, cancellationToken);
+        if (userSummary is null)
         {
             return Result<string>.Failure(Errors.Authentication.InvalidCredentials.Message);
         }
+
+        var user = (await users.LoadAsync(userSummary.Id, cancellationToken)).Value!;
 
         var hashToVerify = user.PasswordHash;
         var isPasswordValid = passwordHasher.Verify(passwordResult.Value!, hashToVerify);

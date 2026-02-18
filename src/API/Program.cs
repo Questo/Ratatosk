@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Ratatosk.API.Auth;
 using Ratatosk.API.Products;
+using Ratatosk.API.Middleware;
 using Ratatosk.Application.Configuration;
 using Ratatosk.Core.Primitives;
 using Ratatosk.Infrastructure.Configuration;
@@ -62,6 +63,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<CleanupResponseMiddleware>();
 app.MapGet("/healthz", () => Results.Ok("Healthy"));
 app.MapAuthEndpoints();
 app.MapProductsEndpoints();

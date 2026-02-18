@@ -1,4 +1,3 @@
-using System.Data;
 using System.Text;
 using Dapper;
 using Ratatosk.Application.Catalog.ReadModels;
