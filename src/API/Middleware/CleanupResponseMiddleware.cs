@@ -71,7 +71,7 @@ public sealed class CleanupResponseMiddleware
                 prop.WriteTo(writer);
             }
 
-            writer.WriteString("TraceId", traceId);
+            writer.WriteString("traceId", traceId);
 
             writer.WriteEndObject();
             await writer.FlushAsync(context.RequestAborted);

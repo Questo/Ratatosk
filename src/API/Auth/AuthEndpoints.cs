@@ -12,11 +12,12 @@ public static class AuthEndpoints
         app.MapPost(
                 "/auth/login",
                 async (
-                    LoginCommand cmd,
+                    LoginRequest request,
                     IAuthenticationService authService,
                     CancellationToken ct
                 ) =>
                 {
+                    var cmd = new LoginCommand(request.Email, request.Password);
                     var result = await authService.LoginAsync(cmd, ct);
                     var response = Response<string>.FromResult(result);
 

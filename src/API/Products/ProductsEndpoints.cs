@@ -49,7 +49,7 @@ public static class ProductsEndpoints
                     return result.IsFailure ? Results.NotFound() : Results.Ok(result.Value);
                 }
             )
-            .RequireAuthorization()
+            // .RequireAuthorization()
             .WithTags(ProductsTag)
             .WithName("GetProductById")
             .WithSummary("Get a product by id")
@@ -71,7 +71,7 @@ public static class ProductsEndpoints
                     return result.IsFailure ? Results.BadRequest(result.Error) : Results.Ok();
                 }
             )
-            .RequireAuthorization()
+            // .RequireAuthorization()
             .WithTags(ProductsTag)
             .WithName("UpdateProduct")
             .WithSummary("Update an existing product")
@@ -100,7 +100,7 @@ public static class ProductsEndpoints
                         : Results.Ok(result.Value);
                 }
             )
-            .RequireAuthorization()
+            // .RequireAuthorization()
             .WithTags(ProductsTag)
             .WithName("SearchProducts")
             .WithSummary("Search products")
