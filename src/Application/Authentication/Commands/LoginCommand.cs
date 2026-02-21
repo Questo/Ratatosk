@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Ratatosk.Core.Abstractions;
 using Ratatosk.Core.Primitives;
 using Ratatosk.Domain.Identity;
@@ -19,14 +20,13 @@ public sealed class LoginCommandHandler(
     {
         var userAuth = await userAuthRepository.GetByEmailAsync(request.Email, cancellationToken);
         var passwordResult = Password.Create(request.Password);
-        var hashResult = PasswordHash.Create(userAuth?.Hash ?? string.Empty);
-        var isPasswordValid = passwordHasher.Verify(passwordResult.Value!, hashResult.Value!);
+        var hashResult = PasswordHash.Create(userAuth != null ? userAuth.Hash : string.Empty);
 
         if (
             userAuth is null
             || passwordResult.IsFailure
             || hashResult.IsFailure
-            || !isPasswordValid
+            || !passwordHasher.Verify(passwordResult.Value!, hashResult.Value!)
         )
         {
             return Result<string>.Failure(Errors.Authentication.InvalidCredentials.Message);
