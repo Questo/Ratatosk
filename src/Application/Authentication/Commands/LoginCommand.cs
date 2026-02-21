@@ -18,31 +18,26 @@ public sealed class LoginCommandHandler(
     )
     {
         var userAuth = await userAuthRepository.GetByEmailAsync(request.Email, cancellationToken);
-        if (userAuth is null)
-        {
-            return Result<string>.Failure(Errors.Authentication.InvalidCredentials.Message);
-        }
-
         var passwordResult = Password.Create(request.Password);
-        if (passwordResult.IsFailure)
+        var hashResult = PasswordHash.Create(userAuth?.Hash ?? string.Empty);
+        var isPasswordValid = passwordHasher.Verify(passwordResult.Value!, hashResult.Value!);
+
+        if (
+            userAuth is null
+            || passwordResult.IsFailure
+            || hashResult.IsFailure
+            || !isPasswordValid
+        )
         {
             return Result<string>.Failure(Errors.Authentication.InvalidCredentials.Message);
         }
 
-        var hashToVerify = PasswordHash.Create(userAuth.Hash).Value!;
-        var isPasswordValid = passwordHasher.Verify(passwordResult.Value!, hashToVerify);
-
-        if (!isPasswordValid)
-        {
-            return Result<string>.Failure(Errors.Authentication.InvalidCredentials.Message);
-        }
-
-        var token = tokenIssuer.IssueToken(userAuth.Email, userAuth.Role);
-        if (token.IsFailure)
+        var tokenResult = tokenIssuer.IssueToken(userAuth.Email, userAuth.Role);
+        if (tokenResult.IsFailure)
         {
             return Result<string>.Failure("Could not issue token.");
         }
 
-        return Result<string>.Success(token.Value!);
+        return Result<string>.Success(tokenResult.Value!);
     }
 }
