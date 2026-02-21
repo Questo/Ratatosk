@@ -5,17 +5,24 @@ namespace Ratatosk.API.Auth;
 
 public static class AuthEndpoints
 {
+    private const string AuthTag = "Auth";
+
     public static void MapAuthEndpoints(this IEndpointRouteBuilder app)
     {
         app.MapPost(
-            "/auth/login",
-            async (LoginCommand cmd, IAuthenticationService authService, CancellationToken ct) =>
-            {
-                var result = await authService.LoginAsync(cmd, ct);
-                var response = Response<string>.FromResult(result);
+                "/auth/login",
+                async (
+                    LoginCommand cmd,
+                    IAuthenticationService authService,
+                    CancellationToken ct
+                ) =>
+                {
+                    var result = await authService.LoginAsync(cmd, ct);
+                    var response = Response<string>.FromResult(result);
 
-                return result.IsFailure ? Results.BadRequest(response) : Results.Ok(response);
-            }
-        );
+                    return result.IsFailure ? Results.BadRequest(response) : Results.Ok(response);
+                }
+            )
+            .WithTags(AuthTag);
     }
 }

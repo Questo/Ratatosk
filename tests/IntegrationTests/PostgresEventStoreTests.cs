@@ -2,7 +2,7 @@ using Dapper;
 using Ratatosk.Core.BuildingBlocks;
 using Ratatosk.Infrastructure.Persistence;
 using Ratatosk.Infrastructure.Persistence.EventStore;
-using Ratatosk.Infrastructure.Serialization;
+using Ratatosk.Infrastructure.Serialization.Serializers;
 
 namespace Ratatosk.IntegrationTests;
 
@@ -60,10 +60,18 @@ public class PostgresEventStoreTests
         var streamName = "user-123";
         var events = new List<TestEvent> { new("NameUpdated", "Alice"), new("AgeUpdated", "35") };
 
-        await _eventStore.AppendEventsAsync(streamName, events, startingVersion: 0);
-        var loadedEvents = await _eventStore.LoadEventsAsync(streamName);
+        await _eventStore.AppendEventsAsync(
+            streamName,
+            events,
+            startingVersion: 0,
+            TestContext.CancellationToken
+        );
+        var loadedEvents = await _eventStore.LoadEventsAsync(
+            streamName,
+            cancellationToken: TestContext.CancellationToken
+        );
 
-        Assert.AreEqual(2, loadedEvents.Count);
+        Assert.HasCount(2, loadedEvents);
         var loaded = (TestEvent)loadedEvents.First();
         Assert.AreEqual("Alice", loaded.NewValue);
         Assert.AreEqual(3, loadedEvents.Sum(e => e.Version));
@@ -74,4 +82,6 @@ public class PostgresEventStoreTests
         public string EventName { get; set; } = eventName;
         public string NewValue { get; set; } = newValue;
     }
+
+    public TestContext TestContext { get; set; }
 }

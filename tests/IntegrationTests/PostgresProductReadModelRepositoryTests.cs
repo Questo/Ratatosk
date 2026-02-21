@@ -65,7 +65,7 @@ public class PostgresProductReadModelRepositoryTests
             DateTime.UtcNow
         );
 
-        await _repo.SaveAsync(productModel);
+        await _repo.SaveAsync(productModel, TestContext.CancellationToken);
     }
 
     [TestMethod]
@@ -98,7 +98,9 @@ public class PostgresProductReadModelRepositoryTests
             transaction: _uow.Transaction
         );
 
-        var searchResult = await _repo.GetAllAsync();
+        var searchResult = await _repo.GetAllAsync(
+            cancellationToken: TestContext.CancellationToken
+        );
 
         Assert.AreEqual(2, searchResult.TotalItems);
     }
@@ -133,9 +135,12 @@ public class PostgresProductReadModelRepositoryTests
             transaction: _uow.Transaction
         );
 
-        var searchResult = await _repo.GetAllAsync("Product B");
+        var searchResult = await _repo.GetAllAsync(
+            "Product B",
+            cancellationToken: TestContext.CancellationToken
+        );
 
-        Assert.AreEqual(1, searchResult.Items.Count);
+        Assert.HasCount(1, searchResult.Items);
         Assert.AreEqual("Ratatosk Product B", searchResult.Items.First().Name);
     }
 
@@ -177,11 +182,18 @@ public class PostgresProductReadModelRepositoryTests
             transaction: _uow.Transaction
         );
 
-        var searchResult = await _repo.GetAllAsync(page: 3, pageSize: 1);
+        var searchResult = await _repo.GetAllAsync(
+            searchTerm: null,
+            page: 3,
+            pageSize: 1,
+            TestContext.CancellationToken
+        );
 
-        Assert.AreEqual(1, searchResult.Items.Count);
+        Assert.HasCount(1, searchResult.Items);
         Assert.AreEqual(3, searchResult.TotalItems);
         Assert.AreEqual(3, searchResult.TotalPages);
         Assert.AreEqual("Ratatosk Product C", searchResult.Items.First().Name);
     }
+
+    public TestContext TestContext { get; set; }
 }

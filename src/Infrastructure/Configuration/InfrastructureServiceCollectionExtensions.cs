@@ -83,7 +83,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IProductReadModelRepository, PostgresProductReadModelRepository>();
         services.AddScoped<IProductDomainService, ProductDomainService>();
 
-        services.AddScoped<IUserAuthRepository, PostgresUserSummaryRepository>();
+        services.AddScoped<IUserAuthRepository, UserAuthReadModel>();
 
         services.AddScoped<IPasswordHasher, Argon2PasswordHasher>();
         services.AddScoped<ITokenIssuer, JwtTokenIssuer>();

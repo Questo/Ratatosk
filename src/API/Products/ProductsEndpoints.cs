@@ -3,8 +3,6 @@ using Ratatosk.Application.Catalog.Commands;
 using Ratatosk.Application.Catalog.Queries;
 using Ratatosk.Application.Catalog.ReadModels;
 using Ratatosk.Application.Shared;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.OpenApi;
 
 namespace Ratatosk.API.Products;
 
@@ -34,7 +32,9 @@ public static class ProductsEndpoints
             .WithTags(ProductsTag)
             .WithName("CreateProduct")
             .WithSummary("Create a new product")
-            .WithDescription("Creates a product from the posted payload and returns its identifier.")
+            .WithDescription(
+                "Creates a product from the posted payload and returns its identifier."
+            )
             .Accepts<AddProductCommand>("application/json")
             .Produces<Response<Guid>>(StatusCodes.Status201Created)
             .Produces<Response<Guid>>(StatusCodes.Status400BadRequest);
