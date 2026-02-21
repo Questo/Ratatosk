@@ -33,3 +33,10 @@ CREATE TABLE IF NOT EXISTS product_read_models(
 
 CREATE INDEX IF NOT EXISTS idx_product_read_models_id ON product_read_models(id);
 
+CREATE TABLE IF NOT EXISTS user_auth_read_models(
+    email text PRIMARY KEY,
+    role text NOT NULL,
+    hash text NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_auth_read_models_id ON user_auth_read_models(email);

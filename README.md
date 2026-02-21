@@ -34,7 +34,13 @@
     ```
 
 3. **Configuration**:  
-    Adjust your configuration settings in `appsettings.json` or environment variables.
+    Adjust your configuration settings via environment variables (recommended). At minimum set a 32-byte HS256 signing key, e.g. in `.env`:
+
+    ```bash
+    AUTHENTICATION_SECRET=RC9r7YtLzYVn0xOkGzAIxx7am6i83hgx1ot1nzR6m38=
+    ```
+
+    Docker compose already passes `Authentication__Secret` from `.env`; `appsettings*.json` intentionally leave `Authentication:Secret` blank to avoid committing secrets.
 
 ## Scripts
 **Run tests**

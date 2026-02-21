@@ -17,7 +17,7 @@ public static class APIServiceCollectionExtensions
 
         var authOptions = configuration.GetSection(AuthOptions.SectionName).Get<AuthOptions>();
         Guard.AgainstNull(authOptions, nameof(authOptions));
-        var key = Encoding.UTF8.GetBytes(authOptions!.Secret);
+        var key = authOptions!.GetKeyBytes();
 
         services
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

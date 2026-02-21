@@ -11,11 +11,17 @@ public interface IAuthenticationService
         LoginCommand command,
         CancellationToken cancellationToken = default
     );
+
+    Task<Result<string>> SignUpAsync(
+        SignUpCommand command,
+        CancellationToken cancellationToken = default
+    );
 }
 
 public sealed class AuthenticationService(
     IDispatcher dispatcher,
-    ILogger<AuthenticationService> logger) : IAuthenticationService
+    ILogger<AuthenticationService> logger
+) : IAuthenticationService
 {
     public async Task<Result<string>> LoginAsync(
         LoginCommand command,
@@ -30,4 +36,19 @@ public sealed class AuthenticationService(
 
         return result;
     }
+
+    public async Task<Result<string>> SignUpAsync(
+        SignUpCommand command,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var result = await dispatcher.DispatchAsync(command, cancellationToken);
+        if (result.IsFailure)
+        {
+            logger.LogError("Failed to sign up: {Error}", result.Error);
+        }
+
+        return result;
+    }
 }
+

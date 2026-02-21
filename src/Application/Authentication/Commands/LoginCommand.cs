@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging;
 using Ratatosk.Core.Abstractions;
 using Ratatosk.Core.Primitives;
 using Ratatosk.Domain.Identity;

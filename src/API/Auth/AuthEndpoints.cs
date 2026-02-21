@@ -25,5 +25,22 @@ public static class AuthEndpoints
                 }
             )
             .WithTags(AuthTag);
+
+        app.MapPost(
+                "/auth/sign-up",
+                async (
+                    SignUpRequest request,
+                    IAuthenticationService service,
+                    CancellationToken ct
+                ) =>
+                {
+                    var cmd = new SignUpCommand(request.Email, request.Password);
+                    var result = await service.SignUpAsync(cmd, ct);
+                    var response = Response<string>.FromResult(result);
+
+                    return result.IsFailure ? Results.BadRequest(response) : Results.Ok(response);
+                }
+            )
+            .WithTags(AuthTag);
     }
 }

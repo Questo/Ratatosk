@@ -10,7 +10,7 @@ public sealed class UserAuthReadModel(IUnitOfWork uow)
     public Task DeleteAsync(string email, CancellationToken cancellationToken) =>
         ExecAsync(
             """
-              DELETE FROM user_auth
+              DELETE FROM user_auth_read_models
               where email = @Email
             """,
             new { Email = email },
@@ -19,7 +19,7 @@ public sealed class UserAuthReadModel(IUnitOfWork uow)
 
     public Task<Pagination<UserAuth>> GetAllAsync(CancellationToken cancellationToken)
     {
-        var fromSql = "FROM user_auth";
+        var fromSql = "FROM user_auth_read_models";
         var selectSql = "SELECT *";
         var orderSql = "ORDER BY email";
 
@@ -42,7 +42,7 @@ public sealed class UserAuthReadModel(IUnitOfWork uow)
         CancellationToken cancellationToken = default
     )
     {
-        var fromSql = "FROM user_auth";
+        var fromSql = "FROM user_auth_read_models";
         var selectSql = "SELECT *";
         var orderSql = "ORDER BY email";
         var whereSql = """WHERE role = @Role""";
@@ -64,7 +64,7 @@ public sealed class UserAuthReadModel(IUnitOfWork uow)
         QueryFirstOrDefaultAsync<UserAuth?>(
             """
                 SELECT email, role, hash
-                FROM user_auth
+                FROM user_auth_read_models
                 WHERE email = @Email
             """,
             new { Email = email },
@@ -74,11 +74,11 @@ public sealed class UserAuthReadModel(IUnitOfWork uow)
     public Task SaveAsync(UserAuth userAuth, CancellationToken cancellationToken) =>
         ExecAsync(
             """
-                INSERT INTO user_auth (email, role, hash)
+                INSERT INTO user_auth_read_models (email, role, hash)
                 VALUES (@Email, @Role, @Hash)
                 ON CONFLICT (email) DO UPDATE SET
-                  email = EXCLUDED.email
-                  role = EXCLUDED.role
+                  email = EXCLUDED.email,
+                  role = EXCLUDED.role,
                   hash = EXCLUDED.hash
             """,
             userAuth,

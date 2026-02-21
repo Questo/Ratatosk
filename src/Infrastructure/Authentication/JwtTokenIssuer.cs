@@ -19,7 +19,7 @@ public sealed class JwtTokenIssuer(IOptions<AuthOptions> options) : ITokenIssuer
             new Claim("role", role),
         };
 
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(options.Value.Secret));
+        var key = new SymmetricSecurityKey(options.Value.GetKeyBytes());
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var token = new JwtSecurityToken(
@@ -34,4 +34,3 @@ public sealed class JwtTokenIssuer(IOptions<AuthOptions> options) : ITokenIssuer
         return Result<string>.Success(tokenString);
     }
 }
-
