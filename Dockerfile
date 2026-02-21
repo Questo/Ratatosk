@@ -5,10 +5,11 @@ COPY . ./
 RUN dotnet restore && \
   dotnet build --no-restore -c Release && \
   dotnet test tests/UnitTests \
+  --no-restore \
   --collect:"XPlat Code Coverage" \
   --logger "trx" \
   --results-directory /coverage && \
-  dotnet publish src/API -c Release -o /publish
+  dotnet publish src/API -c Release -o /publish --no-restore
 
 # Stage 2: minimal runtime image
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
