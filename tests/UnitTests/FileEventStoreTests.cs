@@ -1,7 +1,7 @@
 ﻿using Ratatosk.Core.BuildingBlocks;
 using Ratatosk.Infrastructure.Configuration;
 using Ratatosk.Infrastructure.Persistence.EventStore;
-using Ratatosk.Infrastructure.Serialization;
+using Ratatosk.Infrastructure.Serialization.Serializers;
 
 namespace Ratatosk.UnitTests;
 
@@ -38,11 +38,16 @@ public sealed class FileEventStoreTests
         var domainEvent = new TestEvent("Foobar");
         var events = new List<DomainEvent> { domainEvent };
 
-        await _eventStore.AppendEventsAsync(streamName, events, 0);
-        var loadedEvents = await _eventStore.LoadEventsAsync(streamName);
+        await _eventStore.AppendEventsAsync(streamName, events, 0, TestContext.CancellationToken);
+        var loadedEvents = await _eventStore.LoadEventsAsync(
+            streamName,
+            cancellationToken: TestContext.CancellationToken
+        );
 
         Assert.HasCount(1, loadedEvents);
         var result = (TestEvent)loadedEvents.First();
         Assert.AreEqual(domainEvent.Name, result.Name);
     }
+
+    public TestContext TestContext { get; set; }
 }

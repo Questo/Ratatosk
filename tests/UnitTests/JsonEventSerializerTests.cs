@@ -1,6 +1,6 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
-using Ratatosk.Infrastructure.Serialization;
+using Ratatosk.Infrastructure.Serialization.Serializers;
 using Ratatosk.UnitTests.Shared;
 
 namespace Ratatosk.UnitTests;
