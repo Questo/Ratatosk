@@ -1,6 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Ratatosk.Application.Authentication;
@@ -13,11 +12,7 @@ public sealed class JwtTokenIssuer(IOptions<AuthOptions> options) : ITokenIssuer
 {
     public Result<string> IssueToken(string email, string role)
     {
-        var claims = new[]
-        {
-            new Claim(ClaimTypes.Email, email),
-            new Claim("role", role),
-        };
+        var claims = new[] { new Claim(ClaimTypes.Email, email), new Claim("role", role) };
 
         var key = new SymmetricSecurityKey(options.Value.GetKeyBytes());
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
