@@ -27,7 +27,7 @@ public sealed class SignUpCommandHandler(
             );
             if (userAuth is not null)
             {
-                return Result<string>.Failure($"User is not null: {userAuth.Email}");
+                return Result<string>.Failure(Errors.Authentication.AccountAlreadyExists.Message);
             }
 
             var passwordResult = Password.Create(request.Password);
