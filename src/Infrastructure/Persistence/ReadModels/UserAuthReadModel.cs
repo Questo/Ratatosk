@@ -1,11 +1,12 @@
 using Ratatosk.Application.Authentication;
 using Ratatosk.Application.Authentication.Models;
 using Ratatosk.Application.Shared;
+using Ratatosk.Infrastructure.Persistence.Repositories;
 
 namespace Ratatosk.Infrastructure.Persistence.ReadModels;
 
 public sealed class UserAuthReadModel(IUnitOfWork uow)
-    : ReadModelRepository(uow),
+    : PostgresRepository(uow),
         IUserAuthRepository
 {
     public Task DeleteAsync(string email, CancellationToken cancellationToken) =>

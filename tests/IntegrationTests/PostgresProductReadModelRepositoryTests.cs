@@ -1,5 +1,6 @@
 using Dapper;
-using Ratatosk.Application.Catalog.ReadModels;
+using Ratatosk.Application.Catalog;
+using Ratatosk.Application.Catalog.Models;
 using Ratatosk.Application.Shared;
 using Ratatosk.Infrastructure.Persistence;
 using Ratatosk.Infrastructure.Persistence.ReadModels;
@@ -12,7 +13,7 @@ public class PostgresProductReadModelRepositoryTests
     private const string ConnectionString =
         "Host=localhost;Port=5433;Database=ratatosk_test;Username=testuser;Password=testpass";
     private IUnitOfWork _uow = null!;
-    private PostgresProductReadModelRepository _repo = null!;
+    private IProductReadModelRepository _repo = null!;
 
     [TestInitialize]
     public async Task InitializeAsync()
@@ -38,7 +39,7 @@ public class PostgresProductReadModelRepositoryTests
             transaction: _uow.Transaction
         );
 
-        _repo = new PostgresProductReadModelRepository(_uow);
+        _repo = new ProductReadModelRepository(_uow);
     }
 
     [TestCleanup]

@@ -4,7 +4,7 @@ using Ratatosk.Core.Primitives;
 using Ratatosk.Infrastructure.EventStore;
 using Ratatosk.Infrastructure.Shared;
 
-namespace Ratatosk.Infrastructure.Persistence;
+namespace Ratatosk.Infrastructure.Persistence.Repositories;
 
 public class AggregateRepository<T>(IEventStore eventStore, ISnapshotStore snapshotStore)
     : IAggregateRepository<T>

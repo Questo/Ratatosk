@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Ratatosk.Application.Authentication;
 using Ratatosk.Application.Catalog;
 using Ratatosk.Application.Catalog.Commands;
-using Ratatosk.Application.Catalog.Projections;
+using Ratatosk.Application.Catalog.Models;
 using Ratatosk.Core.Abstractions;
 using Ratatosk.Core.BuildingBlocks;
 

@@ -2,11 +2,11 @@ using System.Text;
 using Dapper;
 using Ratatosk.Application.Shared;
 
-namespace Ratatosk.Infrastructure.Persistence;
+namespace Ratatosk.Infrastructure.Persistence.Repositories;
 
-public abstract class ReadModelRepository(IUnitOfWork uow)
+public abstract class PostgresRepository(IUnitOfWork uow)
 {
-    static ReadModelRepository()
+    static PostgresRepository()
     {
         DefaultTypeMap.MatchNamesWithUnderscores = true;
     }

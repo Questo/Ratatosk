@@ -1,4 +1,4 @@
-using Ratatosk.Application.Catalog.ReadModels;
+using Ratatosk.Application.Catalog.Models;
 using Ratatosk.Application.Shared;
 using Ratatosk.Core.Abstractions;
 using Ratatosk.Core.Primitives;

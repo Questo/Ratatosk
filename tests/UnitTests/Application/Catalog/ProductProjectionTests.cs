@@ -1,6 +1,6 @@
 using Moq;
-using Ratatosk.Application.Catalog.Projections;
-using Ratatosk.Application.Catalog.ReadModels;
+using Ratatosk.Application.Catalog;
+using Ratatosk.Application.Catalog.Models;
 using Ratatosk.Domain;
 using Ratatosk.Domain.Catalog;
 using Ratatosk.Domain.Catalog.Events;

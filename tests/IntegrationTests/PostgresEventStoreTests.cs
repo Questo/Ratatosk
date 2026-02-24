@@ -1,7 +1,7 @@
 using Dapper;
 using Ratatosk.Core.BuildingBlocks;
-using Ratatosk.Infrastructure.Persistence;
 using Ratatosk.Infrastructure.Persistence.EventStore;
+using Ratatosk.Infrastructure.Persistence;
 using Ratatosk.Infrastructure.Serialization.Serializers;
 
 namespace Ratatosk.IntegrationTests;

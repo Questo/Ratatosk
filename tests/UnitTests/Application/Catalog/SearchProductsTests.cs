@@ -1,6 +1,7 @@
 using Moq;
+using Ratatosk.Application.Catalog;
 using Ratatosk.Application.Catalog.Queries;
-using Ratatosk.Application.Catalog.ReadModels;
+using Ratatosk.Application.Catalog.Models;
 using Ratatosk.Application.Shared;
 
 namespace Ratatosk.UnitTests.Application.Catalog;

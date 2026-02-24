@@ -1,8 +1,9 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Ratatosk.Application.Catalog;
 using Ratatosk.Application.Authentication;
-using Ratatosk.Application.Catalog.ReadModels;
+using Ratatosk.Application.Catalog.Models;
 using Ratatosk.Application.Shared;
 using Ratatosk.Core.Abstractions;
 using Ratatosk.Domain.Catalog;
@@ -11,6 +12,7 @@ using Ratatosk.Infrastructure.EventStore;
 using Ratatosk.Infrastructure.Persistence;
 using Ratatosk.Infrastructure.Persistence.EventStore;
 using Ratatosk.Infrastructure.Persistence.ReadModels;
+using Ratatosk.Infrastructure.Persistence.Repositories;
 using Ratatosk.Infrastructure.Serialization.Serializers;
 using Ratatosk.Infrastructure.Services;
 
@@ -80,7 +82,7 @@ public static class InfrastructureServiceCollectionExtensions
         });
 
         services.AddScoped(typeof(IAggregateRepository<>), typeof(AggregateRepository<>));
-        services.AddScoped<IProductReadModelRepository, PostgresProductReadModelRepository>();
+        services.AddScoped<IProductReadModelRepository, ProductReadModelRepository>();
         services.AddScoped<IProductDomainService, ProductDomainService>();
 
         services.AddScoped<IUserAuthRepository, UserAuthReadModel>();
