@@ -1,3 +1,4 @@
+using Ratatosk.Application.Authentication.Models;
 using Ratatosk.Core.Abstractions;
 using Ratatosk.Core.Primitives;
 using Ratatosk.Domain.Identity;

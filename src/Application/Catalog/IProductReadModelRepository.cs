@@ -1,6 +1,7 @@
+using Ratatosk.Application.Catalog.Models;
 using Ratatosk.Application.Shared;
 
-namespace Ratatosk.Application.Catalog.ReadModels;
+namespace Ratatosk.Application.Catalog;
 
 public interface IProductReadModelRepository
 {

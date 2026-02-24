@@ -1,5 +1,7 @@
-using Ratatosk.Application.Authentication.ReadModels;
+using Ratatosk.Application.Authentication.Models;
 using Ratatosk.Application.Shared;
+
+namespace Ratatosk.Application.Authentication;
 
 public interface IUserAuthRepository
 {

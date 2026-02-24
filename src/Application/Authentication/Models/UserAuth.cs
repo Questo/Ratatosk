@@ -1,7 +1,7 @@
 using Ratatosk.Core.Abstractions;
 using Ratatosk.Domain.Identity.Events;
 
-namespace Ratatosk.Application.Authentication.ReadModels;
+namespace Ratatosk.Application.Authentication.Models;
 
 public sealed record UserAuth(string Email, string Role, string Hash);
 
@@ -21,4 +21,3 @@ public class UserAuthProjection(IUserAuthRepository repo) : IDomainEventHandler<
         await repo.SaveAsync(readModel, cancellationToken);
     }
 }
-

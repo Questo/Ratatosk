@@ -1,8 +1,36 @@
-using Ratatosk.Application.Catalog.ReadModels;
 using Ratatosk.Core.Abstractions;
 using Ratatosk.Domain.Catalog.Events;
 
-namespace Ratatosk.Application.Catalog.Projections;
+namespace Ratatosk.Application.Catalog.Models;
+
+public class ProductReadModel
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = default!;
+    public string Sku { get; set; } = default!;
+    public string Description { get; set; } = default!;
+    public decimal Price { get; set; }
+    public DateTime LastUpdatedUtc { get; set; }
+
+    public ProductReadModel() { }
+
+    public ProductReadModel(
+        Guid id,
+        string name,
+        string sku,
+        string description,
+        decimal price,
+        DateTime lastUpdatedUtc
+    )
+    {
+        Id = id;
+        Name = name;
+        Sku = sku;
+        Description = description;
+        Price = price;
+        LastUpdatedUtc = lastUpdatedUtc;
+    }
+}
 
 public class ProductProjection(IProductReadModelRepository repo)
     : IDomainEventHandler<ProductCreated>,
