@@ -63,10 +63,10 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v4
 
-      - name: Set up .NET 9 SDK
+      - name: Set up .NET SDK
         uses: actions/setup-dotnet@v4
         with:
-            dotnet-version: 9.0.x
+          dotnet-version: 10.0.x
 
       - name: Verify formatting
         run: dotnet format --verify-no-changes --severity error --verbosity detailed
