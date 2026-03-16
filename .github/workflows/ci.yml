@@ -211,9 +211,7 @@ jobs:
         run: |
           TAGS="${IMAGE_NAME}:${IMAGE_TAG}"
           if [ "${{ needs.release.outputs.released }}" = "true" ]; then
-            TAGS="${TAGS}
-${IMAGE_NAME}:${{ needs.release.outputs.new-version }}
-${IMAGE_NAME}:latest"
+            TAGS="${TAGS}\n${IMAGE_NAME}:${{ needs.release.outputs.new-version }}\n${IMAGE_NAME}:latest"
           fi
           echo "tags<<EOF" >> $GITHUB_OUTPUT
           echo "$TAGS" >> $GITHUB_OUTPUT
