@@ -21,7 +21,12 @@ public static class AuthEndpoints
                     var result = await authService.LoginAsync(cmd, ct);
                     var response = Response<string>.FromResult(result);
 
-                    return result.IsFailure ? Results.BadRequest(response) : Results.Ok(response);
+                    if (!result.IsFailure)
+                        return Results.Ok(response);
+
+                    return result.Error == Errors.Authentication.InvalidCredentials.Message
+                        ? Results.Unauthorized()
+                        : Results.BadRequest(response);
                 }
             )
             .WithTags(AuthTag);

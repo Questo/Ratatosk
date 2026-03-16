@@ -23,6 +23,24 @@ public sealed class CleanupResponseMiddleware
 
             if (buffer.Length == 0)
             {
+                if (context.Response.StatusCode is StatusCodes.Status401Unauthorized or StatusCodes.Status403Forbidden)
+                {
+                    var message = context.Response.StatusCode == StatusCodes.Status401Unauthorized
+                        ? "Unauthorized."
+                        : "Forbidden.";
+
+                    var json = JsonSerializer.SerializeToUtf8Bytes(new
+                    {
+                        message,
+                        traceId = context.TraceIdentifier
+                    });
+
+                    context.Response.ContentType = "application/json";
+                    context.Response.ContentLength = json.Length;
+                    await originalBody.WriteAsync(json, context.RequestAborted);
+                    return;
+                }
+
                 buffer.Position = 0;
                 await buffer.CopyToAsync(originalBody, context.RequestAborted);
                 return;

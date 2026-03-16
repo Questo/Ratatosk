@@ -18,5 +18,10 @@ public static class Errors
             "auth.account_already_exists",
             "Account already exists."
         );
+
+        public static readonly Error InvalidToken = new(
+            "auth.invalid_token",
+            "Could not issue token."
+        );
     }
 }
