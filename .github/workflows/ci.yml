@@ -45,8 +45,17 @@ jobs:
       - name: Set lowercase image name and tag
         uses: ./.github/actions/setup-image-metadata
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build Docker image (includes tests + coverage)
-        run: docker build -t $IMAGE_NAME:$IMAGE_TAG .
+        uses: docker/build-push-action@v6
+        with:
+          push: false
+          load: true
+          tags: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Copy coverage report from container
         uses: ./.github/actions/copy-container-coverage
@@ -155,7 +164,7 @@ jobs:
           node-version: 22
 
       - name: Install semantic-release
-        run: npm install --no-save semantic-release @semantic-release/commit-analyzer @semantic-release/release-notes-generator @semantic-release/github
+        run: npm install --no-save semantic-release @semantic-release/commit-analyzer @semantic-release/release-notes-generator @semantic-release/changelog @semantic-release/github @semantic-release/git
 
       - name: Release
         id: semantic
@@ -194,14 +203,26 @@ jobs:
       - name: Set lowercase image name and tag
         uses: ./.github/actions/setup-image-metadata
 
-      - name: Build and push image to GHCR
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Compute image tags
+        id: tags
         run: |
-          docker build -t $IMAGE_NAME:$IMAGE_TAG .
-          docker push $IMAGE_NAME:$IMAGE_TAG
+          TAGS="${IMAGE_NAME}:${IMAGE_TAG}"
           if [ "${{ needs.release.outputs.released }}" = "true" ]; then
-            VERSION=${{ needs.release.outputs.new-version }}
-            docker tag $IMAGE_NAME:$IMAGE_TAG $IMAGE_NAME:$VERSION
-            docker push $IMAGE_NAME:$VERSION
-            docker tag $IMAGE_NAME:$IMAGE_TAG $IMAGE_NAME:latest
-            docker push $IMAGE_NAME:latest
+            TAGS="${TAGS}
+${IMAGE_NAME}:${{ needs.release.outputs.new-version }}
+${IMAGE_NAME}:latest"
           fi
+          echo "tags<<EOF" >> $GITHUB_OUTPUT
+          echo "$TAGS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Build and push image to GHCR
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          tags: ${{ steps.tags.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
