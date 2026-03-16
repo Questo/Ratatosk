@@ -15,6 +15,7 @@ public class SignUpCommandHandlerTests
     private Mock<IAggregateRepository<User>> _userRepositoryMock = null!;
     private Mock<IEventBus> _eventBusMock = null!;
     private Mock<IUserAuthRepository> _userAuthRepositoryMock = null!;
+    private Mock<IRefreshTokenRepository> _refreshTokenRepositoryMock = null!;
     private Mock<IPasswordHasher> _passwordHasherMock = null!;
     private Mock<ITokenIssuer> _tokenIssuerMock = null!;
     private SignUpCommandHandler _handler = null!;
@@ -28,6 +29,7 @@ public class SignUpCommandHandlerTests
         _userRepositoryMock = new Mock<IAggregateRepository<User>>();
         _eventBusMock = new Mock<IEventBus>();
         _userAuthRepositoryMock = new Mock<IUserAuthRepository>();
+        _refreshTokenRepositoryMock = new Mock<IRefreshTokenRepository>();
         _passwordHasherMock = new Mock<IPasswordHasher>();
         _tokenIssuerMock = new Mock<ITokenIssuer>();
 
@@ -35,13 +37,14 @@ public class SignUpCommandHandlerTests
             _userRepositoryMock.Object,
             _eventBusMock.Object,
             _userAuthRepositoryMock.Object,
+            _refreshTokenRepositoryMock.Object,
             _passwordHasherMock.Object,
             _tokenIssuerMock.Object
         );
     }
 
     [TestMethod]
-    public async Task HandleAsync_Should_Return_AccessToken_When_SignUp_Succeeds()
+    public async Task HandleAsync_Should_Return_TokenPair_When_SignUp_Succeeds()
     {
         // Arrange
         _userAuthRepositoryMock
@@ -61,7 +64,8 @@ public class SignUpCommandHandlerTests
 
         // Assert
         Assert.IsTrue(result.IsSuccess);
-        Assert.AreEqual("access_token", result.Value);
+        Assert.AreEqual("access_token", result.Value!.AccessToken);
+        Assert.IsFalse(string.IsNullOrEmpty(result.Value.RefreshToken));
     }
 
     [TestMethod]
@@ -92,6 +96,11 @@ public class SignUpCommandHandlerTests
         _eventBusMock.Verify(
             x => x.PublishAsync(It.IsAny<DomainEvent>(), It.IsAny<CancellationToken>()),
             Times.AtLeastOnce
+        );
+
+        _refreshTokenRepositoryMock.Verify(
+            x => x.SaveAsync(It.IsAny<RefreshToken>(), It.IsAny<CancellationToken>()),
+            Times.Once
         );
     }
 
@@ -126,7 +135,7 @@ public class SignUpCommandHandlerTests
             .Setup(x => x.GetByEmailAsync(ValidEmail, It.IsAny<CancellationToken>()))
             .ReturnsAsync((UserAuth?)null);
 
-        // Act — empty password causes Password.Create to fail
+        // Act
         var result = await _handler.HandleAsync(new SignUpCommand(ValidEmail, ""));
 
         // Assert

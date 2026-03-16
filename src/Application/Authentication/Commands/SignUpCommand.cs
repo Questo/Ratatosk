@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Ratatosk.Application.Authentication.Models;
 using Ratatosk.Core.Abstractions;
 using Ratatosk.Core.Primitives;
@@ -5,17 +6,20 @@ using Ratatosk.Domain.Identity;
 
 namespace Ratatosk.Application.Authentication.Commands;
 
-public sealed record SignUpCommand(string Email, string Password) : IRequest<Result<string>>;
+public sealed record SignUpCommand(string Email, string Password) : IRequest<Result<TokenPair>>;
 
 public sealed class SignUpCommandHandler(
     IAggregateRepository<User> userRepository,
     IEventBus eventBus,
     IUserAuthRepository userAuthRepository,
+    IRefreshTokenRepository refreshTokenRepository,
     IPasswordHasher passwordHasher,
     ITokenIssuer tokenIssuer
-) : IRequestHandler<SignUpCommand, Result<string>>
+) : IRequestHandler<SignUpCommand, Result<TokenPair>>
 {
-    public async Task<Result<string>> HandleAsync(
+    private const int RefreshTokenExpiresInDays = 7;
+
+    public async Task<Result<TokenPair>> HandleAsync(
         SignUpCommand request,
         CancellationToken cancellationToken = default
     )
@@ -27,15 +31,11 @@ public sealed class SignUpCommandHandler(
                 cancellationToken
             );
             if (userAuth is not null)
-            {
-                return Result<string>.Failure(Errors.Authentication.AccountAlreadyExists.Message);
-            }
+                return Result<TokenPair>.Failure(Errors.Authentication.AccountAlreadyExists.Message);
 
             var passwordResult = Password.Create(request.Password);
             if (passwordResult.IsFailure)
-            {
-                return Result<string>.Failure(passwordResult.Error!);
-            }
+                return Result<TokenPair>.Failure(passwordResult.Error!);
 
             var passwordHash = passwordHasher.Hash(passwordResult.Value!);
 
@@ -47,15 +47,21 @@ public sealed class SignUpCommandHandler(
 
             var tokenResult = tokenIssuer.IssueToken(user.Email.Value, user.Role.Name);
             if (tokenResult.IsFailure)
-            {
-                return Result<string>.Failure("Could not issue token.");
-            }
+                return Result<TokenPair>.Failure(Errors.Authentication.InvalidToken.Message);
 
-            return Result<string>.Success(tokenResult.Value!);
+            var refreshToken = new RefreshToken(
+                Token: Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)),
+                Email: user.Email.Value,
+                ExpiresAt: DateTimeOffset.UtcNow.AddDays(RefreshTokenExpiresInDays)
+            );
+
+            await refreshTokenRepository.SaveAsync(refreshToken, cancellationToken);
+
+            return Result<TokenPair>.Success(new TokenPair(tokenResult.Value!, refreshToken.Token));
         }
         catch (Exception ex)
         {
-            return Result<string>.Failure(Error.FromException(ex).Message);
+            return Result<TokenPair>.Failure(Error.FromException(ex).Message);
         }
     }
 }

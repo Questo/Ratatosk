@@ -42,7 +42,7 @@ public static class AuthEndpoints
                 {
                     var cmd = new SignUpCommand(request.Email, request.Password);
                     var result = await service.SignUpAsync(cmd, ct);
-                    var response = Response<string>.FromResult(result);
+                    var response = Response<TokenPair>.FromResult(result);
 
                     return result.IsFailure ? Results.BadRequest(response) : Results.Ok(response);
                 }

@@ -13,7 +13,7 @@ public interface IAuthenticationService
         CancellationToken cancellationToken = default
     );
 
-    Task<Result<string>> SignUpAsync(
+    Task<Result<TokenPair>> SignUpAsync(
         SignUpCommand command,
         CancellationToken cancellationToken = default
     );
@@ -41,7 +41,7 @@ public sealed class AuthenticationService(
         return result;
     }
 
-    public async Task<Result<string>> SignUpAsync(
+    public async Task<Result<TokenPair>> SignUpAsync(
         SignUpCommand command,
         CancellationToken cancellationToken = default
     )
