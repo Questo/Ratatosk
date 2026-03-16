@@ -10,7 +10,6 @@ export TEST_POSTGRES_PASSWORD=testpass
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$SCRIPT_DIR/.."
 TEST_PROJECT="$REPO_ROOT/tests/IntegrationTests"
-COVERAGE_THRESHOLD="${COVERAGE_THRESHOLD:-75}"
 
 TEST_RESULTS_DIR="$TEST_PROJECT/TestResults"
 HTML_REPORT_DIR="$REPO_ROOT/coverage-report/integration"
@@ -23,13 +22,24 @@ rm -rf "$HTML_REPORT_DIR"/*
 echo "Starting containers..."
 docker compose --profile local -f docker-compose.test.yml up ratatosk-testdb -d --remove-orphans
 
+echo "Waiting for Postgres to be ready..."
+RETRIES=30
+until docker compose -f docker-compose.test.yml exec -T ratatosk-testdb pg_isready -U "$TEST_POSTGRES_USER" > /dev/null 2>&1; do
+  RETRIES=$((RETRIES - 1))
+  if [ "$RETRIES" -eq 0 ]; then
+    echo "Postgres did not become ready in time."
+    docker compose -f docker-compose.test.yml down
+    exit 1
+  fi
+  sleep 1
+done
+echo "Postgres is ready."
+
 echo "Running integration tests..."
 dotnet test tests/IntegrationTests \
   --configuration Release \
   --no-restore \
-  --verbosity normal \
-#  --collect:"XPlat Code Coverage" \
-  #--logger "trx"
+  --verbosity normal
 
 echo "Tearing down containers..."
 docker compose -f docker-compose.test.yml down
