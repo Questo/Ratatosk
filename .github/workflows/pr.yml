@@ -43,7 +43,7 @@ jobs:
           output-dir: coverage-report
 
       - name: Publish unit test results
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@v2
         if: always()
         with:
           name: Unit Tests
