@@ -9,6 +9,7 @@ on:
       - 'Dockerfile'
       - '**/*.cs'
       - '**/*.csproj'
+      - '.github/**'
 
 permissions:
   contents: read
@@ -43,13 +44,13 @@ jobs:
           output-dir: coverage-report
 
       - name: Publish unit test results
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@v2
         if: always()
         with:
           name: Unit Tests
           path: coverage/**/*.trx
           reporter: dotnet-trx
-          fail-on-error: false
+          fail-on-error: true
 
       - name: Upload PR coverage report
         uses: actions/upload-artifact@v4
@@ -57,8 +58,39 @@ jobs:
           name: pr-coverage-html
           path: coverage-report
 
+  integration-tests:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: ratatosk_test
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Run integration tests
+        run: dotnet test tests/IntegrationTests --configuration Release --verbosity normal
+
   check-formatting:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
