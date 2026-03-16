@@ -57,6 +57,9 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Push image to GHCR
+        run: docker push ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+
       - name: Copy coverage report from container
         uses: ./.github/actions/copy-container-coverage
         with:
@@ -196,16 +199,13 @@ jobs:
 
   publish:
     needs: [build-and-test, integration-tests, release]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.release.outputs.released == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
 
     steps:
-      - name: Checkout source code
-        uses: actions/checkout@v6
-
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v4
         with:
@@ -216,24 +216,11 @@ jobs:
       - name: Set lowercase image name and tag
         uses: ./.github/actions/setup-image-metadata
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Compute image tags
-        id: tags
+      - name: Tag and push versioned images
         run: |
-          TAGS="${IMAGE_NAME}:${IMAGE_TAG}"
-          if [ "${{ needs.release.outputs.released }}" = "true" ]; then
-            TAGS="${TAGS}\n${IMAGE_NAME}:${{ needs.release.outputs.new-version }}\n${IMAGE_NAME}:latest"
-          fi
-          echo "tags<<EOF" >> $GITHUB_OUTPUT
-          echo "$TAGS" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: Build and push image to GHCR
-        uses: docker/build-push-action@v6
-        with:
-          push: true
-          tags: ${{ steps.tags.outputs.tags }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          VERSION="${{ needs.release.outputs.new-version }}"
+          docker pull $IMAGE_NAME:ci
+          docker tag $IMAGE_NAME:ci $IMAGE_NAME:$VERSION
+          docker push $IMAGE_NAME:$VERSION
+          docker tag $IMAGE_NAME:ci $IMAGE_NAME:latest
+          docker push $IMAGE_NAME:latest
