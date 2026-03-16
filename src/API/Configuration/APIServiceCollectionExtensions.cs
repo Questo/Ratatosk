@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Ratatosk.Core.Primitives;
+using Ratatosk.Domain.Identity;
 using Ratatosk.Infrastructure.Configuration;
 
 namespace Ratatosk.API.Configuration;
@@ -38,7 +39,11 @@ public static class APIServiceCollectionExtensions
                     ClockSkew = TimeSpan.Zero,
                 };
             });
-        services.AddAuthorization();
+        services.AddAuthorization(options =>
+        {
+            options.AddPolicy(Policies.Authenticated, policy => policy.RequireAuthenticatedUser());
+            options.AddPolicy(Policies.Admin, policy => policy.RequireRole(UserRole.Admin.Name));
+        });
 
         return services;
     }

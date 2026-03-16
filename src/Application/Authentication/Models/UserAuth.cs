@@ -14,7 +14,7 @@ public class UserAuthProjection(IUserAuthRepository repo) : IDomainEventHandler<
     {
         var readModel = new UserAuth(
             domainEvent.Email.Value,
-            domainEvent.Role.Id.ToString(),
+            domainEvent.Role.Name,
             domainEvent.PasswordHash.Value
         );
 

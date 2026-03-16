@@ -3,6 +3,7 @@ using Ratatosk.Application.Catalog.Commands;
 using Ratatosk.Application.Catalog.Queries;
 using Ratatosk.Application.Catalog.Models;
 using Ratatosk.Application.Shared;
+using System.Security.Claims;
 
 namespace Ratatosk.API.Products;
 
@@ -28,7 +29,7 @@ public static class ProductsEndpoints
                         : Results.Created($"/products/{result.Value}", response);
                 }
             )
-            //.RequireAuthorization()
+            .RequireAuthorization(Policies.Authenticated)
             .WithTags(ProductsTag)
             .WithName("CreateProduct")
             .WithSummary("Create a new product")
@@ -71,7 +72,7 @@ public static class ProductsEndpoints
                     return result.IsFailure ? Results.BadRequest(result.Error) : Results.Ok();
                 }
             )
-            // .RequireAuthorization()
+            .RequireAuthorization(Policies.Authenticated)
             .WithTags(ProductsTag)
             .WithName("UpdateProduct")
             .WithSummary("Update an existing product")
@@ -120,12 +121,31 @@ public static class ProductsEndpoints
                     return result.IsFailure ? Results.NotFound() : Results.NoContent();
                 }
             )
-            .RequireAuthorization()
+            .RequireAuthorization(Policies.Admin)
             .WithTags(ProductsTag)
             .WithName("DeleteProduct")
             .WithSummary("Delete a product")
             .WithDescription("Deletes the product by id. Returns 404 if it does not exist.")
             .Produces(StatusCodes.Status204NoContent)
             .Produces(StatusCodes.Status404NotFound);
+
+        // Example: requires a valid token AND the Admin role
+        app.MapGet(
+                "/products/admin/summary",
+                (HttpContext ctx) =>
+                {
+                    var email = ctx.User.FindFirstValue(ClaimTypes.Email);
+                    var role = ctx.User.FindFirstValue(ClaimTypes.Role);
+                    return Results.Ok(new { email, role, message = "Admin-only endpoint." });
+                }
+            )
+            .RequireAuthorization(Policies.Admin)
+            .WithTags(ProductsTag)
+            .WithName("AdminProductSummary")
+            .WithSummary("Admin-only summary")
+            .WithDescription("Example endpoint requiring both a valid JWT and the Admin role.")
+            .Produces<object>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status403Forbidden);
     }
 }
