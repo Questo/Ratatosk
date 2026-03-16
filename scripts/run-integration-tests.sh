@@ -3,8 +3,8 @@ set -e
 
 # Set environment variables (adjust if needed)
 export TEST_POSTGRES_DB=ratatosk_test
-export TEST_POSTGRES_USER=postgres
-export TEST_POSTGRES_PASSWORD=postgres
+export TEST_POSTGRES_USER=testuser
+export TEST_POSTGRES_PASSWORD=testpass
 
 # Resolve paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

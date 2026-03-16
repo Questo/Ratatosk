@@ -19,8 +19,9 @@ public sealed class PostgresRefreshTokenRepository(IUnitOfWork uow)
             cancellationToken
         );
 
-    public Task<RefreshToken?> GetByTokenAsync(string token, CancellationToken cancellationToken = default) =>
-        QueryFirstOrDefaultAsync<RefreshToken?>(
+    public async Task<RefreshToken?> GetByTokenAsync(string token, CancellationToken cancellationToken = default)
+    {
+        var row = await QueryFirstOrDefaultAsync<RefreshTokenRow?>(
             """
             SELECT token, email, expires_at
             FROM refresh_tokens
@@ -29,6 +30,16 @@ public sealed class PostgresRefreshTokenRepository(IUnitOfWork uow)
             new { Token = token },
             cancellationToken
         );
+
+        return row is null ? null : new RefreshToken(row.Token, row.Email, row.ExpiresAt);
+    }
+
+    private sealed class RefreshTokenRow
+    {
+        public string Token { get; init; } = default!;
+        public string Email { get; init; } = default!;
+        public DateTimeOffset ExpiresAt { get; init; }
+    }
 
     public Task RevokeAsync(string token, CancellationToken cancellationToken = default) =>
         ExecAsync(
