@@ -29,7 +29,7 @@ public static class APIServiceCollectionExtensions
                     ValidateIssuer = true,
                     ValidIssuer = authOptions.Issuer,
 
-                    ValidateAudience = false,
+                    ValidateAudience = true,
                     ValidAudience = authOptions.Audience,
 
                     ValidateIssuerSigningKey = true,

@@ -23,5 +23,10 @@ public static class Errors
             "auth.invalid_token",
             "Could not issue token."
         );
+
+        public static readonly Error InvalidRefreshToken = new(
+            "auth.invalid_refresh_token",
+            "Refresh token is invalid or has expired."
+        );
     }
 }

@@ -87,6 +87,18 @@ public static class InfrastructureServiceCollectionExtensions
 
         services.AddScoped<IUserAuthRepository, UserAuthReadModel>();
 
+        services.AddScoped<IRefreshTokenRepository>(provider =>
+        {
+            var options = provider.GetRequiredService<IOptions<EventStoreOptions>>().Value;
+            return options.Type switch
+            {
+                StoreType.Sql => new PostgresRefreshTokenRepository(
+                    provider.GetRequiredService<IUnitOfWork>()
+                ),
+                _ => new InMemoryRefreshTokenRepository(),
+            };
+        });
+
         services.AddScoped<IPasswordHasher, Argon2PasswordHasher>();
         services.AddScoped<ITokenIssuer, JwtTokenIssuer>();
 

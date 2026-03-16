@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Ratatosk.Application.Authentication.Models;
 using Ratatosk.Core.Abstractions;
 using Ratatosk.Core.Primitives;
@@ -5,15 +6,18 @@ using Ratatosk.Domain.Identity;
 
 namespace Ratatosk.Application.Authentication.Commands;
 
-public sealed record LoginCommand(string Email, string Password) : IRequest<Result<string>>;
+public sealed record LoginCommand(string Email, string Password) : IRequest<Result<TokenPair>>;
 
 public sealed class LoginCommandHandler(
     IUserAuthRepository userAuthRepository,
+    IRefreshTokenRepository refreshTokenRepository,
     IPasswordHasher passwordHasher,
     ITokenIssuer tokenIssuer
-) : IRequestHandler<LoginCommand, Result<string>>
+) : IRequestHandler<LoginCommand, Result<TokenPair>>
 {
-    public async Task<Result<string>> HandleAsync(
+    private const int RefreshTokenExpiresInDays = 7;
+
+    public async Task<Result<TokenPair>> HandleAsync(
         LoginCommand request,
         CancellationToken cancellationToken = default
     )
@@ -29,15 +33,21 @@ public sealed class LoginCommandHandler(
             || !passwordHasher.Verify(passwordResult.Value!, hashResult.Value!)
         )
         {
-            return Result<string>.Failure(Errors.Authentication.InvalidCredentials.Message);
+            return Result<TokenPair>.Failure(Errors.Authentication.InvalidCredentials.Message);
         }
 
         var tokenResult = tokenIssuer.IssueToken(userAuth.Email, userAuth.Role);
         if (tokenResult.IsFailure)
-        {
-            return Result<string>.Failure("Could not issue token.");
-        }
+            return Result<TokenPair>.Failure(Errors.Authentication.InvalidToken.Message);
 
-        return Result<string>.Success(tokenResult.Value!);
+        var refreshToken = new RefreshToken(
+            Token: Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)),
+            Email: userAuth.Email,
+            ExpiresAt: DateTimeOffset.UtcNow.AddDays(RefreshTokenExpiresInDays)
+        );
+
+        await refreshTokenRepository.SaveAsync(refreshToken, cancellationToken);
+
+        return Result<TokenPair>.Success(new TokenPair(tokenResult.Value!, refreshToken.Token));
     }
 }

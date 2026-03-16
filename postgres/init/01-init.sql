@@ -40,3 +40,11 @@ CREATE TABLE IF NOT EXISTS user_auth_read_models(
 );
 
 CREATE INDEX IF NOT EXISTS idx_user_auth_read_models_id ON user_auth_read_models(email);
+
+CREATE TABLE IF NOT EXISTS refresh_tokens(
+    token text PRIMARY KEY,
+    email text NOT NULL,
+    expires_at timestamptz NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_email ON refresh_tokens(email);
