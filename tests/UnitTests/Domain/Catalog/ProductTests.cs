@@ -9,93 +9,93 @@ namespace Ratatosk.UnitTests.Domain.Catalog;
 public class ProductTests
 {
     [TestMethod]
-    public void Create_WithInvalidInput_ShouldThrowException()
+    public void Create_WithInvalidInput_ShouldReturnFailure()
     {
-        Assert.Throws<ArgumentException>(() =>
-            Product.Create(string.Empty, string.Empty, string.Empty, -1m)
-        );
+        var result = Product.Create(string.Empty, string.Empty, string.Empty, -1m);
+
+        Assert.IsTrue(result.IsFailure);
     }
 
     [TestMethod]
     [DataRow(null)]
     [DataRow("")]
-    public void Create_WithNullOrEmptyName_ShouldThrow(string invalidName)
+    public void Create_WithNullOrEmptyName_ShouldReturnFailure(string invalidName)
     {
         var sku = SKU.Create(SkuGenerator.Generate("TS")).Value;
-        Assert.Throws<ArgumentException>(() =>
-            Product.Create(invalidName, sku!.Value, "A description", 10m)
-        );
+        var result = Product.Create(invalidName, sku!.Value, "A description", 10m);
+
+        Assert.IsTrue(result.IsFailure);
     }
 
     [TestMethod]
     [DataRow(null)]
     [DataRow("")]
-    public void Create_WithNullOrEmptySku_ShouldThrow(string invalidSku)
+    public void Create_WithNullOrEmptySku_ShouldReturnFailure(string invalidSku)
     {
-        Assert.Throws<ArgumentException>(() =>
-            Product.Create("Product Name", invalidSku, "A description", 10m)
-        );
+        var result = Product.Create("Product Name", invalidSku, "A description", 10m);
+
+        Assert.IsTrue(result.IsFailure);
     }
 
     [TestMethod]
     [DataRow(null)]
     [DataRow("")]
-    public void Create_WithNullOrEmptyDescription_ShouldThrow(string invalidDesc)
+    public void Create_WithNullOrEmptyDescription_ShouldReturnFailure(string invalidDesc)
     {
         var sku = SKU.Create(SkuGenerator.Generate("TS")).Value;
-        Assert.Throws<ArgumentException>(() =>
-            Product.Create("Product Name", sku!.Value, invalidDesc, 10m)
-        );
+        var result = Product.Create("Product Name", sku!.Value, invalidDesc, 10m);
+
+        Assert.IsTrue(result.IsFailure);
     }
 
     [TestMethod]
-    public void Create_WithInvalidProductName_ShouldThrow()
+    public void Create_WithInvalidProductName_ShouldReturnFailure()
     {
-        // Assuming this name fails internal validation
-        var invalidName = new string('!', 300); // too long or invalid
-        var ex = Assert.Throws<ArgumentException>(() =>
-            Product.Create(invalidName, "SKU123", "Valid description", 10m)
-        );
-        Assert.Contains("name", ex.Message); // or whatever error your VO returns
+        var invalidName = new string('!', 300);
+        var result = Product.Create(invalidName, "SKU123", "Valid description", 10m);
+
+        Assert.IsTrue(result.IsFailure);
+        Assert.Contains("name", result.Error!);
     }
 
     [TestMethod]
-    public void Create_WithInvalidSKU_ShouldThrow()
+    public void Create_WithInvalidSKU_ShouldReturnFailure()
     {
         var invalidSku = "!!!@@@###";
-        var ex = Assert.Throws<ArgumentException>(() =>
-            Product.Create("Valid Name", invalidSku, "Valid description", 10m)
-        );
+        var result = Product.Create("Valid Name", invalidSku, "Valid description", 10m);
+
+        Assert.IsTrue(result.IsFailure);
     }
 
     [TestMethod]
-    public void Create_WithInvalidDescription_ShouldThrow()
+    public void Create_WithInvalidDescription_ShouldReturnFailure()
     {
         var sku = SKU.Create(SkuGenerator.Generate("TS")).Value;
-        var invalidDesc = new string('x', 1001); // Assume max is 1000
-        var ex = Assert.Throws<ArgumentException>(() =>
-            Product.Create("Valid Name", sku!.Value, invalidDesc, 10m)
-        );
+        var invalidDesc = new string('x', 1001);
+        var result = Product.Create("Valid Name", sku!.Value, invalidDesc, 10m);
+
+        Assert.IsTrue(result.IsFailure);
     }
 
     [TestMethod]
-    public void Create_WithInvalidPrice_ShouldThrow()
+    public void Create_WithInvalidPrice_ShouldReturnFailure()
     {
         var sku = SKU.Create(SkuGenerator.Generate("TS")).Value;
-        var ex = Assert.Throws<ArgumentException>(() =>
-            Product.Create("Valid Name", sku!.Value, "Valid description", -10m)
-        );
+        var result = Product.Create("Valid Name", sku!.Value, "Valid description", -10m);
+
+        Assert.IsTrue(result.IsFailure);
     }
 
     [TestMethod]
     public void Create_WithValidInput_ShouldReturnProductWithCreatedEvent()
     {
         var sku = SKU.Create(SkuGenerator.Generate("TS")).Value;
-        var product = Product.Create("Test Product", sku!.Value, "A test product", 99.99m);
+        var result = Product.Create("Test Product", sku!.Value, "A test product", 99.99m);
 
-        Assert.IsNotNull(product);
+        Assert.IsTrue(result.IsSuccess);
+        Assert.IsNotNull(result.Value);
 
-        var @event = product.UncommittedEvents.OfType<ProductCreated>().FirstOrDefault();
+        var @event = result.Value!.UncommittedEvents.OfType<ProductCreated>().FirstOrDefault();
 
         Assert.IsNotNull(@event);
         Assert.AreEqual("Test Product", @event.Name.Value);

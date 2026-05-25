@@ -62,7 +62,7 @@ public class RemoveProductCommandHandlerTests
             SkuGenerator.Generate("TS"),
             "A test product",
             9.99m
-        );
+        ).Value!;
 
         _repositoryMock
             .Setup(x => x.LoadAsync(command.ProductId, It.IsAny<CancellationToken>()))

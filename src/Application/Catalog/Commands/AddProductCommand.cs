@@ -24,12 +24,17 @@ public class AddProductCommandHandler(
             if (!skuIsUnique)
                 return Result<Guid>.Failure($"SKU {request.Sku} is already in use");
 
-            var product = Product.Create(
+            var productResult = Product.Create(
                 request.Name,
                 request.Sku,
                 request.Description,
                 request.Price
             );
+
+            if (productResult.IsFailure)
+                return Result<Guid>.Failure(productResult.Error!);
+
+            var product = productResult.Value!;
 
             await repository.SaveAsync(product, cancellationToken);
 

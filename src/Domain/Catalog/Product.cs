@@ -44,27 +44,23 @@ public class Product : AggregateRoot
             Price = Price,
         };
 
-    public static Product Create(string name, string sku, string description, decimal price)
+    public static Result<Product> Create(string name, string sku, string description, decimal price)
     {
-        Guard.AgainstNullOrEmpty(name, nameof(name));
-        Guard.AgainstNullOrEmpty(sku, nameof(sku));
-        Guard.AgainstNullOrEmpty(description, nameof(description));
-
         var nameResult = ProductName.Create(name);
         if (nameResult.IsFailure)
-            throw new ArgumentException(nameResult.Error);
+            return Result<Product>.Failure(nameResult.Error!);
 
         var skuResult = SKU.Create(sku);
         if (skuResult.IsFailure)
-            throw new ArgumentException(skuResult.Error);
+            return Result<Product>.Failure(skuResult.Error!);
 
         var descriptionResult = Description.Create(description);
         if (descriptionResult.IsFailure)
-            throw new ArgumentException(descriptionResult.Error);
+            return Result<Product>.Failure(descriptionResult.Error!);
 
         var priceResult = Price.Create(price);
         if (priceResult.IsFailure)
-            throw new ArgumentException(priceResult.Error);
+            return Result<Product>.Failure(priceResult.Error!);
 
         var product = new Product();
 
@@ -78,7 +74,7 @@ public class Product : AggregateRoot
             )
         );
 
-        return product;
+        return Result<Product>.Success(product);
     }
 
     public void Update(ProductName name, Description? description, Price? price)
