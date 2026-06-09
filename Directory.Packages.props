@@ -22,7 +22,7 @@
     <PackageVersion Include="MSTest" Version="4.2.3" />
     <PackageVersion Include="Scrutor" Version="7.0.0" />
     <PackageVersion Include="Dapper" Version="2.1.79" />
-    <PackageVersion Include="Npgsql" Version="10.0.2" />
+    <PackageVersion Include="Npgsql" Version="10.0.3" />
     <PackageVersion Include="coverlet.collector" Version="10.0.1" />
   </ItemGroup>
 </Project>
