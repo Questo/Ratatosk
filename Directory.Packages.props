@@ -21,7 +21,7 @@
     <PackageVersion Include="Moq" Version="4.20.72" />
     <PackageVersion Include="MSTest" Version="4.3.3" />
     <PackageVersion Include="Scrutor" Version="7.0.0" />
-    <PackageVersion Include="Dapper" Version="2.1.79" />
+    <PackageVersion Include="Dapper" Version="2.1.86" />
     <PackageVersion Include="Npgsql" Version="10.0.3" />
     <PackageVersion Include="coverlet.collector" Version="10.0.1" />
   </ItemGroup>
