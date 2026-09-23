@@ -1,3 +1,10 @@
+## [0.1.2](https://github.com/Questo/Ratatosk/compare/v0.1.1...v0.1.2) (2026-09-23)
+
+
+### Bug Fixes
+
+* **deps:** resolve NuGet package downgrade errors after 10.0.11 bumps ([f1043bd](https://github.com/Questo/Ratatosk/commit/f1043bd1331b486445ad2d9bb11efba6756fc128))
+
 # Changelog
 
 All notable changes to this project will be documented in this file. This file is automatically updated by [semantic-release](https://semantic-release.gitbook.io/) on every release to `main`. See [docs/RELEASING.md](docs/RELEASING.md) for how releases work.
