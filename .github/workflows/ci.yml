@@ -94,6 +94,7 @@ jobs:
           fail-on-error: true
 
   integration-tests:
+    needs: build-and-test
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -157,7 +158,7 @@ jobs:
         run: dotnet format --verify-no-changes --severity error --verbosity detailed
 
   release:
-    needs: [build-and-test, integration-tests]
+    needs: [build-and-test, integration-tests, check-formatting]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
