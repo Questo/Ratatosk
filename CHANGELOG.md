@@ -1,3 +1,10 @@
+## [0.1.3](https://github.com/Questo/Ratatosk/compare/v0.1.2...v0.1.3) (2026-09-23)
+
+
+### Bug Fixes
+
+* **ci:** gate release on formatting and run integration tests after build ([996163e](https://github.com/Questo/Ratatosk/commit/996163ed9eb7b9a1c2e51265a7be86b9281d53c0))
+
 ## [0.1.2](https://github.com/Questo/Ratatosk/compare/v0.1.1...v0.1.2) (2026-09-23)
 
 
