@@ -1,0 +1,22 @@
+graph TB
+    Client[Client] -->|HTTP Request| API
+
+    API["API Layer<br/><small>Minimal API endpoints, auth, response envelope</small>"]
+    Application["Application Layer<br/><small>Commands · Queries · Projections</small>"]
+    Domain["Domain Layer<br/><small>Aggregates & events, organized by bounded context</small>"]
+    Core["Core<br/><small>AggregateRoot · Result&lt;T&gt; · abstractions</small>"]
+    Infrastructure["Infrastructure<br/><small>Event store · read models · EventBus</small>"]
+    Postgres[("PostgreSQL<br/>events · snapshots · read models")]
+
+    API --> Application
+    Application --> Domain
+    Domain --> Core
+
+    Infrastructure -.implements.-> Core
+    Infrastructure -.implements.-> Application
+
+    Application -->|write: raise & save events| Infrastructure
+    Infrastructure -->|publish via EventBus| Application
+    Application -->|read: query denormalized data| Infrastructure
+
+    Infrastructure --> Postgres
