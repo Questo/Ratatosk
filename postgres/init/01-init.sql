@@ -33,6 +33,18 @@ CREATE TABLE IF NOT EXISTS product_read_models(
 
 CREATE INDEX IF NOT EXISTS idx_product_read_models_id ON product_read_models(id);
 
+CREATE TABLE IF NOT EXISTS inventory_stock_read_models(
+    product_id uuid PRIMARY KEY,
+    sku text NOT NULL,
+    available integer NOT NULL,
+    reserved integer NOT NULL,
+    unit text NOT NULL,
+    last_updated_utc timestamptz NOT NULL,
+    UNIQUE (sku)
+);
+
+CREATE INDEX IF NOT EXISTS idx_inventory_stock_read_models_sku ON inventory_stock_read_models(sku);
+
 CREATE TABLE IF NOT EXISTS user_auth_read_models(
     email text PRIMARY KEY,
     role text NOT NULL,

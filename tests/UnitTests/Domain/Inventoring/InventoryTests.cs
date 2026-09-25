@@ -1,3 +1,4 @@
+using Ratatosk.Core.BuildingBlocks;
 using Ratatosk.Domain;
 using Ratatosk.Domain.Catalog;
 using Ratatosk.Domain.Inventoring;
@@ -148,5 +149,60 @@ public class InventoryTests
         var quantity = Quantity.Pieces(5);
 
         Assert.Throws<InvalidOperationException>(() => inventory.RemoveStock(sku, quantity));
+    }
+
+    [TestMethod]
+    public void Create_WithProductId_ShouldUseProductIdAsAggregateId()
+    {
+        var productId = Guid.NewGuid();
+
+        var inventory = Inventory.Create(productId);
+
+        Assert.AreEqual(productId, inventory.Id);
+    }
+
+    [TestMethod]
+    public void Rehydrate_FromHistory_ShouldRestoreOriginalAggregateId()
+    {
+        var productId = Guid.NewGuid();
+        var created = Inventory.Create(productId);
+
+        var rehydrated = AggregateRoot.Rehydrate<Inventory>(created.UncommittedEvents.Reverse());
+
+        Assert.IsTrue(rehydrated.IsSuccess);
+        Assert.AreEqual(productId, rehydrated.Value!.Id);
+    }
+
+    [TestMethod]
+    public void IsInStock_WithEnoughAvailableStock_ShouldReturnTrue()
+    {
+        var inventory = Inventory.Create();
+        var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
+
+        inventory.AddStock(sku, Quantity.Pieces(10));
+        inventory.ReserveStock(sku, 3);
+
+        Assert.IsTrue(inventory.IsInStock(sku, 7));
+    }
+
+    [TestMethod]
+    public void IsInStock_WithMoreThanAvailableStock_ShouldReturnFalse()
+    {
+        var inventory = Inventory.Create();
+        var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
+
+        inventory.AddStock(sku, Quantity.Pieces(10));
+        inventory.ReserveStock(sku, 3);
+
+        Assert.IsFalse(inventory.IsInStock(sku, 8));
+    }
+
+    [TestMethod]
+    public void IsInStock_WhenSkuNotFound_ShouldReturnFalse()
+    {
+        var inventory = Inventory.Create();
+        var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
+
+        Assert.IsFalse(inventory.IsInStock(sku, 1));
     }
 }

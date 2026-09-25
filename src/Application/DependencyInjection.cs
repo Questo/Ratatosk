@@ -4,6 +4,7 @@ using Ratatosk.Application.Authentication;
 using Ratatosk.Application.Catalog;
 using Ratatosk.Application.Catalog.Commands;
 using Ratatosk.Application.Catalog.Models;
+using Ratatosk.Application.Inventoring;
 using Ratatosk.Core.Abstractions;
 using Ratatosk.Core.BuildingBlocks;
 
@@ -15,6 +16,7 @@ public static class DependencyInjection
     {
         services.AddScoped<IDispatcher, Dispatcher>();
         services.AddScoped<ICatalogService, CatalogService>();
+        services.AddScoped<IInventoryService, InventoryService>();
         services.AddScoped<IAuthenticationService, AuthenticationService>();
 
         services.AddRequestHandlers();

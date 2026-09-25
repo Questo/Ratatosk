@@ -4,9 +4,11 @@ using Microsoft.Extensions.Options;
 using Ratatosk.Application.Catalog;
 using Ratatosk.Application.Authentication;
 using Ratatosk.Application.Catalog.Models;
+using Ratatosk.Application.Inventoring;
 using Ratatosk.Application.Shared;
 using Ratatosk.Core.Abstractions;
 using Ratatosk.Domain.Catalog;
+using Ratatosk.Domain.Inventoring;
 using Ratatosk.Infrastructure.Authentication;
 using Ratatosk.Infrastructure.EventStore;
 using Ratatosk.Infrastructure.Persistence;
@@ -85,6 +87,9 @@ public static class DependencyInjection
         services.AddScoped(typeof(IAggregateRepository<>), typeof(AggregateRepository<>));
         services.AddScoped<IProductReadModelRepository, ProductReadModelRepository>();
         services.AddScoped<IProductDomainService, ProductDomainService>();
+
+        services.AddScoped<IInventoryReadModelRepository, InventoryReadModelRepository>();
+        services.AddScoped<IInventoryDomainService, InventoryDomainService>();
 
         services.AddScoped<IUserAuthRepository, UserAuthReadModel>();
 

@@ -1,4 +1,5 @@
 using Ratatosk.API.Auth;
+using Ratatosk.API.Inventory;
 using Ratatosk.API.Products;
 using Ratatosk.API.Middleware;
 using Ratatosk.Application;
@@ -38,5 +39,6 @@ app.UseMiddleware<CleanupResponseMiddleware>();
 app.MapGet("/healthz", () => Results.Ok("Healthy"));
 app.MapAuthEndpoints();
 app.MapProductsEndpoints();
+app.MapInventoryEndpoints();
 
 app.Run();

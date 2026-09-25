@@ -14,6 +14,10 @@ public class Inventory : AggregateRoot
 
         switch (domainEvent)
         {
+            case InventoryCreated inventoryCreated:
+                Id = inventoryCreated.InventoryId;
+                break;
+
             case StockAdded stockAdded:
                 entry = GetStockEntry(stockAdded.SKU);
                 entry = entry with { Available = entry.Available + stockAdded.Quantity };
@@ -45,6 +49,21 @@ public class Inventory : AggregateRoot
         var inventory = new Inventory();
         inventory.RaiseEvent(new InventoryCreated(inventory.Id));
         return inventory;
+    }
+
+    public static Inventory Create(Guid productId)
+    {
+        Guard.AgainstEmpty(productId, nameof(productId));
+
+        var inventory = new Inventory();
+        inventory.RaiseEvent(new InventoryCreated(productId));
+        return inventory;
+    }
+
+    public bool IsInStock(SKU sku, int quantity)
+    {
+        var entry = GetStockEntry(sku);
+        return entry.Available.Amount - entry.Reserved >= quantity;
     }
 
     private StockEntry GetStockEntry(SKU sku)
