@@ -3,11 +3,17 @@ using Ratatosk.Domain.Catalog.ValueObjects;
 
 namespace Ratatosk.Domain.Inventoring.Events;
 
-public sealed class StockReserved(Guid inventoryId, SKU sku, int quantity, Guid? orderId = null)
-    : DomainEvent
+public sealed class StockReservationFailed(
+    Guid inventoryId,
+    SKU sku,
+    Guid orderId,
+    int quantity,
+    string reason
+) : DomainEvent
 {
     public Guid InventoryId { get; } = inventoryId;
     public SKU SKU { get; } = sku;
+    public Guid OrderId { get; } = orderId;
     public int Quantity { get; } = quantity;
-    public Guid? OrderId { get; } = orderId;
+    public string Reason { get; } = reason;
 }

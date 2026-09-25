@@ -88,7 +88,7 @@ public class Inventory : AggregateRoot
         RaiseEvent(@event);
     }
 
-    public void ReserveStock(SKU sku, int quantity)
+    public void ReserveStock(SKU sku, int quantity, Guid? orderId = null)
     {
         Guard.AgainstNegativeOrZero(quantity, nameof(quantity));
 
@@ -99,10 +99,24 @@ public class Inventory : AggregateRoot
 
         if (stockEntry.Available.Amount - stockEntry.Reserved < quantity)
         {
+            if (orderId is Guid correlatedOrderId)
+            {
+                RaiseEvent(
+                    new StockReservationFailed(
+                        Id,
+                        sku,
+                        correlatedOrderId,
+                        quantity,
+                        "Not enough stock available"
+                    )
+                );
+                return;
+            }
+
             throw new InvalidOperationException($"Not enough stock available for SKU {sku}");
         }
 
-        RaiseEvent(new StockReserved(Id, sku, quantity));
+        RaiseEvent(new StockReserved(Id, sku, quantity, orderId));
     }
 
     public void ReleaseStock(SKU sku, int quantity)

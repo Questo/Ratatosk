@@ -205,4 +205,42 @@ public class InventoryTests
 
         Assert.IsFalse(inventory.IsInStock(sku, 1));
     }
+
+    [TestMethod]
+    public void ReserveStock_WithOrderId_ShouldRaiseStockReservedEventWithOrderId()
+    {
+        var inventory = Inventory.Create();
+        var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
+        var orderId = Guid.NewGuid();
+
+        inventory.AddStock(sku, Quantity.Pieces(10));
+        inventory.ReserveStock(sku, 5, orderId);
+
+        var @event = inventory.UncommittedEvents.OfType<StockReserved>().FirstOrDefault();
+
+        Assert.IsNotNull(@event);
+        Assert.AreEqual(orderId, @event.OrderId);
+    }
+
+    [TestMethod]
+    public void ReserveStock_WithOrderIdAndInsufficientStock_ShouldRaiseStockReservationFailedEvent()
+    {
+        var inventory = Inventory.Create();
+        var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
+        var orderId = Guid.NewGuid();
+
+        inventory.AddStock(sku, Quantity.Pieces(3));
+        inventory.ReserveStock(sku, 5, orderId);
+
+        var @event = inventory
+            .UncommittedEvents.OfType<StockReservationFailed>()
+            .FirstOrDefault();
+
+        Assert.IsNotNull(@event);
+        Assert.AreEqual(inventory.Id, @event.InventoryId);
+        Assert.AreEqual(sku, @event.SKU);
+        Assert.AreEqual(orderId, @event.OrderId);
+        Assert.AreEqual(5, @event.Quantity);
+        Assert.IsFalse(inventory.UncommittedEvents.OfType<StockReserved>().Any());
+    }
 }
