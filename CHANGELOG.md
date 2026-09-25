@@ -1,3 +1,10 @@
+# [0.2.0](https://github.com/Questo/Ratatosk/compare/v0.1.4...v0.2.0) (2026-09-25)
+
+
+### Features
+
+* **inventory:** implement Inventoring bounded context ([35bef7d](https://github.com/Questo/Ratatosk/commit/35bef7d2621bcdfcb139bc6c594852e461882822))
+
 ## [0.1.4](https://github.com/Questo/Ratatosk/compare/v0.1.3...v0.1.4) (2026-09-23)
 
 
