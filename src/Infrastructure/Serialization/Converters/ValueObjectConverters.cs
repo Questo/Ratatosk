@@ -151,6 +151,68 @@ public class PriceConverter : JsonConverter<Price>
     }
 }
 
+public class QuantityConverter : JsonConverter<Quantity>
+{
+    public override Quantity Read(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options
+    )
+    {
+        int? amount = null;
+        string? unit = null;
+
+        if (reader.TokenType != JsonTokenType.StartObject)
+        {
+            throw new JsonException("Expected start of object for Quantity");
+        }
+
+        while (reader.Read())
+        {
+            if (reader.TokenType == JsonTokenType.EndObject)
+            {
+                break;
+            }
+
+            if (reader.TokenType != JsonTokenType.PropertyName)
+            {
+                throw new JsonException("Expected property name in Quantity object");
+            }
+
+            var propName = reader.GetString();
+            reader.Read();
+
+            switch (propName)
+            {
+                case "Amount":
+                    amount = reader.GetInt32();
+                    break;
+                case "Unit":
+                    unit = reader.GetString();
+                    break;
+            }
+        }
+
+        if (amount is null || string.IsNullOrWhiteSpace(unit))
+            throw new JsonException("Missing required Quantity properties");
+
+        var result = Quantity.Create(amount.Value, unit);
+
+        if (!result.IsSuccess)
+            throw new JsonException($"Invalid Quantity: {result.Error}");
+
+        return result.Value!;
+    }
+
+    public override void Write(Utf8JsonWriter writer, Quantity value, JsonSerializerOptions options)
+    {
+        writer.WriteStartObject();
+        writer.WriteNumber("Amount", value.Amount);
+        writer.WriteString("Unit", value.Unit);
+        writer.WriteEndObject();
+    }
+}
+
 public class OrderLineConverter : JsonConverter<OrderLine>
 {
     public override OrderLine Read(

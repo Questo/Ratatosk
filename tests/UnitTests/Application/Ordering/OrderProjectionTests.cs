@@ -1,6 +1,8 @@
 using Moq;
 using Ratatosk.Application.Ordering;
 using Ratatosk.Application.Ordering.Models;
+using Ratatosk.Core.Abstractions;
+using Ratatosk.Core.Primitives;
 using Ratatosk.Domain;
 using Ratatosk.Domain.Catalog;
 using Ratatosk.Domain.Catalog.ValueObjects;
@@ -13,49 +15,64 @@ namespace Ratatosk.UnitTests.Application.Ordering;
 public class OrderProjectionTests
 {
     private Mock<IOrderReadModelRepository> _repoMock = null!;
+    private Mock<IAggregateRepository<Order>> _orderRepositoryMock = null!;
     private OrderProjection _projection = null!;
 
     [TestInitialize]
     public void Setup()
     {
         _repoMock = new Mock<IOrderReadModelRepository>();
-        _projection = new OrderProjection(_repoMock.Object);
-    }
-
-    [TestMethod]
-    public async Task WhenOrderCreated_ShouldSaveReadModelWithCreatedStatus()
-    {
-        var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
-        var line = OrderLine.Create(sku, 2, Price.Create(10m).Value!).Value!;
-        var evt = new OrderCreated(Guid.NewGuid(), Guid.NewGuid(), [line]);
-
-        OrderReadModel? saved = null;
-        _repoMock
-            .Setup(r => r.SaveAsync(It.IsAny<OrderReadModel>(), It.IsAny<CancellationToken>()))
-            .Callback<OrderReadModel, CancellationToken>((rm, _) => saved = rm);
-
-        await _projection.WhenAsync(evt, CancellationToken.None);
-
-        Assert.IsNotNull(saved);
-        Assert.AreEqual(evt.OrderId, saved!.Id);
-        Assert.AreEqual(nameof(OrderStatus.Created), saved.Status);
-        Assert.AreEqual(1, saved.Lines.Count);
+        _orderRepositoryMock = new Mock<IAggregateRepository<Order>>();
+        _projection = new OrderProjection(_repoMock.Object, _orderRepositoryMock.Object);
     }
 
     [TestMethod]
     public async Task WhenOrderConfirmed_ShouldUpdateStatus()
     {
-        var orderId = Guid.NewGuid();
-        _repoMock
-            .Setup(r => r.GetByIdAsync(orderId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new OrderReadModel { Id = orderId, Status = nameof(OrderStatus.Created) });
+        var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
+        var line = OrderLine.Create(sku, 2, Price.Create(10m).Value!).Value!;
+        var order = Order.Place(Guid.NewGuid(), [line]).Value!;
+        order.MarkLineReserved(sku);
 
-        await _projection.WhenAsync(new OrderConfirmed(orderId), CancellationToken.None);
+        _orderRepositoryMock
+            .Setup(r => r.LoadAsync(order.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<Order>.Success(order));
+
+        await _projection.WhenAsync(new OrderConfirmed(order.Id), CancellationToken.None);
 
         _repoMock.Verify(
             r =>
                 r.SaveAsync(
                     It.Is<OrderReadModel>(rm => rm.Status == nameof(OrderStatus.Confirmed)),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Once
+        );
+    }
+
+    [TestMethod]
+    public async Task WhenOrderConfirmed_AndReadModelRowDoesNotExistYet_ShouldStillSaveConfirmedStatus()
+    {
+        // Regression: OrderCreated's own read-model insert can still be in-flight in a sibling
+        // scope when OrderConfirmed arrives (both cascade from the same PlaceOrder event chain),
+        // so this handler must not depend on the read-model row already existing.
+        var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
+        var line = OrderLine.Create(sku, 2, Price.Create(10m).Value!).Value!;
+        var order = Order.Place(Guid.NewGuid(), [line]).Value!;
+        order.MarkLineReserved(sku);
+
+        _orderRepositoryMock
+            .Setup(r => r.LoadAsync(order.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<Order>.Success(order));
+
+        await _projection.WhenAsync(new OrderConfirmed(order.Id), CancellationToken.None);
+
+        _repoMock.Verify(
+            r =>
+                r.SaveAsync(
+                    It.Is<OrderReadModel>(rm =>
+                        rm.Id == order.Id && rm.Status == nameof(OrderStatus.Confirmed)
+                    ),
                     It.IsAny<CancellationToken>()
                 ),
             Times.Once

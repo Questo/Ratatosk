@@ -1,6 +1,7 @@
 using Moq;
 using Ratatosk.Application.Inventoring;
 using Ratatosk.Application.Inventoring.Models;
+using Ratatosk.Application.Shared;
 using Ratatosk.Core.Abstractions;
 using Ratatosk.Core.BuildingBlocks;
 using Ratatosk.Core.Primitives;
@@ -20,6 +21,7 @@ public class ReservationCompensationHandlerTests
     private Mock<IInventoryReadModelRepository> _readModelRepoMock = null!;
     private Mock<IAggregateRepository<Inventory>> _repositoryMock = null!;
     private Mock<IEventBus> _eventBusMock = null!;
+    private Mock<IUnitOfWork> _uowMock = null!;
     private ReservationCompensationHandler _handler = null!;
 
     [TestInitialize]
@@ -28,10 +30,12 @@ public class ReservationCompensationHandlerTests
         _readModelRepoMock = new Mock<IInventoryReadModelRepository>();
         _repositoryMock = new Mock<IAggregateRepository<Inventory>>();
         _eventBusMock = new Mock<IEventBus>();
+        _uowMock = new Mock<IUnitOfWork>();
         _handler = new ReservationCompensationHandler(
             _readModelRepoMock.Object,
             _repositoryMock.Object,
-            _eventBusMock.Object
+            _eventBusMock.Object,
+            _uowMock.Object
         );
     }
 
@@ -67,6 +71,41 @@ public class ReservationCompensationHandlerTests
                 ),
             Times.Once
         );
+    }
+
+    [TestMethod]
+    public async Task WhenLineWasReserved_ShouldCommitBeforePublishingEvents()
+    {
+        var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
+        var productId = Guid.NewGuid();
+        var inventory = Inventory.Create(productId);
+        inventory.AddStock(sku, Quantity.Pieces(10));
+        inventory.ReserveStock(sku, 3);
+        inventory.ClearUncommittedEvents();
+
+        _readModelRepoMock
+            .Setup(r => r.GetBySkuAsync(sku.Value, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new StockReadModel(productId, sku.Value, 7, 3, "pcs", DateTime.UtcNow));
+        _repositoryMock
+            .Setup(r => r.LoadAsync(productId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<Inventory>.Success(inventory));
+
+        var callOrder = new List<string>();
+        _repositoryMock
+            .Setup(r => r.SaveAsync(inventory, It.IsAny<CancellationToken>()))
+            .Callback(() => callOrder.Add("save"))
+            .Returns(Task.CompletedTask);
+        _uowMock.Setup(u => u.Commit()).Callback(() => callOrder.Add("commit"));
+        _eventBusMock
+            .Setup(b => b.PublishAsync(It.IsAny<DomainEvent>(), It.IsAny<CancellationToken>()))
+            .Callback(() => callOrder.Add("publish"))
+            .Returns(Task.CompletedTask);
+
+        var evt = new OrderCancelled(Guid.NewGuid(), "Insufficient stock", [Line(sku, 3)]);
+
+        await _handler.WhenAsync(evt, CancellationToken.None);
+
+        CollectionAssert.AreEqual(new[] { "save", "commit", "publish" }, callOrder);
     }
 
     [TestMethod]

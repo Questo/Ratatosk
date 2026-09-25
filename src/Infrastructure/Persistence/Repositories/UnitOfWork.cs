@@ -26,6 +26,9 @@ public class UnitOfWork(string ConnectionString) : IDisposable, IUnitOfWork
         _transaction = _connection.BeginTransaction();
     }
 
+    // Commits, then immediately opens a fresh transaction on the same connection so callers
+    // (including multiple handlers sharing one scoped IUnitOfWork) can keep using it afterward,
+    // and so calling Commit() more than once for the same logical operation is always safe.
     public void Commit()
     {
         try
@@ -36,6 +39,10 @@ public class UnitOfWork(string ConnectionString) : IDisposable, IUnitOfWork
         {
             Rollback();
             throw new InvalidOperationException("Failed to commit the transaction.", ex);
+        }
+        finally
+        {
+            _transaction = _connection!.BeginTransaction();
         }
     }
 

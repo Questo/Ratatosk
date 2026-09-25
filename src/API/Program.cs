@@ -1,5 +1,6 @@
 using Ratatosk.API.Auth;
 using Ratatosk.API.Inventory;
+using Ratatosk.API.Orders;
 using Ratatosk.API.Products;
 using Ratatosk.API.Middleware;
 using Ratatosk.Application;
@@ -40,5 +41,6 @@ app.MapGet("/healthz", () => Results.Ok("Healthy"));
 app.MapAuthEndpoints();
 app.MapProductsEndpoints();
 app.MapInventoryEndpoints();
+app.MapOrderEndpoints();
 
 app.Run();

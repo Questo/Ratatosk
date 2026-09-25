@@ -1,3 +1,4 @@
+using Ratatosk.Application.Shared;
 using Ratatosk.Core.Abstractions;
 using Ratatosk.Domain.Inventoring;
 using Ratatosk.Domain.Inventoring.Events;
@@ -8,7 +9,8 @@ namespace Ratatosk.Application.Inventoring;
 public class OrderReservationHandler(
     IInventoryReadModelRepository readModelRepository,
     IAggregateRepository<Inventory> repository,
-    IEventBus eventBus
+    IEventBus eventBus,
+    IUnitOfWork uow
 ) : IDomainEventHandler<OrderCreated>
 {
     public async Task WhenAsync(
@@ -60,6 +62,10 @@ public class OrderReservationHandler(
             inventory.ReserveStock(line.Sku, line.Quantity, domainEvent.OrderId);
 
             await repository.SaveAsync(inventory, cancellationToken);
+
+            // Commit before publishing: OrderConfirmationHandler/OrderCancellationHandler
+            // (nested via these publishes) read this Inventory's committed reservation state.
+            uow.Commit();
 
             foreach (var raised in inventory.UncommittedEvents)
                 await eventBus.PublishAsync(raised, cancellationToken);

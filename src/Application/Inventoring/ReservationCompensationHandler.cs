@@ -1,3 +1,4 @@
+using Ratatosk.Application.Shared;
 using Ratatosk.Core.Abstractions;
 using Ratatosk.Domain.Inventoring;
 using Ratatosk.Domain.Ordering.Events;
@@ -7,7 +8,8 @@ namespace Ratatosk.Application.Inventoring;
 public class ReservationCompensationHandler(
     IInventoryReadModelRepository readModelRepository,
     IAggregateRepository<Inventory> repository,
-    IEventBus eventBus
+    IEventBus eventBus,
+    IUnitOfWork uow
 ) : IDomainEventHandler<OrderCancelled>
 {
     public async Task WhenAsync(
@@ -43,6 +45,7 @@ public class ReservationCompensationHandler(
             }
 
             await repository.SaveAsync(inventory, cancellationToken);
+            uow.Commit();
 
             foreach (var raised in inventory.UncommittedEvents)
                 await eventBus.PublishAsync(raised, cancellationToken);

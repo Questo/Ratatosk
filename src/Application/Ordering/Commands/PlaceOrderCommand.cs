@@ -1,5 +1,7 @@
 using Ratatosk.Application.Catalog;
 using Ratatosk.Application.Inventoring;
+using Ratatosk.Application.Ordering.Models;
+using Ratatosk.Application.Shared;
 using Ratatosk.Core.Abstractions;
 using Ratatosk.Core.Primitives;
 using Ratatosk.Domain;
@@ -17,7 +19,9 @@ public class PlaceOrderCommandHandler(
     IInventoryReadModelRepository inventoryReadModelRepository,
     IProductReadModelRepository productReadModelRepository,
     IAggregateRepository<Order> repository,
-    IEventBus eventBus
+    IOrderReadModelRepository orderReadModelRepository,
+    IEventBus eventBus,
+    IUnitOfWork uow
 ) : IRequestHandler<PlaceOrderCommand, Result<Guid>>
 {
     public async Task<Result<Guid>> HandleAsync(
@@ -68,6 +72,29 @@ public class PlaceOrderCommandHandler(
 
         var order = orderResult.Value!;
         await repository.SaveAsync(order, cancellationToken);
+
+        var readModel = new OrderReadModel
+        {
+            Id = order.Id,
+            CustomerId = order.CustomerId,
+            Status = order.Status.ToString(),
+            Lines =
+            [
+                .. order.Lines.Select(l => new OrderLineReadModel(
+                    l.Sku.Value,
+                    l.Quantity,
+                    l.UnitPrice.Amount,
+                    l.UnitPrice.Currency
+                )),
+            ],
+            CreatedUtc = DateTime.UtcNow,
+            LastUpdatedUtc = DateTime.UtcNow,
+        };
+        await orderReadModelRepository.SaveAsync(readModel, cancellationToken);
+
+        // Committed here, before publishing: cascading handlers open their own DB transaction
+        // each, and would otherwise race this one and either miss the order or deadlock on it.
+        uow.Commit();
 
         foreach (var raised in order.UncommittedEvents)
             await eventBus.PublishAsync(raised, cancellationToken);

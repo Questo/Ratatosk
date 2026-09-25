@@ -1,11 +1,15 @@
+using Ratatosk.Application.Shared;
 using Ratatosk.Core.Abstractions;
 using Ratatosk.Domain.Inventoring.Events;
 using Ratatosk.Domain.Ordering;
 
 namespace Ratatosk.Application.Ordering;
 
-public class OrderConfirmationHandler(IAggregateRepository<Order> repository, IEventBus eventBus)
-    : IDomainEventHandler<StockReserved>
+public class OrderConfirmationHandler(
+    IAggregateRepository<Order> repository,
+    IEventBus eventBus,
+    IUnitOfWork uow
+) : IDomainEventHandler<StockReserved>
 {
     public async Task WhenAsync(
         StockReserved domainEvent,
@@ -23,6 +27,10 @@ public class OrderConfirmationHandler(IAggregateRepository<Order> repository, IE
         order.MarkLineReserved(domainEvent.SKU);
 
         await repository.SaveAsync(order, cancellationToken);
+
+        // Commit before publishing: OrderProjection (nested via the OrderConfirmed publish
+        // below) reads this Order back from a different DB connection.
+        uow.Commit();
 
         foreach (var raised in order.UncommittedEvents)
             await eventBus.PublishAsync(raised, cancellationToken);

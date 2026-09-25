@@ -5,64 +5,53 @@ using Ratatosk.Domain.Ordering.Events;
 
 namespace Ratatosk.Application.Ordering;
 
-public class OrderProjection(IOrderReadModelRepository repo)
-    : IDomainEventHandler<OrderCreated>,
-        IDomainEventHandler<OrderConfirmed>,
+// The initial row is created by PlaceOrderCommandHandler, not here — see its comment for why.
+public class OrderProjection(IOrderReadModelRepository repo, IAggregateRepository<Order> orderRepository)
+    : IDomainEventHandler<OrderConfirmed>,
         IDomainEventHandler<OrderCancelled>
 {
     public async Task WhenAsync(
-        OrderCreated domainEvent,
+        OrderConfirmed domainEvent,
         CancellationToken cancellationToken = default
+    ) => await SyncFromAggregateAsync(domainEvent.OrderId, domainEvent.OccurredAtUtc.UtcDateTime, cancellationToken);
+
+    public async Task WhenAsync(
+        OrderCancelled domainEvent,
+        CancellationToken cancellationToken = default
+    ) => await SyncFromAggregateAsync(domainEvent.OrderId, domainEvent.OccurredAtUtc.UtcDateTime, cancellationToken);
+
+    // Reads the Order aggregate (always committed by now) rather than trusting Status is fresh.
+    private async Task SyncFromAggregateAsync(
+        Guid orderId,
+        DateTime occurredAtUtc,
+        CancellationToken cancellationToken
     )
     {
+        var orderResult = await orderRepository.LoadAsync(orderId, cancellationToken);
+        if (orderResult.IsFailure)
+            return;
+
+        var order = orderResult.Value!;
+        var existing = await repo.GetByIdAsync(orderId, cancellationToken);
+
         var readModel = new OrderReadModel
         {
-            Id = domainEvent.OrderId,
-            CustomerId = domainEvent.CustomerId,
-            Status = nameof(OrderStatus.Created),
+            Id = order.Id,
+            CustomerId = order.CustomerId,
+            Status = order.Status.ToString(),
             Lines =
             [
-                .. domainEvent.Lines.Select(l => new OrderLineReadModel(
+                .. order.Lines.Select(l => new OrderLineReadModel(
                     l.Sku.Value,
                     l.Quantity,
                     l.UnitPrice.Amount,
                     l.UnitPrice.Currency
                 )),
             ],
-            CreatedUtc = domainEvent.OccurredAtUtc.UtcDateTime,
-            LastUpdatedUtc = domainEvent.OccurredAtUtc.UtcDateTime,
+            CreatedUtc = existing?.CreatedUtc ?? occurredAtUtc,
+            LastUpdatedUtc = occurredAtUtc,
         };
 
         await repo.SaveAsync(readModel, cancellationToken);
-    }
-
-    public async Task WhenAsync(
-        OrderConfirmed domainEvent,
-        CancellationToken cancellationToken = default
-    )
-    {
-        var existing = await repo.GetByIdAsync(domainEvent.OrderId, cancellationToken);
-        if (existing is null)
-            return;
-
-        existing.Status = nameof(OrderStatus.Confirmed);
-        existing.LastUpdatedUtc = domainEvent.OccurredAtUtc.UtcDateTime;
-
-        await repo.SaveAsync(existing, cancellationToken);
-    }
-
-    public async Task WhenAsync(
-        OrderCancelled domainEvent,
-        CancellationToken cancellationToken = default
-    )
-    {
-        var existing = await repo.GetByIdAsync(domainEvent.OrderId, cancellationToken);
-        if (existing is null)
-            return;
-
-        existing.Status = nameof(OrderStatus.Cancelled);
-        existing.LastUpdatedUtc = domainEvent.OccurredAtUtc.UtcDateTime;
-
-        await repo.SaveAsync(existing, cancellationToken);
     }
 }

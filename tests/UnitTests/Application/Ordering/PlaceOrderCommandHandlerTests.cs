@@ -3,7 +3,10 @@ using Ratatosk.Application.Catalog;
 using Ratatosk.Application.Catalog.Models;
 using Ratatosk.Application.Inventoring;
 using Ratatosk.Application.Inventoring.Models;
+using Ratatosk.Application.Ordering;
 using Ratatosk.Application.Ordering.Commands;
+using Ratatosk.Application.Ordering.Models;
+using Ratatosk.Application.Shared;
 using Ratatosk.Core.Abstractions;
 using Ratatosk.Core.BuildingBlocks;
 using Ratatosk.Domain;
@@ -18,7 +21,9 @@ public class PlaceOrderCommandHandlerTests
     private Mock<IInventoryReadModelRepository> _inventoryRepoMock = null!;
     private Mock<IProductReadModelRepository> _productRepoMock = null!;
     private Mock<IAggregateRepository<Order>> _repositoryMock = null!;
+    private Mock<IOrderReadModelRepository> _orderReadModelRepoMock = null!;
     private Mock<IEventBus> _eventBusMock = null!;
+    private Mock<IUnitOfWork> _uowMock = null!;
     private PlaceOrderCommandHandler _handler = null!;
 
     [TestInitialize]
@@ -27,12 +32,16 @@ public class PlaceOrderCommandHandlerTests
         _inventoryRepoMock = new Mock<IInventoryReadModelRepository>();
         _productRepoMock = new Mock<IProductReadModelRepository>();
         _repositoryMock = new Mock<IAggregateRepository<Order>>();
+        _orderReadModelRepoMock = new Mock<IOrderReadModelRepository>();
         _eventBusMock = new Mock<IEventBus>();
+        _uowMock = new Mock<IUnitOfWork>();
         _handler = new PlaceOrderCommandHandler(
             _inventoryRepoMock.Object,
             _productRepoMock.Object,
             _repositoryMock.Object,
-            _eventBusMock.Object
+            _orderReadModelRepoMock.Object,
+            _eventBusMock.Object,
+            _uowMock.Object
         );
     }
 
@@ -68,6 +77,102 @@ public class PlaceOrderCommandHandlerTests
         Assert.AreNotEqual(Guid.Empty, result.Value);
         _repositoryMock.Verify(
             r => r.SaveAsync(It.IsAny<Order>(), It.IsAny<CancellationToken>()),
+            Times.Once
+        );
+    }
+
+    [TestMethod]
+    public async Task WhenOrderIsSaved_ShouldSaveReadModelAndCommitBeforePublishingEvents()
+    {
+        // The read-model row must be created and committed here, in the same transaction as the
+        // Order aggregate's own event, before OrderCreated is published — a handler further down
+        // the cascade (OrderConfirmationHandler -> OrderProjection) later updates this same row
+        // from a different DB connection, and if it isn't committed yet, that update either
+        // silently no-ops or deadlocks waiting on this still-open transaction's row lock.
+        var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
+        var productId = Guid.NewGuid();
+
+        _inventoryRepoMock
+            .Setup(r => r.GetBySkuAsync(sku.Value, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                new StockReadModel(productId, sku.Value, 10, 0, "pcs", DateTime.UtcNow)
+            );
+        _productRepoMock
+            .Setup(r => r.GetByIdAsync(productId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                new ProductReadModel(
+                    productId,
+                    "Widget",
+                    sku.Value,
+                    "A widget",
+                    9.99m,
+                    DateTime.UtcNow
+                )
+            );
+
+        var callOrder = new List<string>();
+        _repositoryMock
+            .Setup(r => r.SaveAsync(It.IsAny<Order>(), It.IsAny<CancellationToken>()))
+            .Callback(() => callOrder.Add("save"))
+            .Returns(Task.CompletedTask);
+        _orderReadModelRepoMock
+            .Setup(r => r.SaveAsync(It.IsAny<OrderReadModel>(), It.IsAny<CancellationToken>()))
+            .Callback(() => callOrder.Add("save-read-model"))
+            .Returns(Task.CompletedTask);
+        _uowMock.Setup(u => u.Commit()).Callback(() => callOrder.Add("commit"));
+        _eventBusMock
+            .Setup(b => b.PublishAsync(It.IsAny<DomainEvent>(), It.IsAny<CancellationToken>()))
+            .Callback(() => callOrder.Add("publish"))
+            .Returns(Task.CompletedTask);
+
+        var command = new PlaceOrderCommand(Guid.NewGuid(), [new OrderLineRequest(sku.Value, 2)]);
+
+        await _handler.HandleAsync(command, CancellationToken.None);
+
+        CollectionAssert.AreEqual(
+            new[] { "save", "save-read-model", "commit", "publish" },
+            callOrder
+        );
+    }
+
+    [TestMethod]
+    public async Task WhenOrderIsSaved_ShouldSaveReadModelWithCreatedStatus()
+    {
+        var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
+        var productId = Guid.NewGuid();
+
+        _inventoryRepoMock
+            .Setup(r => r.GetBySkuAsync(sku.Value, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                new StockReadModel(productId, sku.Value, 10, 0, "pcs", DateTime.UtcNow)
+            );
+        _productRepoMock
+            .Setup(r => r.GetByIdAsync(productId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                new ProductReadModel(
+                    productId,
+                    "Widget",
+                    sku.Value,
+                    "A widget",
+                    9.99m,
+                    DateTime.UtcNow
+                )
+            );
+
+        var command = new PlaceOrderCommand(Guid.NewGuid(), [new OrderLineRequest(sku.Value, 2)]);
+
+        var result = await _handler.HandleAsync(command, CancellationToken.None);
+
+        _orderReadModelRepoMock.Verify(
+            r =>
+                r.SaveAsync(
+                    It.Is<OrderReadModel>(rm =>
+                        rm.Id == result.Value
+                        && rm.Status == nameof(OrderStatus.Created)
+                        && rm.Lines.Count == 1
+                    ),
+                    It.IsAny<CancellationToken>()
+                ),
             Times.Once
         );
     }
