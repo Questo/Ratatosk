@@ -7,9 +7,9 @@ using Ratatosk.Application.Catalog.Models;
 using Ratatosk.Core.Abstractions;
 using Ratatosk.Core.BuildingBlocks;
 
-namespace Ratatosk.Application.Configuration;
+namespace Ratatosk.Application;
 
-public static class ApplicationServiceCollectionExtensions
+public static class DependencyInjection
 {
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {

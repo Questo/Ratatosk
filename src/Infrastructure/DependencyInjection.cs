@@ -15,10 +15,11 @@ using Ratatosk.Infrastructure.Persistence.ReadModels;
 using Ratatosk.Infrastructure.Persistence.Repositories;
 using Ratatosk.Infrastructure.Serialization.Serializers;
 using Ratatosk.Infrastructure.Services;
+using Ratatosk.Infrastructure.Configuration;
 
-namespace Ratatosk.Infrastructure.Configuration;
+namespace Ratatosk.Infrastructure;
 
-public static class InfrastructureServiceCollectionExtensions
+public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(
         this IServiceCollection services,

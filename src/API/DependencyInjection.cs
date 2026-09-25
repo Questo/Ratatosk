@@ -5,9 +5,9 @@ using Ratatosk.Core.Primitives;
 using Ratatosk.Domain.Identity;
 using Ratatosk.Infrastructure.Configuration;
 
-namespace Ratatosk.API.Configuration;
+namespace Ratatosk.API;
 
-public static class APIServiceCollectionExtensions
+public static class DependencyInjection
 {
     public static IServiceCollection AddAPI(this IServiceCollection services, IConfiguration configuration)
     {

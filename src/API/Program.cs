@@ -1,9 +1,9 @@
 using Ratatosk.API.Auth;
 using Ratatosk.API.Products;
 using Ratatosk.API.Middleware;
-using Ratatosk.Application.Configuration;
-using Ratatosk.Infrastructure.Configuration;
-using Ratatosk.API.Configuration;
+using Ratatosk.Application;
+using Ratatosk.Infrastructure;
+using Ratatosk.API;
 
 var builder = WebApplication.CreateBuilder(args);
 
