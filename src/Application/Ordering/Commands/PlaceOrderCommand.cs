@@ -1,0 +1,77 @@
+using Ratatosk.Application.Catalog;
+using Ratatosk.Application.Inventoring;
+using Ratatosk.Core.Abstractions;
+using Ratatosk.Core.Primitives;
+using Ratatosk.Domain;
+using Ratatosk.Domain.Catalog.ValueObjects;
+using Ratatosk.Domain.Ordering;
+
+namespace Ratatosk.Application.Ordering.Commands;
+
+public sealed record OrderLineRequest(string Sku, int Quantity);
+
+public sealed record PlaceOrderCommand(Guid CustomerId, IReadOnlyList<OrderLineRequest> Lines)
+    : IRequest<Result<Guid>>;
+
+public class PlaceOrderCommandHandler(
+    IInventoryReadModelRepository inventoryReadModelRepository,
+    IProductReadModelRepository productReadModelRepository,
+    IAggregateRepository<Order> repository,
+    IEventBus eventBus
+) : IRequestHandler<PlaceOrderCommand, Result<Guid>>
+{
+    public async Task<Result<Guid>> HandleAsync(
+        PlaceOrderCommand request,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var lines = new List<OrderLine>();
+
+        foreach (var lineRequest in request.Lines)
+        {
+            var skuResult = SKU.Create(lineRequest.Sku);
+            if (skuResult.IsFailure)
+                return Result<Guid>.Failure(skuResult.Error!);
+
+            var stockReadModel = await inventoryReadModelRepository.GetBySkuAsync(
+                lineRequest.Sku,
+                cancellationToken
+            );
+            if (stockReadModel is null)
+                return Result<Guid>.Failure($"SKU {lineRequest.Sku} not found");
+
+            var productReadModel = await productReadModelRepository.GetByIdAsync(
+                stockReadModel.ProductId,
+                cancellationToken
+            );
+            if (productReadModel is null)
+                return Result<Guid>.Failure($"Product for SKU {lineRequest.Sku} not found");
+
+            var priceResult = Price.Create(productReadModel.Price);
+            if (priceResult.IsFailure)
+                return Result<Guid>.Failure(priceResult.Error!);
+
+            var lineResult = OrderLine.Create(
+                skuResult.Value!,
+                lineRequest.Quantity,
+                priceResult.Value!
+            );
+            if (lineResult.IsFailure)
+                return Result<Guid>.Failure(lineResult.Error!);
+
+            lines.Add(lineResult.Value!);
+        }
+
+        var orderResult = Order.Place(request.CustomerId, lines);
+        if (orderResult.IsFailure)
+            return Result<Guid>.Failure(orderResult.Error!);
+
+        var order = orderResult.Value!;
+        await repository.SaveAsync(order, cancellationToken);
+
+        foreach (var raised in order.UncommittedEvents)
+            await eventBus.PublishAsync(raised, cancellationToken);
+
+        return Result<Guid>.Success(order.Id);
+    }
+}
