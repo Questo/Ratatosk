@@ -5,6 +5,7 @@ using Ratatosk.Application.Catalog;
 using Ratatosk.Application.Authentication;
 using Ratatosk.Application.Catalog.Models;
 using Ratatosk.Application.Inventoring;
+using Ratatosk.Application.Ordering;
 using Ratatosk.Application.Shared;
 using Ratatosk.Core.Abstractions;
 using Ratatosk.Domain.Catalog;
@@ -90,6 +91,8 @@ public static class DependencyInjection
 
         services.AddScoped<IInventoryReadModelRepository, InventoryReadModelRepository>();
         services.AddScoped<IInventoryDomainService, InventoryDomainService>();
+
+        services.AddScoped<IOrderReadModelRepository, OrderReadModelRepository>();
 
         services.AddScoped<IUserAuthRepository, UserAuthReadModel>();
 

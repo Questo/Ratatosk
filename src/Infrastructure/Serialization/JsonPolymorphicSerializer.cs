@@ -16,6 +16,7 @@ public abstract class JsonPolymorphicSerializer<TBase>
             new SKUConverter(),
             new DescriptionConverter(),
             new PriceConverter(),
+            new OrderLineConverter(),
         },
     };
 

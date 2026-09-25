@@ -60,3 +60,21 @@ CREATE TABLE IF NOT EXISTS refresh_tokens(
 );
 
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_email ON refresh_tokens(email);
+
+CREATE TABLE IF NOT EXISTS order_read_models(
+    id uuid PRIMARY KEY,
+    customer_id uuid NOT NULL,
+    status text NOT NULL,
+    created_utc timestamptz NOT NULL,
+    last_updated_utc timestamptz NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS order_line_read_models(
+    order_id uuid NOT NULL REFERENCES order_read_models(id),
+    sku text NOT NULL,
+    quantity integer NOT NULL,
+    unit_price decimal NOT NULL,
+    currency text NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_order_line_read_models_order_id ON order_line_read_models(order_id);

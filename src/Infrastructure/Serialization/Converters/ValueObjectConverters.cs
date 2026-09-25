@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Ratatosk.Domain;
 using Ratatosk.Domain.Catalog.ValueObjects;
+using Ratatosk.Domain.Ordering;
 
 namespace Ratatosk.Infrastructure.Serialization.Converters;
 
@@ -146,6 +147,79 @@ public class PriceConverter : JsonConverter<Price>
         writer.WriteStartObject();
         writer.WriteNumber("Amount", value.Amount);
         writer.WriteString("Currency", value.Currency);
+        writer.WriteEndObject();
+    }
+}
+
+public class OrderLineConverter : JsonConverter<OrderLine>
+{
+    public override OrderLine Read(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options
+    )
+    {
+        SKU? sku = null;
+        int? quantity = null;
+        Price? unitPrice = null;
+
+        if (reader.TokenType != JsonTokenType.StartObject)
+        {
+            throw new JsonException("Expected start of object for OrderLine");
+        }
+
+        while (reader.Read())
+        {
+            if (reader.TokenType == JsonTokenType.EndObject)
+            {
+                break;
+            }
+
+            if (reader.TokenType != JsonTokenType.PropertyName)
+            {
+                throw new JsonException("Expected property name in OrderLine object");
+            }
+
+            var propName = reader.GetString();
+            reader.Read();
+
+            switch (propName)
+            {
+                case "Sku":
+                    sku = JsonSerializer.Deserialize<SKU>(ref reader, options);
+                    break;
+                case "Quantity":
+                    quantity = reader.GetInt32();
+                    break;
+                case "UnitPrice":
+                    unitPrice = JsonSerializer.Deserialize<Price>(ref reader, options);
+                    break;
+            }
+        }
+
+        if (sku is null || quantity is null || unitPrice is null)
+            throw new JsonException("Missing required OrderLine properties");
+
+        var result = OrderLine.Create(sku, quantity.Value, unitPrice);
+
+        if (!result.IsSuccess)
+            throw new JsonException($"Invalid OrderLine: {result.Error}");
+
+        return result.Value!;
+    }
+
+    public override void Write(
+        Utf8JsonWriter writer,
+        OrderLine value,
+        JsonSerializerOptions options
+    )
+    {
+        writer.WriteStartObject();
+        writer.WritePropertyName("Sku");
+        JsonSerializer.Serialize(writer, value.Sku, options);
+        writer.WriteNumber("Quantity", value.Quantity);
+        writer.WritePropertyName("UnitPrice");
+        JsonSerializer.Serialize(writer, value.UnitPrice, options);
         writer.WriteEndObject();
     }
 }
