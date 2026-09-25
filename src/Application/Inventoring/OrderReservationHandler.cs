@@ -26,6 +26,7 @@ public class OrderReservationHandler(
             );
             if (readModel is null)
             {
+                // Guid.Empty: no inventory record exists for this SKU, so there's no real id to report.
                 await eventBus.PublishAsync(
                     new StockReservationFailed(
                         Guid.Empty,
@@ -36,8 +37,7 @@ public class OrderReservationHandler(
                     ),
                     cancellationToken
                 );
-                // Stop here: reserving later lines for an order that's already going to be
-                // cancelled would leak stock if a nested cancellation runs before we reach them.
+                // Stop: reserving later lines here would leak stock once this order cancels.
                 break;
             }
 
@@ -67,8 +67,7 @@ public class OrderReservationHandler(
 
             await repository.SaveAsync(inventory, cancellationToken);
 
-            // Commit before publishing: OrderConfirmationHandler/OrderCancellationHandler
-            // (nested via these publishes) read this Inventory's committed reservation state.
+            // Commit before publishing so nested handlers can read this reservation back.
             uow.Commit();
 
             foreach (var raised in inventory.UncommittedEvents)

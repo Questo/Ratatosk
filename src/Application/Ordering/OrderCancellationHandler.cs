@@ -25,8 +25,7 @@ public class OrderCancellationHandler(
 
         await repository.SaveAsync(order, cancellationToken);
 
-        // Commit before publishing: OrderProjection and ReservationCompensationHandler (nested
-        // via the OrderCancelled publish below) read this Order back from other connections.
+        // Commit before publishing so nested handlers can read this Order back.
         uow.Commit();
 
         foreach (var raised in order.UncommittedEvents)

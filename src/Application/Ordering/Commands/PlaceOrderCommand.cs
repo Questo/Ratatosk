@@ -8,6 +8,7 @@ using Ratatosk.Core.Primitives;
 using Ratatosk.Domain;
 using Ratatosk.Domain.Catalog.ValueObjects;
 using Ratatosk.Domain.Ordering;
+using Ratatosk.Domain.Ordering.Events;
 
 namespace Ratatosk.Application.Ordering.Commands;
 
@@ -75,6 +76,11 @@ public class PlaceOrderCommandHandler(
         var order = orderResult.Value!;
         await repository.SaveAsync(order, cancellationToken);
 
+        var occurredAtUtc = order
+            .UncommittedEvents.OfType<OrderCreated>()
+            .First()
+            .OccurredAtUtc.UtcDateTime;
+
         var readModel = new OrderReadModel
         {
             Id = order.Id,
@@ -89,13 +95,12 @@ public class PlaceOrderCommandHandler(
                     l.UnitPrice.Currency
                 )),
             ],
-            CreatedUtc = DateTime.UtcNow,
-            LastUpdatedUtc = DateTime.UtcNow,
+            CreatedUtc = occurredAtUtc,
+            LastUpdatedUtc = occurredAtUtc,
         };
         await orderReadModelRepository.SaveAsync(readModel, cancellationToken);
 
-        // Committed here, before publishing: cascading handlers open their own DB transaction
-        // each, and would otherwise race this one and either miss the order or deadlock on it.
+        // Commit before publishing so cascading handlers don't race or deadlock on this order.
         uow.Commit();
 
         try
@@ -105,8 +110,7 @@ public class PlaceOrderCommandHandler(
         }
         catch (Exception ex)
         {
-            // The order itself is already committed; a failure downstream in the reservation
-            // cascade must not turn into a 500 for an order that exists. It's left Created.
+            // The order is already committed; a downstream failure leaves it Created, not a 500.
             logger.LogError(ex, "Failed to publish events for order {OrderId}", order.Id);
         }
 

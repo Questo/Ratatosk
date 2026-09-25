@@ -170,9 +170,7 @@ public class OrderReservationHandlerTests
     [TestMethod]
     public async Task WhenInventoryHasNoStockEntryForSku_ShouldPublishStockReservationFailed()
     {
-        // Regression: a product with a read-model row (Available = 0) but no AddStock ever
-        // called has no entry in the Inventory aggregate at all — this must fail the reservation
-        // via an event, not throw, or the order hangs in Created behind an unhandled exception.
+        // Regression: a product with no AddStock ever called has no entry in the aggregate at all.
         var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
         var productId = Guid.NewGuid();
         var orderId = Guid.NewGuid();

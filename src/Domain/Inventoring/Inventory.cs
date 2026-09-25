@@ -163,9 +163,7 @@ public class Inventory : AggregateRoot
         RaiseEvent(new StockReleased(Id, sku, quantity));
     }
 
-    // Releases exactly what the given order reserved for this SKU. Safe no-op when the order
-    // never reserved anything here (unknown SKU, already released, or reservation never
-    // succeeded) — callers don't need to know which of an order's lines actually reserved.
+    // Releases exactly what the order reserved for this SKU; a safe no-op if it reserved nothing.
     public void ReleaseStock(SKU sku, Guid orderId)
     {
         if (!_reservedByOrder.TryGetValue((sku, orderId), out var reservedQuantity))

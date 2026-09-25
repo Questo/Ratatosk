@@ -28,8 +28,7 @@ public class OrderConfirmationHandler(
 
         await repository.SaveAsync(order, cancellationToken);
 
-        // Commit before publishing: OrderProjection (nested via the OrderConfirmed publish
-        // below) reads this Order back from a different DB connection.
+        // Commit before publishing so nested handlers can read this Order back.
         uow.Commit();
 
         foreach (var raised in order.UncommittedEvents)

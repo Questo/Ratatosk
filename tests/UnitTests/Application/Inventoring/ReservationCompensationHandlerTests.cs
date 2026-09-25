@@ -139,8 +139,7 @@ public class ReservationCompensationHandlerTests
     [TestMethod]
     public async Task WhenAnotherOrderHoldsAReservationForTheSameSku_ShouldNotReleaseIt()
     {
-        // Regression: releasing must be scoped to the cancelled order's own reservation, not
-        // the SKU's total Reserved count, or it would silently steal another order's stock.
+        // Regression: releasing must be scoped to this order, not the SKU's total reserved count.
         var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
         var productId = Guid.NewGuid();
         var cancelledOrderId = Guid.NewGuid();

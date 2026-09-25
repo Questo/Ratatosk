@@ -21,7 +21,12 @@ public static class OrderEndpoints
                 {
                     var command = new PlaceOrderCommand(
                         request.CustomerId,
-                        [.. request.Lines.Select(l => new OrderLineRequest(l.Sku, l.Quantity))]
+                        [
+                            .. (request.Lines ?? []).Select(l => new OrderLineRequest(
+                                l.Sku,
+                                l.Quantity
+                            )),
+                        ]
                     );
                     var result = await orderService.PlaceOrderAsync(command, ct);
                     var response = Response<Guid>.FromResult(result);
@@ -36,8 +41,9 @@ public static class OrderEndpoints
             .WithName("PlaceOrder")
             .WithSummary("Place a new order")
             .WithDescription(
-                "Creates an order and asynchronously reserves stock for each line. "
-                    + "Poll GET /orders/{orderId} to observe confirmation or cancellation."
+                "Creates an order and reserves stock for each line via async events. "
+                    + "The order may already be Confirmed or Cancelled by the time this returns; "
+                    + "GET /orders/{orderId} always reflects its current status."
             )
             .Accepts<PlaceOrderRequest>("application/json")
             .Produces<Response>(StatusCodes.Status202Accepted)

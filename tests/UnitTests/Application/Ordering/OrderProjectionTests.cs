@@ -53,9 +53,7 @@ public class OrderProjectionTests
     [TestMethod]
     public async Task WhenOrderConfirmed_AndReadModelRowDoesNotExistYet_ShouldStillSaveConfirmedStatus()
     {
-        // Regression: OrderCreated's own read-model insert can still be in-flight in a sibling
-        // scope when OrderConfirmed arrives (both cascade from the same PlaceOrder event chain),
-        // so this handler must not depend on the read-model row already existing.
+        // Defensive: this handler doesn't gate the save on the row already existing.
         var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
         var line = OrderLine.Create(sku, 2, Price.Create(10m).Value!).Value!;
         var order = Order.Place(Guid.NewGuid(), [line]).Value!;

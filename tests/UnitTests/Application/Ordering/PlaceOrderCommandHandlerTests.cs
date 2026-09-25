@@ -88,11 +88,7 @@ public class PlaceOrderCommandHandlerTests
     [TestMethod]
     public async Task WhenOrderIsSaved_ShouldSaveReadModelAndCommitBeforePublishingEvents()
     {
-        // The read-model row must be created and committed here, in the same transaction as the
-        // Order aggregate's own event, before OrderCreated is published — a handler further down
-        // the cascade (OrderConfirmationHandler -> OrderProjection) later updates this same row
-        // from a different DB connection, and if it isn't committed yet, that update either
-        // silently no-ops or deadlocks waiting on this still-open transaction's row lock.
+        // Must be committed before publishing, or a handler further down the cascade races it.
         var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
         var productId = Guid.NewGuid();
 
