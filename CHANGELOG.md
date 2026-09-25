@@ -1,3 +1,21 @@
+# [0.3.0](https://github.com/Questo/Ratatosk/compare/v0.2.0...v0.3.0) (2026-09-25)
+
+
+### Bug Fixes
+
+* **ordering:** address critical/important findings from final review ([d4a0007](https://github.com/Questo/Ratatosk/commit/d4a00078b11c0b9a780c8a424d1efd3c78743f34))
+
+
+### Features
+
+* **inventoring:** correlate stock reservation events with an order id ([bca29fb](https://github.com/Questo/Ratatosk/commit/bca29fb9bc8891f9b5c0f287de1a9ab98c88c084))
+* **inventoring:** react to order placement and cancellation events ([9f5492d](https://github.com/Questo/Ratatosk/commit/9f5492db516f0f0e4d69d38277845d50d4963154))
+* **ordering:** add PlaceOrder/GetOrderById use cases and IOrderService ([91ee056](https://github.com/Questo/Ratatosk/commit/91ee0563d03aaad9a10e981a50de60c9bbbe8749))
+* **ordering:** add Postgres read-model persistence and event serialization ([78c13ae](https://github.com/Questo/Ratatosk/commit/78c13aef65e0297d9cc64498b0a235118fd8e8fe))
+* **ordering:** add read-model projection and reservation-outcome handlers ([1ac9bf8](https://github.com/Questo/Ratatosk/commit/1ac9bf8ae56e0f9b0dc13027b7bb65dc480a5056))
+* **ordering:** expose PlaceOrder and GetOrderById API endpoints ([d9b63f0](https://github.com/Questo/Ratatosk/commit/d9b63f01ec9c23c798173a39236b9e11ccd371df))
+* **ordering:** implement Order aggregate with line-by-line reservation tracking ([37540cf](https://github.com/Questo/Ratatosk/commit/37540cf1b3dacf424535e196ffdc92c02ef69dfe))
+
 # [0.2.0](https://github.com/Questo/Ratatosk/compare/v0.1.4...v0.2.0) (2026-09-25)
 
 
