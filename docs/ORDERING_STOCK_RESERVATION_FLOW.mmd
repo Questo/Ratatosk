@@ -1,0 +1,29 @@
+sequenceDiagram
+    participant API as API (PlaceOrder)
+    participant Order as Order Aggregate
+    participant OH1 as OrderReservationHandler<br/>(Inventoring)
+    participant Inv as Inventory Aggregate
+    participant OH2 as OrderConfirmationHandler<br/>(Ordering)
+    participant OH3 as OrderCancellationHandler<br/>(Ordering)
+    participant OH4 as ReservationCompensationHandler<br/>(Inventoring)
+
+    API->>Order: Place(customerId, lines)
+    Order-->>OH1: OrderCreated
+
+    loop each line
+        OH1->>Inv: ReserveStock(sku, qty, orderId)
+        alt stock available
+            Inv-->>OH2: StockReserved (orderId, sku)
+        else insufficient stock
+            Inv-->>OH3: StockReservationFailed (orderId, sku, reason)
+        end
+    end
+
+    alt all lines reserved
+        OH2->>Order: MarkLineReserved(sku)
+        Note over Order: raises OrderLineReserved<br/>then OrderConfirmed once complete
+    else any line failed
+        OH3->>Order: Cancel(reason)
+        Order-->>OH4: OrderCancelled (lines)
+        OH4->>Inv: ReleaseStock(sku, qty) per already-reserved line
+    end
