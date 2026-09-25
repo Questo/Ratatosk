@@ -7,6 +7,7 @@ namespace Ratatosk.Domain.Inventoring;
 public class Inventory : AggregateRoot
 {
     private readonly Dictionary<SKU, StockEntry> _stockBySku = [];
+    private readonly Dictionary<(SKU Sku, Guid OrderId), int> _reservedByOrder = [];
 
     protected override void ApplyEvent(DomainEvent domainEvent)
     {
@@ -28,12 +29,24 @@ public class Inventory : AggregateRoot
                 entry = GetStockEntry(stockReserved.SKU);
                 entry = entry with { Reserved = entry.Reserved + stockReserved.Quantity };
                 _stockBySku[stockReserved.SKU] = entry;
+
+                if (stockReserved.OrderId is Guid reservedForOrder)
+                {
+                    var key = (stockReserved.SKU, reservedForOrder);
+                    _reservedByOrder[key] =
+                        _reservedByOrder.GetValueOrDefault(key) + stockReserved.Quantity;
+                }
                 break;
 
             case StockReleased stockReleased:
                 entry = GetStockEntry(stockReleased.SKU);
                 entry = entry with { Reserved = entry.Reserved - stockReleased.Quantity };
                 _stockBySku[stockReleased.SKU] = entry;
+
+                if (stockReleased.OrderId is Guid releasedForOrder)
+                {
+                    _reservedByOrder.Remove((stockReleased.SKU, releasedForOrder));
+                }
                 break;
 
             case StockRemoved stockRemoved:
@@ -94,6 +107,20 @@ public class Inventory : AggregateRoot
 
         if (!_stockBySku.TryGetValue(sku, out var stockEntry))
         {
+            if (orderId is Guid orderIdForMissingSku)
+            {
+                RaiseEvent(
+                    new StockReservationFailed(
+                        Id,
+                        sku,
+                        orderIdForMissingSku,
+                        quantity,
+                        $"SKU {sku} not found in inventory"
+                    )
+                );
+                return;
+            }
+
             throw new InvalidOperationException($"SKU {sku} not found in inventory");
         }
 
@@ -134,6 +161,17 @@ public class Inventory : AggregateRoot
         }
 
         RaiseEvent(new StockReleased(Id, sku, quantity));
+    }
+
+    // Releases exactly what the given order reserved for this SKU. Safe no-op when the order
+    // never reserved anything here (unknown SKU, already released, or reservation never
+    // succeeded) — callers don't need to know which of an order's lines actually reserved.
+    public void ReleaseStock(SKU sku, Guid orderId)
+    {
+        if (!_reservedByOrder.TryGetValue((sku, orderId), out var reservedQuantity))
+            return;
+
+        RaiseEvent(new StockReleased(Id, sku, reservedQuantity, orderId));
     }
 
     public void RemoveStock(SKU sku, Quantity quantity)

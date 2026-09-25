@@ -34,15 +34,10 @@ public class ReservationCompensationHandler(
                 continue;
 
             var inventory = inventoryResult.Value!;
+            inventory.ReleaseStock(line.Sku, domainEvent.OrderId);
 
-            try
-            {
-                inventory.ReleaseStock(line.Sku, line.Quantity);
-            }
-            catch (InvalidOperationException)
-            {
+            if (inventory.UncommittedEvents.Count == 0)
                 continue;
-            }
 
             await repository.SaveAsync(inventory, cancellationToken);
             uow.Commit();

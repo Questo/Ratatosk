@@ -47,9 +47,10 @@ public class ReservationCompensationHandlerTests
     {
         var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
         var productId = Guid.NewGuid();
+        var orderId = Guid.NewGuid();
         var inventory = Inventory.Create(productId);
         inventory.AddStock(sku, Quantity.Pieces(10));
-        inventory.ReserveStock(sku, 3);
+        inventory.ReserveStock(sku, 3, orderId);
         inventory.ClearUncommittedEvents();
 
         _readModelRepoMock
@@ -59,7 +60,7 @@ public class ReservationCompensationHandlerTests
             .Setup(r => r.LoadAsync(productId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<Inventory>.Success(inventory));
 
-        var evt = new OrderCancelled(Guid.NewGuid(), "Insufficient stock", [Line(sku, 3)]);
+        var evt = new OrderCancelled(orderId, "Insufficient stock", [Line(sku, 3)]);
 
         await _handler.WhenAsync(evt, CancellationToken.None);
 
@@ -78,9 +79,10 @@ public class ReservationCompensationHandlerTests
     {
         var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
         var productId = Guid.NewGuid();
+        var orderId = Guid.NewGuid();
         var inventory = Inventory.Create(productId);
         inventory.AddStock(sku, Quantity.Pieces(10));
-        inventory.ReserveStock(sku, 3);
+        inventory.ReserveStock(sku, 3, orderId);
         inventory.ClearUncommittedEvents();
 
         _readModelRepoMock
@@ -101,7 +103,7 @@ public class ReservationCompensationHandlerTests
             .Callback(() => callOrder.Add("publish"))
             .Returns(Task.CompletedTask);
 
-        var evt = new OrderCancelled(Guid.NewGuid(), "Insufficient stock", [Line(sku, 3)]);
+        var evt = new OrderCancelled(orderId, "Insufficient stock", [Line(sku, 3)]);
 
         await _handler.WhenAsync(evt, CancellationToken.None);
 
@@ -132,5 +134,37 @@ public class ReservationCompensationHandlerTests
             b => b.PublishAsync(It.IsAny<DomainEvent>(), It.IsAny<CancellationToken>()),
             Times.Never
         );
+    }
+
+    [TestMethod]
+    public async Task WhenAnotherOrderHoldsAReservationForTheSameSku_ShouldNotReleaseIt()
+    {
+        // Regression: releasing must be scoped to the cancelled order's own reservation, not
+        // the SKU's total Reserved count, or it would silently steal another order's stock.
+        var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
+        var productId = Guid.NewGuid();
+        var cancelledOrderId = Guid.NewGuid();
+        var otherOrderId = Guid.NewGuid();
+        var inventory = Inventory.Create(productId);
+        inventory.AddStock(sku, Quantity.Pieces(10));
+        inventory.ReserveStock(sku, 5, cancelledOrderId);
+        inventory.ReserveStock(sku, 3, otherOrderId);
+        inventory.ClearUncommittedEvents();
+
+        _readModelRepoMock
+            .Setup(r => r.GetBySkuAsync(sku.Value, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new StockReadModel(productId, sku.Value, 10, 8, "pcs", DateTime.UtcNow));
+        _repositoryMock
+            .Setup(r => r.LoadAsync(productId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<Inventory>.Success(inventory));
+
+        var evt = new OrderCancelled(cancelledOrderId, "Insufficient stock", [Line(sku, 5)]);
+
+        await _handler.WhenAsync(evt, CancellationToken.None);
+
+        var released = inventory.UncommittedEvents.OfType<StockReleased>().Single();
+        Assert.AreEqual(5, released.Quantity);
+        Assert.IsFalse(inventory.IsInStock(sku, 8));
+        Assert.IsTrue(inventory.IsInStock(sku, 7));
     }
 }

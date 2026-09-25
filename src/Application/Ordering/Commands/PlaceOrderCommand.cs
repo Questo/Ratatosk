@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Ratatosk.Application.Catalog;
 using Ratatosk.Application.Inventoring;
 using Ratatosk.Application.Ordering.Models;
@@ -21,7 +22,8 @@ public class PlaceOrderCommandHandler(
     IAggregateRepository<Order> repository,
     IOrderReadModelRepository orderReadModelRepository,
     IEventBus eventBus,
-    IUnitOfWork uow
+    IUnitOfWork uow,
+    ILogger<PlaceOrderCommandHandler> logger
 ) : IRequestHandler<PlaceOrderCommand, Result<Guid>>
 {
     public async Task<Result<Guid>> HandleAsync(
@@ -96,8 +98,17 @@ public class PlaceOrderCommandHandler(
         // each, and would otherwise race this one and either miss the order or deadlock on it.
         uow.Commit();
 
-        foreach (var raised in order.UncommittedEvents)
-            await eventBus.PublishAsync(raised, cancellationToken);
+        try
+        {
+            foreach (var raised in order.UncommittedEvents)
+                await eventBus.PublishAsync(raised, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            // The order itself is already committed; a failure downstream in the reservation
+            // cascade must not turn into a 500 for an order that exists. It's left Created.
+            logger.LogError(ex, "Failed to publish events for order {OrderId}", order.Id);
+        }
 
         return Result<Guid>.Success(order.Id);
     }

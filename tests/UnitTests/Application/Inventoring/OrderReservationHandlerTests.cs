@@ -141,4 +141,64 @@ public class OrderReservationHandlerTests
             Times.Never
         );
     }
+
+    [TestMethod]
+    public async Task WhenFirstLineFails_ShouldNotAttemptLaterLines()
+    {
+        var skuA = SKU.Create(SkuGenerator.Generate("AA")).Value!;
+        var skuB = SKU.Create(SkuGenerator.Generate("BB")).Value!;
+        var orderId = Guid.NewGuid();
+
+        _readModelRepoMock
+            .Setup(r => r.GetBySkuAsync(skuA.Value, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((StockReadModel?)null);
+
+        var evt = new OrderCreated(orderId, Guid.NewGuid(), [Line(skuA, 3), Line(skuB, 2)]);
+
+        await _handler.WhenAsync(evt, CancellationToken.None);
+
+        _readModelRepoMock.Verify(
+            r => r.GetBySkuAsync(skuB.Value, It.IsAny<CancellationToken>()),
+            Times.Never
+        );
+        _eventBusMock.Verify(
+            b => b.PublishAsync(It.IsAny<DomainEvent>(), It.IsAny<CancellationToken>()),
+            Times.Once
+        );
+    }
+
+    [TestMethod]
+    public async Task WhenInventoryHasNoStockEntryForSku_ShouldPublishStockReservationFailed()
+    {
+        // Regression: a product with a read-model row (Available = 0) but no AddStock ever
+        // called has no entry in the Inventory aggregate at all — this must fail the reservation
+        // via an event, not throw, or the order hangs in Created behind an unhandled exception.
+        var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
+        var productId = Guid.NewGuid();
+        var orderId = Guid.NewGuid();
+        var inventory = Inventory.Create(productId);
+
+        _readModelRepoMock
+            .Setup(r => r.GetBySkuAsync(sku.Value, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new StockReadModel(productId, sku.Value, 0, 0, "pcs", DateTime.UtcNow));
+        _repositoryMock
+            .Setup(r => r.LoadAsync(productId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<Inventory>.Success(inventory));
+
+        var evt = new OrderCreated(orderId, Guid.NewGuid(), [Line(sku, 3)]);
+
+        await _handler.WhenAsync(evt, CancellationToken.None);
+
+        _eventBusMock.Verify(
+            b =>
+                b.PublishAsync(
+                    It.Is<DomainEvent>(e =>
+                        e.GetType() == typeof(StockReservationFailed)
+                        && ((StockReservationFailed)e).OrderId == orderId
+                    ),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Once
+        );
+    }
 }

@@ -36,7 +36,9 @@ public class OrderReservationHandler(
                     ),
                     cancellationToken
                 );
-                continue;
+                // Stop here: reserving later lines for an order that's already going to be
+                // cancelled would leak stock if a nested cancellation runs before we reach them.
+                break;
             }
 
             var inventoryResult = await repository.LoadAsync(
@@ -55,11 +57,13 @@ public class OrderReservationHandler(
                     ),
                     cancellationToken
                 );
-                continue;
+                break;
             }
 
             var inventory = inventoryResult.Value!;
             inventory.ReserveStock(line.Sku, line.Quantity, domainEvent.OrderId);
+
+            var lineFailed = inventory.UncommittedEvents.OfType<StockReservationFailed>().Any();
 
             await repository.SaveAsync(inventory, cancellationToken);
 
@@ -69,6 +73,9 @@ public class OrderReservationHandler(
 
             foreach (var raised in inventory.UncommittedEvents)
                 await eventBus.PublishAsync(raised, cancellationToken);
+
+            if (lineFailed)
+                break;
         }
     }
 }

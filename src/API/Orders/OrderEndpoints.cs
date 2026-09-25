@@ -53,6 +53,7 @@ public static class OrderEndpoints
                     return result.IsFailure ? Results.NotFound() : Results.Ok(result.Value);
                 }
             )
+            .RequireAuthorization(Policies.Authenticated)
             .WithTags(OrdersTag)
             .WithName("GetOrderById")
             .WithSummary("Get an order by id")

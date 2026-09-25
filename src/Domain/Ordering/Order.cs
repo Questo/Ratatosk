@@ -49,6 +49,9 @@ public class Order : AggregateRoot
             if (lineList.Count == 0)
                 return Result<Order>.Failure("Order must contain at least one line");
 
+            if (lineList.Select(l => l.Sku).Distinct().Count() != lineList.Count)
+                return Result<Order>.Failure("Order cannot contain duplicate SKUs");
+
             var order = new Order();
             order.RaiseEvent(new OrderCreated(order.Id, customerId, lineList));
 

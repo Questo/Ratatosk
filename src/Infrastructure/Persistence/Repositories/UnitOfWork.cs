@@ -37,13 +37,20 @@ public class UnitOfWork(string ConnectionString) : IDisposable, IUnitOfWork
         }
         catch (Exception ex)
         {
-            Rollback();
+            try
+            {
+                Rollback();
+            }
+            catch
+            {
+                // The original commit failure is the one worth surfacing; a rollback that also
+                // fails (e.g. the transaction already completed) would otherwise mask it.
+            }
+
             throw new InvalidOperationException("Failed to commit the transaction.", ex);
         }
-        finally
-        {
-            _transaction = _connection!.BeginTransaction();
-        }
+
+        _transaction = _connection!.BeginTransaction();
     }
 
     public void Dispose()

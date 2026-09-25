@@ -243,4 +243,81 @@ public class InventoryTests
         Assert.AreEqual(5, @event.Quantity);
         Assert.IsFalse(inventory.UncommittedEvents.OfType<StockReserved>().Any());
     }
+
+    [TestMethod]
+    public void ReserveStock_WithOrderIdAndUnknownSku_ShouldRaiseStockReservationFailedEvent()
+    {
+        var inventory = Inventory.Create();
+        var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
+        var orderId = Guid.NewGuid();
+
+        inventory.ReserveStock(sku, 5, orderId);
+
+        var @event = inventory
+            .UncommittedEvents.OfType<StockReservationFailed>()
+            .FirstOrDefault();
+
+        Assert.IsNotNull(@event);
+        Assert.AreEqual(orderId, @event.OrderId);
+    }
+
+    [TestMethod]
+    public void ReleaseStock_ByOrderId_ShouldReleaseOnlyThatOrdersReservation()
+    {
+        var inventory = Inventory.Create();
+        var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
+        var orderA = Guid.NewGuid();
+        var orderB = Guid.NewGuid();
+
+        inventory.AddStock(sku, Quantity.Pieces(10));
+        inventory.ReserveStock(sku, 5, orderA);
+        inventory.ReserveStock(sku, 3, orderB);
+        inventory.ClearUncommittedEvents();
+
+        inventory.ReleaseStock(sku, orderA);
+
+        var @event = inventory.UncommittedEvents.OfType<StockReleased>().FirstOrDefault();
+        Assert.IsNotNull(@event);
+        Assert.AreEqual(5, @event.Quantity);
+        // Available 10, only order B's reservation (3) remains -> 7 free.
+        Assert.IsTrue(inventory.IsInStock(sku, 7));
+        Assert.IsFalse(inventory.IsInStock(sku, 8));
+    }
+
+    [TestMethod]
+    public void ReleaseStock_ByOrderId_WhenOrderNeverReserved_ShouldBeSafeNoOp()
+    {
+        var inventory = Inventory.Create();
+        var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
+        var orderA = Guid.NewGuid();
+        var orderB = Guid.NewGuid();
+
+        inventory.AddStock(sku, Quantity.Pieces(10));
+        inventory.ReserveStock(sku, 5, orderA);
+        inventory.ClearUncommittedEvents();
+
+        inventory.ReleaseStock(sku, orderB);
+
+        Assert.IsFalse(inventory.UncommittedEvents.OfType<StockReleased>().Any());
+        Assert.IsFalse(inventory.IsInStock(sku, 6));
+        Assert.IsTrue(inventory.IsInStock(sku, 5));
+    }
+
+    [TestMethod]
+    public void ReleaseStock_ByOrderId_CalledTwice_ShouldBeIdempotent()
+    {
+        var inventory = Inventory.Create();
+        var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
+        var orderA = Guid.NewGuid();
+
+        inventory.AddStock(sku, Quantity.Pieces(10));
+        inventory.ReserveStock(sku, 5, orderA);
+        inventory.ClearUncommittedEvents();
+
+        inventory.ReleaseStock(sku, orderA);
+        inventory.ReleaseStock(sku, orderA);
+
+        Assert.AreEqual(1, inventory.UncommittedEvents.OfType<StockReleased>().Count());
+        Assert.IsTrue(inventory.IsInStock(sku, 10));
+    }
 }

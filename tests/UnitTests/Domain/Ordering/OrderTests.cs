@@ -47,6 +47,18 @@ public class OrderTests
     }
 
     [TestMethod]
+    public void Place_WithDuplicateSku_ShouldReturnFailure()
+    {
+        var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
+        var lineA = OrderLine.Create(sku, 2, Price.Create(10m).Value!).Value!;
+        var lineB = OrderLine.Create(sku, 3, Price.Create(10m).Value!).Value!;
+
+        var result = Order.Place(Guid.NewGuid(), [lineA, lineB]);
+
+        Assert.IsTrue(result.IsFailure);
+    }
+
+    [TestMethod]
     public void Place_WithEmptyCustomerId_ShouldReturnFailure()
     {
         var result = Order.Place(Guid.Empty, [Line()]);

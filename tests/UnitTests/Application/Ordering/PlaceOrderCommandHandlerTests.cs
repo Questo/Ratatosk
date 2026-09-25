@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Moq;
 using Ratatosk.Application.Catalog;
 using Ratatosk.Application.Catalog.Models;
@@ -24,6 +25,7 @@ public class PlaceOrderCommandHandlerTests
     private Mock<IOrderReadModelRepository> _orderReadModelRepoMock = null!;
     private Mock<IEventBus> _eventBusMock = null!;
     private Mock<IUnitOfWork> _uowMock = null!;
+    private Mock<ILogger<PlaceOrderCommandHandler>> _loggerMock = null!;
     private PlaceOrderCommandHandler _handler = null!;
 
     [TestInitialize]
@@ -35,13 +37,15 @@ public class PlaceOrderCommandHandlerTests
         _orderReadModelRepoMock = new Mock<IOrderReadModelRepository>();
         _eventBusMock = new Mock<IEventBus>();
         _uowMock = new Mock<IUnitOfWork>();
+        _loggerMock = new Mock<ILogger<PlaceOrderCommandHandler>>();
         _handler = new PlaceOrderCommandHandler(
             _inventoryRepoMock.Object,
             _productRepoMock.Object,
             _repositoryMock.Object,
             _orderReadModelRepoMock.Object,
             _eventBusMock.Object,
-            _uowMock.Object
+            _uowMock.Object,
+            _loggerMock.Object
         );
     }
 
@@ -228,5 +232,82 @@ public class PlaceOrderCommandHandlerTests
             r => r.SaveAsync(It.IsAny<Order>(), It.IsAny<CancellationToken>()),
             Times.Never
         );
+    }
+
+    [TestMethod]
+    public async Task WhenSecondLineIsInvalid_ShouldFailWithoutSavingAnything()
+    {
+        var validSku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
+        var productId = Guid.NewGuid();
+
+        _inventoryRepoMock
+            .Setup(r => r.GetBySkuAsync(validSku.Value, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                new StockReadModel(productId, validSku.Value, 10, 0, "pcs", DateTime.UtcNow)
+            );
+        _productRepoMock
+            .Setup(r => r.GetByIdAsync(productId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                new ProductReadModel(
+                    productId,
+                    "Widget",
+                    validSku.Value,
+                    "A widget",
+                    9.99m,
+                    DateTime.UtcNow
+                )
+            );
+
+        var command = new PlaceOrderCommand(
+            Guid.NewGuid(),
+            [new OrderLineRequest(validSku.Value, 2), new OrderLineRequest("XX-000000", 1)]
+        );
+
+        var result = await _handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.IsTrue(result.IsFailure);
+        _repositoryMock.Verify(
+            r => r.SaveAsync(It.IsAny<Order>(), It.IsAny<CancellationToken>()),
+            Times.Never
+        );
+        _orderReadModelRepoMock.Verify(
+            r => r.SaveAsync(It.IsAny<OrderReadModel>(), It.IsAny<CancellationToken>()),
+            Times.Never
+        );
+    }
+
+    [TestMethod]
+    public async Task WhenPublishingEventsThrows_ShouldStillReturnSuccessSinceOrderWasCommitted()
+    {
+        var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
+        var productId = Guid.NewGuid();
+
+        _inventoryRepoMock
+            .Setup(r => r.GetBySkuAsync(sku.Value, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                new StockReadModel(productId, sku.Value, 10, 0, "pcs", DateTime.UtcNow)
+            );
+        _productRepoMock
+            .Setup(r => r.GetByIdAsync(productId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                new ProductReadModel(
+                    productId,
+                    "Widget",
+                    sku.Value,
+                    "A widget",
+                    9.99m,
+                    DateTime.UtcNow
+                )
+            );
+        _eventBusMock
+            .Setup(b => b.PublishAsync(It.IsAny<DomainEvent>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("downstream handler exploded"));
+
+        var command = new PlaceOrderCommand(Guid.NewGuid(), [new OrderLineRequest(sku.Value, 2)]);
+
+        var result = await _handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.IsTrue(result.IsSuccess);
+        Assert.AreNotEqual(Guid.Empty, result.Value);
     }
 }
