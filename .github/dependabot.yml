@@ -7,6 +7,22 @@ updates:
     open-pull-requests-limit: 5
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      microsoft:
+        patterns:
+          - "Microsoft.*"
+        update-types: ["minor", "patch"]
+      test-tooling:
+        patterns:
+          - "MSTest"
+          - "Moq"
+          - "coverlet.*"
+          - "Microsoft.NET.Test.Sdk"
+        update-types: ["minor", "patch"]
+      everything-else:
+        patterns:
+          - "*"
+        update-types: ["minor", "patch"]
 
   - package-ecosystem: github-actions
     directory: "/"
@@ -15,3 +31,7 @@ updates:
     open-pull-requests-limit: 5
     commit-message:
       prefix: "chore(ci)"
+    groups:
+      actions:
+        patterns:
+          - "*"
