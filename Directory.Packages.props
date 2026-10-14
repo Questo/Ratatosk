@@ -19,7 +19,7 @@
     <PackageVersion Include="Swashbuckle.AspNetCore.ReDoc" Version="10.2.3" />
     <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerUI" Version="10.2.3" />
     <PackageVersion Include="Moq" Version="4.21.0" />
-    <PackageVersion Include="MSTest" Version="4.4.1" />
+    <PackageVersion Include="MSTest" Version="4.5.1" />
     <PackageVersion Include="Scrutor" Version="7.0.0" />
     <PackageVersion Include="Dapper" Version="2.1.89" />
     <PackageVersion Include="Npgsql" Version="10.0.3" />
