@@ -1,3 +1,14 @@
+# [1.1.0](https://github.com/Questo/Ratatosk/compare/v1.0.0...v1.1.0) (2026-10-17)
+
+
+### Features
+
+* **catalog:** add minPrice and maxPrice filters to product search ([bea5b81](https://github.com/Questo/Ratatosk/commit/bea5b813fc364dea68d4fe29377053212caf7b41))
+* **catalog:** return specific product name validation errors ([bc76763](https://github.com/Questo/Ratatosk/commit/bc767633ccb1d22263b9a7631d37f2420e6c4c31))
+* **factory:** track tokens per agent run and show them on the dashboard ([7ed54c3](https://github.com/Questo/Ratatosk/commit/7ed54c3a2ea1678b3fd1085d4e4690f9f1754ea2))
+* **identity:** give users a stable id and carry it in the token ([72af39d](https://github.com/Questo/Ratatosk/commit/72af39df15d5d25846cf7d1a301f8763acc52e91))
+* **ordering:** list the signed-in customer's orders at GET /orders ([5512411](https://github.com/Questo/Ratatosk/commit/55124116e65386ea3a65f37d3b72ee9b36f8a6dc))
+
 # [1.0.0](https://github.com/Questo/Ratatosk/compare/v0.3.0...v1.0.0) (2026-10-17)
 
 
