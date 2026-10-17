@@ -2,6 +2,7 @@ using System.Data;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Ratatosk.Application;
+using Ratatosk.Application.Authentication;
 using Ratatosk.Application.Catalog;
 using Ratatosk.Application.Inventoring;
 using Ratatosk.Application.Ordering;
@@ -30,6 +31,8 @@ public sealed class TestHost : IDisposable
     public InMemoryProductReadModelRepository Products { get; }
     public InMemoryInventoryReadModelRepository Stock { get; }
     public InMemoryOrderReadModelRepository Orders { get; }
+    public InMemoryUserAuthRepository Users { get; }
+    public InMemoryRefreshTokenRepository RefreshTokens { get; }
     public TransactionLog Transactions { get; }
     public ListLoggerProvider Logs { get; }
 
@@ -42,6 +45,8 @@ public sealed class TestHost : IDisposable
         Products = provider.GetRequiredService<InMemoryProductReadModelRepository>();
         Stock = provider.GetRequiredService<InMemoryInventoryReadModelRepository>();
         Orders = provider.GetRequiredService<InMemoryOrderReadModelRepository>();
+        Users = provider.GetRequiredService<InMemoryUserAuthRepository>();
+        RefreshTokens = provider.GetRequiredService<InMemoryRefreshTokenRepository>();
         Transactions = provider.GetRequiredService<TransactionLog>();
     }
 
@@ -76,6 +81,13 @@ public sealed class TestHost : IDisposable
         services.AddSingleton<InMemoryOrderReadModelRepository>();
         services.AddSingleton<IOrderReadModelRepository>(sp =>
             sp.GetRequiredService<InMemoryOrderReadModelRepository>()
+        );
+
+        services.AddSingleton<InMemoryUserAuthRepository>();
+        services.AddSingleton<IUserAuthRepository>(sp => sp.GetRequiredService<InMemoryUserAuthRepository>());
+        services.AddSingleton<InMemoryRefreshTokenRepository>();
+        services.AddSingleton<IRefreshTokenRepository>(sp =>
+            sp.GetRequiredService<InMemoryRefreshTokenRepository>()
         );
 
         configure?.Invoke(services);

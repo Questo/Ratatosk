@@ -1,181 +1,132 @@
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Ratatosk.Application.Authentication;
 using Ratatosk.Application.Authentication.Commands;
 using Ratatosk.Application.Authentication.Models;
+using Ratatosk.Application.Shared;
 using Ratatosk.Core.Abstractions;
-using Ratatosk.Core.BuildingBlocks;
 using Ratatosk.Core.Primitives;
 using Ratatosk.Domain.Identity;
+using Ratatosk.UnitTests.Shared;
 
 namespace Ratatosk.UnitTests.Application.Authentication;
 
 [TestClass]
 public class SignUpCommandHandlerTests
 {
-    private Mock<IAggregateRepository<User>> _userRepositoryMock = null!;
-    private Mock<IUserAuthRepository> _userAuthRepositoryMock = null!;
-    private Mock<IRefreshTokenRepository> _refreshTokenRepositoryMock = null!;
-    private Mock<IPasswordHasher> _passwordHasherMock = null!;
-    private Mock<ITokenIssuer> _tokenIssuerMock = null!;
-    private SignUpCommandHandler _handler = null!;
-
     private const string ValidEmail = "user@example.com";
     private const string ValidPassword = "password";
 
+    // The password hasher and token issuer are true externals; everything else is the real wiring.
+    private readonly Mock<IPasswordHasher> _passwordHasher = new();
+    private readonly Mock<ITokenIssuer> _tokenIssuer = new();
+    private TestHost _host = null!;
+
     [TestInitialize]
-    public void Setup()
+    public async Task Setup()
     {
-        _userRepositoryMock = new Mock<IAggregateRepository<User>>();
-        _userAuthRepositoryMock = new Mock<IUserAuthRepository>();
-        _refreshTokenRepositoryMock = new Mock<IRefreshTokenRepository>();
-        _passwordHasherMock = new Mock<IPasswordHasher>();
-        _tokenIssuerMock = new Mock<ITokenIssuer>();
-
-        _handler = new SignUpCommandHandler(
-            _userRepositoryMock.Object,
-            _userAuthRepositoryMock.Object,
-            _refreshTokenRepositoryMock.Object,
-            _passwordHasherMock.Object,
-            _tokenIssuerMock.Object
-        );
-    }
-
-    [TestMethod]
-    public async Task HandleAsync_Should_Return_TokenPair_When_SignUp_Succeeds()
-    {
-        // Arrange
-        _userAuthRepositoryMock
-            .Setup(x => x.GetByEmailAsync(ValidEmail, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((UserAuth?)null);
-
-        _passwordHasherMock
-            .Setup(x => x.Hash(It.IsAny<Password>()))
-            .Returns(PasswordHash.Create("hashed").Value!);
-
-        _tokenIssuerMock
+        _passwordHasher.Setup(x => x.Hash(It.IsAny<Password>())).Returns(PasswordHash.Create("hashed").Value!);
+        _tokenIssuer
             .Setup(x => x.IssueToken(It.IsAny<string>(), It.IsAny<string>()))
             .Returns(Result<string>.Success("access_token"));
 
-        // Act
-        var result = await _handler.HandleAsync(new SignUpCommand(ValidEmail, ValidPassword));
+        _host = await TestHost.StartAsync(services =>
+        {
+            services.AddSingleton(_passwordHasher.Object);
+            services.AddSingleton(_tokenIssuer.Object);
+        });
+    }
 
-        // Assert
+    [TestCleanup]
+    public void Cleanup() => _host.Dispose();
+
+    [TestMethod]
+    public async Task SignUp_CreatesAndProjectsTheUser_AndIssuesATokenPair()
+    {
+        var result = await _host.SendAsync(new SignUpCommand(ValidEmail, ValidPassword));
+
         Assert.IsTrue(result.IsSuccess);
         Assert.AreEqual("access_token", result.Value!.AccessToken);
-        Assert.IsFalse(string.IsNullOrEmpty(result.Value.RefreshToken));
+
+        var user = await _host.Users.GetByEmailAsync(ValidEmail, CancellationToken.None);
+        Assert.AreEqual(UserRole.User.Name, user!.Role);
+        Assert.AreEqual("hashed", user.Hash);
+
+        var refreshToken = await _host.RefreshTokens.GetByTokenAsync(result.Value.RefreshToken);
+        Assert.AreEqual(ValidEmail, refreshToken!.Email);
     }
 
     [TestMethod]
-    public async Task HandleAsync_Should_Save_User_And_Publish_Events_When_SignUp_Succeeds()
+    public async Task SignUp_WithAnEmailAlreadyInUse_FailsAndCreatesNoSecondUser()
     {
-        // Arrange
-        _userAuthRepositoryMock
-            .Setup(x => x.GetByEmailAsync(ValidEmail, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((UserAuth?)null);
+        (await _host.SendAsync(new SignUpCommand(ValidEmail, ValidPassword))).EnsureSuccess();
 
-        _passwordHasherMock
-            .Setup(x => x.Hash(It.IsAny<Password>()))
-            .Returns(PasswordHash.Create("hashed").Value!);
+        var result = await _host.SendAsync(new SignUpCommand(ValidEmail, ValidPassword));
 
-        _tokenIssuerMock
-            .Setup(x => x.IssueToken(It.IsAny<string>(), It.IsAny<string>()))
-            .Returns(Result<string>.Success("access_token"));
-
-        // Act
-        await _handler.HandleAsync(new SignUpCommand(ValidEmail, ValidPassword));
-
-        // Assert
-        _userRepositoryMock.Verify(
-            x => x.CommitAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()),
-            Times.Once
-        );
-
-        _refreshTokenRepositoryMock.Verify(
-            x => x.SaveAsync(It.IsAny<RefreshToken>(), It.IsAny<CancellationToken>()),
-            Times.Once
-        );
-    }
-
-    [TestMethod]
-    public async Task HandleAsync_Should_Return_Failure_When_Account_Already_Exists()
-    {
-        // Arrange
-        var existingUser = new UserAuth(ValidEmail, "User", "hash");
-
-        _userAuthRepositoryMock
-            .Setup(x => x.GetByEmailAsync(ValidEmail, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(existingUser);
-
-        // Act
-        var result = await _handler.HandleAsync(new SignUpCommand(ValidEmail, ValidPassword));
-
-        // Assert
         Assert.IsTrue(result.IsFailure);
         Assert.AreEqual(Errors.Authentication.AccountAlreadyExists.Message, result.Error);
-
-        _userRepositoryMock.Verify(
-            x => x.CommitAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()),
-            Times.Never
-        );
+        Assert.AreEqual(1, (await _host.Users.GetAllAsync(CancellationToken.None)).TotalItems);
+        Assert.HasCount(1, _host.RefreshTokens.All);
     }
 
     [TestMethod]
-    public async Task HandleAsync_Should_Return_Failure_When_Password_Is_Empty()
+    public async Task SignUp_WithAnEmptyPassword_FailsAndCreatesNoUser()
     {
-        // Arrange
-        _userAuthRepositoryMock
-            .Setup(x => x.GetByEmailAsync(ValidEmail, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((UserAuth?)null);
+        var result = await _host.SendAsync(new SignUpCommand(ValidEmail, ""));
 
-        // Act
-        var result = await _handler.HandleAsync(new SignUpCommand(ValidEmail, ""));
-
-        // Assert
         Assert.IsTrue(result.IsFailure);
-
-        _userRepositoryMock.Verify(
-            x => x.CommitAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()),
-            Times.Never
-        );
+        Assert.IsNull(await _host.Users.GetByEmailAsync(ValidEmail, CancellationToken.None));
     }
 
     [TestMethod]
-    public async Task HandleAsync_Should_Return_Failure_When_Token_Issuer_Fails()
+    public async Task SignUp_WhenNoTokenCanBeIssued_FailsWithoutStoringARefreshToken()
     {
-        // Arrange
-        _userAuthRepositoryMock
-            .Setup(x => x.GetByEmailAsync(ValidEmail, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((UserAuth?)null);
-
-        _passwordHasherMock
-            .Setup(x => x.Hash(It.IsAny<Password>()))
-            .Returns(PasswordHash.Create("hashed").Value!);
-
-        _tokenIssuerMock
+        _tokenIssuer
             .Setup(x => x.IssueToken(It.IsAny<string>(), It.IsAny<string>()))
             .Returns(Result<string>.Failure("signing error"));
 
-        // Act
-        var result = await _handler.HandleAsync(new SignUpCommand(ValidEmail, ValidPassword));
+        var result = await _host.SendAsync(new SignUpCommand(ValidEmail, ValidPassword));
 
-        // Assert
         Assert.IsTrue(result.IsFailure);
         Assert.AreEqual(Errors.Authentication.InvalidToken.Message, result.Error);
+        Assert.IsEmpty(_host.RefreshTokens.All);
     }
 
     [TestMethod]
-    public async Task HandleAsync_Should_Return_Failure_When_Exception_Is_Thrown()
+    public async Task SignUp_WhenTheUserStoreFails_ReturnsTheFailure()
     {
-        // Arrange
-        _userAuthRepositoryMock
-            .Setup(x => x.GetByEmailAsync(ValidEmail, It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException("database unavailable"));
+        using var host = await TestHost.StartAsync(services =>
+        {
+            services.AddSingleton(_passwordHasher.Object);
+            services.AddSingleton(_tokenIssuer.Object);
+            services.AddSingleton<IUserAuthRepository>(new UnavailableUserStore());
+        });
 
-        // Act
-        var result = await _handler.HandleAsync(new SignUpCommand(ValidEmail, ValidPassword));
+        var result = await host.SendAsync(new SignUpCommand(ValidEmail, ValidPassword));
 
-        // Assert
         Assert.IsTrue(result.IsFailure);
         Assert.AreEqual("database unavailable", result.Error);
+    }
+
+    private sealed class UnavailableUserStore : IUserAuthRepository
+    {
+        private static Exception Unavailable => new InvalidOperationException("database unavailable");
+
+        public Task<Pagination<UserAuth>> GetAllAsync(CancellationToken cancellationToken) =>
+            throw Unavailable;
+
+        public Task<Pagination<UserAuth>> GetAllByRole(
+            string role,
+            int page = 1,
+            int pageSize = 25,
+            CancellationToken cancellationToken = default
+        ) => throw Unavailable;
+
+        public Task<UserAuth?> GetByEmailAsync(string email, CancellationToken cancellationToken) =>
+            throw Unavailable;
+
+        public Task SaveAsync(UserAuth userAuth, CancellationToken cancellationToken) => throw Unavailable;
+
+        public Task DeleteAsync(string email, CancellationToken cancellationToken) => throw Unavailable;
     }
 }

@@ -1,4 +1,6 @@
 using System.Collections.Concurrent;
+using Ratatosk.Application.Authentication;
+using Ratatosk.Application.Authentication.Models;
 using Ratatosk.Application.Catalog;
 using Ratatosk.Application.Catalog.Models;
 using Ratatosk.Application.Inventoring;
@@ -117,4 +119,69 @@ public sealed class InMemoryOrderReadModelRepository : IOrderReadModelRepository
             CreatedUtc = r.CreatedUtc,
             LastUpdatedUtc = r.LastUpdatedUtc,
         };
+}
+
+// Records are immutable, so rows need no copying.
+public sealed class InMemoryUserAuthRepository : IUserAuthRepository
+{
+    private readonly ConcurrentDictionary<string, UserAuth> _rows = new();
+
+    public Task<Pagination<UserAuth>> GetAllAsync(CancellationToken cancellationToken) =>
+        Task.FromResult(Page([.. _rows.Values], 1, Math.Max(_rows.Count, 1)));
+
+    public Task<Pagination<UserAuth>> GetAllByRole(
+        string role,
+        int page = 1,
+        int pageSize = 25,
+        CancellationToken cancellationToken = default
+    ) =>
+        Task.FromResult(
+            Page([.. _rows.Values.Where(u => u.Role == role).Skip((page - 1) * pageSize).Take(pageSize)], page, pageSize)
+        );
+
+    public Task<UserAuth?> GetByEmailAsync(string email, CancellationToken cancellationToken) =>
+        Task.FromResult(_rows.GetValueOrDefault(email));
+
+    public Task SaveAsync(UserAuth userAuth, CancellationToken cancellationToken)
+    {
+        _rows[userAuth.Email] = userAuth;
+        return Task.CompletedTask;
+    }
+
+    public Task DeleteAsync(string email, CancellationToken cancellationToken)
+    {
+        _rows.TryRemove(email, out _);
+        return Task.CompletedTask;
+    }
+
+    private static Pagination<UserAuth> Page(List<UserAuth> items, int page, int pageSize) =>
+        new()
+        {
+            Items = items,
+            TotalItems = items.Count,
+            Page = page,
+            PageSize = pageSize,
+        };
+}
+
+public sealed class InMemoryRefreshTokenRepository : IRefreshTokenRepository
+{
+    private readonly ConcurrentDictionary<string, RefreshToken> _rows = new();
+
+    public IReadOnlyCollection<RefreshToken> All => [.. _rows.Values];
+
+    public Task SaveAsync(RefreshToken token, CancellationToken cancellationToken = default)
+    {
+        _rows[token.Token] = token;
+        return Task.CompletedTask;
+    }
+
+    public Task<RefreshToken?> GetByTokenAsync(string token, CancellationToken cancellationToken = default) =>
+        Task.FromResult(_rows.GetValueOrDefault(token));
+
+    public Task RevokeAsync(string token, CancellationToken cancellationToken = default)
+    {
+        _rows.TryRemove(token, out _);
+        return Task.CompletedTask;
+    }
 }
