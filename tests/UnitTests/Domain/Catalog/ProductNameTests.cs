@@ -33,7 +33,7 @@ public class ProductNameTests
         var result = ProductName.Create("Hi");
 
         Assert.IsTrue(result.IsFailure);
-        Assert.AreEqual("Invalid product name format", result.Error);
+        Assert.AreEqual("Product name must be at least 3 characters", result.Error);
     }
 
     [TestMethod]
@@ -43,7 +43,30 @@ public class ProductNameTests
         var result = ProductName.Create(longName);
 
         Assert.IsTrue(result.IsFailure);
-        Assert.AreEqual("Invalid product name format", result.Error);
+        Assert.AreEqual("Product name must be at most 100 characters", result.Error);
+    }
+
+    [TestMethod]
+    public void Create_WithNamesAtLengthLimits_ShouldSucceed()
+    {
+        var names = new[] { "Nut", new string('A', 100) };
+
+        foreach (var name in names)
+        {
+            var result = ProductName.Create(name);
+
+            Assert.IsTrue(result.IsSuccess, $"Expected success for name of length {name.Length}");
+            Assert.AreEqual(name, result.Value!.Value);
+        }
+    }
+
+    [TestMethod]
+    public void Create_WithTooLongNameAndInvalidCharacters_ShouldReportLength()
+    {
+        var result = ProductName.Create(new string('@', 101));
+
+        Assert.IsTrue(result.IsFailure);
+        Assert.AreEqual("Product name must be at most 100 characters", result.Error);
     }
 
     [TestMethod]
@@ -63,6 +86,11 @@ public class ProductNameTests
             var result = ProductName.Create(name);
 
             Assert.IsTrue(result.IsFailure, $"Expected failure for name: '{name}'");
+            Assert.AreEqual(
+                "Product name can only contain letters, numbers, spaces, hyphens, apostrophes and ampersands",
+                result.Error,
+                $"Unexpected error for name: '{name}'"
+            );
         }
     }
 
@@ -76,6 +104,7 @@ public class ProductNameTests
             var result = ProductName.Create(input!);
 
             Assert.IsTrue(result.IsFailure);
+            Assert.AreEqual("Product name cannot be empty", result.Error);
         }
     }
 
