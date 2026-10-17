@@ -74,6 +74,45 @@ public class AggregateRootTests
     }
 
     [TestMethod]
+    public void UncommittedEvents_Are_In_The_Order_They_Were_Raised()
+    {
+        var agg = new TestAggregate();
+        agg.DoSomething("first");
+        agg.DoSomething("second");
+
+        CollectionAssert.AreEqual(
+            new[] { "first", "second" },
+            agg.UncommittedEvents.Cast<TestEvent>().Select(e => e.Value).ToArray()
+        );
+    }
+
+    [TestMethod]
+    public void ShouldCreateSnapshot_Should_Be_True_When_A_Commit_Steps_Over_The_Boundary()
+    {
+        var agg = new TestAggregate();
+        for (int i = 0; i < agg.SnapshotFrequency - 1; i++)
+            agg.DoSomething($"e{i}");
+        agg.ClearUncommittedEvents();
+
+        agg.DoSomething("crosses");
+        agg.DoSomething("past");
+
+        Assert.AreEqual(agg.SnapshotFrequency + 1, agg.Version);
+        Assert.IsTrue(agg.ShouldCreateSnapshot());
+    }
+
+    [TestMethod]
+    public void LoadFromSnapshot_Should_Be_Rejected_By_Aggregates_That_Cannot_Restore()
+    {
+        var agg = new TestAggregate();
+
+        var restored = agg.LoadFromSnapshot(new TestSnapshot([]) { AggregateId = Guid.NewGuid(), Version = 7 });
+
+        Assert.IsFalse(restored);
+        Assert.AreEqual(0, agg.Version);
+    }
+
+    [TestMethod]
     public void LoadFromHistory_Should_Apply_Events_And_Increment_Version()
     {
         var events = Enumerable
@@ -88,26 +127,5 @@ public class AggregateRootTests
         Assert.AreEqual(3, agg.Version);
         var values = new string[] { "v1", "v2", "v3" };
         CollectionAssert.AreEqual(values, agg.AppliedValues);
-    }
-
-    [TestMethod]
-    public void Rehydrate_Should_Reconstruct_From_History()
-    {
-        var events = new List<DomainEvent> { new TestEvent("x"), new TestEvent("y") };
-
-        var result = AggregateRoot.Rehydrate<TestAggregate>(events);
-        var expected = new string[] { "x", "y" };
-
-        Assert.IsTrue(result.IsSuccess);
-        CollectionAssert.AreEqual(expected, result.Value!.AppliedValues);
-    }
-
-    [TestMethod]
-    public void Rehydrate_Should_Return_Failure_When_Empty()
-    {
-        var result = AggregateRoot.Rehydrate<TestAggregate>(Enumerable.Empty<DomainEvent>());
-
-        Assert.IsTrue(result.IsFailure);
-        Assert.AreEqual("History cannot be null or empty", result.Error);
     }
 }

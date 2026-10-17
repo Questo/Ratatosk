@@ -1,5 +1,5 @@
+using Ratatosk.Core.Abstractions;
 using Ratatosk.Core.BuildingBlocks;
-using Ratatosk.Infrastructure.EventStore;
 
 namespace Ratatosk.Infrastructure.Serialization.Serializers;
 

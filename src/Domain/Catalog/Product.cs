@@ -25,9 +25,10 @@ public class Product : AggregateRoot
                 break;
 
             case ProductUpdated e:
+                // Description and Price are optional on an update; null means unchanged.
                 Name = e.Name;
-                Description = e.Description;
-                Price = e.Price;
+                Description = e.Description ?? Description;
+                Price = e.Price ?? Price;
                 break;
         }
     }
@@ -43,6 +44,18 @@ public class Product : AggregateRoot
             Description = Description,
             Price = Price,
         };
+
+    protected override bool RestoreSnapshot(Snapshot snapshot)
+    {
+        if (snapshot is not ProductSnapshot s)
+            return false;
+
+        Name = s.Name;
+        Sku = s.Sku;
+        Description = s.Description;
+        Price = s.Price;
+        return true;
+    }
 
     public static Result<Product> Create(string name, string sku, string description, decimal price)
     {

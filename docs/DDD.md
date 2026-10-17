@@ -19,9 +19,9 @@ Key pieces in this repository you will encounter:
 
 Relevant implementation files (examples):
 
-- Event store implementations: `src/Infrastructure/Persistence/EventStore/PostgresEventStore.cs`, `src/Infrastructure/Persistence/EventStore/FileEventStore.cs`, `src/Infrastructure/Persistence/EventStore/InMemoryEventStore.cs`.
-- Product read model repository: `src/Infrastructure/Persistence/ReadModels/ProductReadModelRepository.cs`.
-- Aggregate persistence helpers: `src/Infrastructure/Persistence/AggregateRepository.cs`, `src/Infrastructure/Persistence/UnitOfWork.cs`.
+- Event store implementations: `src/Infrastructure/Persistence/EventSourcing/PostgresEventStore.cs`, `src/Infrastructure/Persistence/EventSourcing/FileEventStore.cs`, `src/Infrastructure/Persistence/EventSourcing/InMemoryEventStore.cs`.
+- Product read model repository: `src/Infrastructure/Persistence/ReadModels/ProductReadModel.cs`.
+- Aggregate persistence: `src/Infrastructure/Persistence/Repositories/AggregateRepository.cs` (load and commit), `src/Infrastructure/Persistence/Repositories/UnitOfWork.cs`.
 
 ---
 
@@ -46,13 +46,12 @@ Write path (commands):
 1. A Command arrives (e.g., `AddProductCommand`).
 2. Application layer finds the `Aggregate` (via `AggregateRepository`) or creates a new one.
 3. The aggregate executes domain logic and emits domain events (e.g., `ProductCreated`, `ProductPriceChanged`).
-4. The `AggregateRepository` / `UnitOfWork` persists emitted events to the `Event Store`.
-5. Optionally a `Snapshot` is created/stored to speed up rehydration.
+4. The handler calls `AggregateRepository.CommitAsync`, which appends the events to the `Event Store` (rejecting a stale version), commits the transaction, stores a `Snapshot` when one is due (best-effort), and then publishes the events to their handlers.
 
 Read path (queries):
 
 1. The application queries a read model (projection), e.g., a `ProductReadModel`.
-2. Read models are updated asynchronously (or synchronously depending on implementation) by applying domain events to a projector which writes to a query-friendly store (e.g., Postgres tables, JSON files, or in-memory structures).
+2. Read models are updated synchronously, in-process, right after the events are committed: each event handler (projector) runs in its own scope and transaction and writes to Postgres read-model tables.
 3. Queries return results directly from the read model, optimized for read performance.
 
 This separation enables the domain model to remain pure and focused on business rules while allowing read models to be shaped for performance and client needs.
@@ -64,10 +63,10 @@ This separation enables the domain model to remain pure and focused on business 
 Consider creating a new product:
 
 1. `AddProductCommand` is handled by `AddProductCommandHandler` in the application layer.
-2. The handler either constructs a new `Product` aggregate or uses `AggregateRepository` to ensure it is correctly created.
-3. The `Product` aggregate enforces invariants and emits a `ProductCreated` event that contains the minimal set of facts (e.g., ProductId, Name, Price, Inventory).
-4. `AggregateRepository` persists the `ProductCreated` event to the `Event Store` (see `src/Infrastructure/Persistence/EventStore/PostgresEventStore.cs`).
-5. After persistence, projector(s) consume the event and update `ProductReadModel` via `ProductReadModelRepository`.
+2. The handler checks the SKU is unique and calls `Product.Create`.
+3. The `Product` aggregate enforces invariants and emits a `ProductCreated` event that contains the minimal set of facts (ProductId, Name, SKU, Description, Price).
+4. `AggregateRepository.CommitAsync` persists the `ProductCreated` event to the `Event Store` (see `src/Infrastructure/Persistence/EventSourcing/PostgresEventStore.cs`) and publishes it.
+5. Handlers react: `ProductProjection` writes the `ProductReadModel`, `InventoryProjection` creates the stock record, and `InventoryProvisioningHandler` creates the product's Inventory aggregate.
 
 This means the source of truth for product state is the stream of events. The read model is a derived, denormalized view optimized for queries.
 
@@ -79,8 +78,8 @@ Projections are processes that subscribe to the event stream and maintain read m
 
 How projections are represented here:
 
-- Projector logic updates read models when events are appended to the event store. The concrete projector may live in the application layer or in `Infrastructure` depending on where delivery is wired.
-- Read model repositories (e.g., `ProductReadModelRepository.cs`) provide CRUD-like access to the derived view used by query handlers.
+- Projectors are `IDomainEventHandler<T>` classes in `src/Application/<Context>` (e.g., `ProductProjection`, `OrderProjection`). `EventHandlerDispatcher` delivers each committed event to them.
+- Read model repositories (e.g., `ProductReadModel.cs`) provide CRUD-like access to the derived view used by query handlers.
 
 Example responsibilities of `ProductReadModelRepository`:
 
@@ -100,17 +99,17 @@ This repository contains read model implementations under `src/Infrastructure/Pe
 
 Long event streams can make aggregate rehydration slow. Snapshot stores save condensed aggregate state at a point in time so rehydration can start from the snapshot and apply only newer events.
 
-This project includes snapshot store implementations alongside event stores in `src/Infrastructure/Persistence/EventStore` (e.g., `InMemorySnapshotStore.cs`, `PostgresSnapshotStore.cs`).
+This project includes snapshot store implementations alongside event stores in `src/Infrastructure/Persistence/EventSourcing` (`InMemorySnapshotStore.cs`, `FileSnapshotStore.cs`, `PostgresSnapshotStore.cs`). Snapshots are keyed by aggregate type and id. An aggregate opts in by overriding both `CreateSnapshot` and `RestoreSnapshot` (see `Product`).
 
 ---
 
 ## Where to look in the code
 
-- Command handlers and application services: `src/Application` (search for command/handler classes like `AddProductCommandHandler`).
+- Command handlers and event handlers: `src/Application` (e.g., `AddProductCommandHandler`, `OrderReservationProcess`).
 - Aggregate and domain logic: `src/Domain` (search for `Product` domain types and domain events).
-- Event store implementations: `src/Infrastructure/Persistence/EventStore`.
-- Read model repositories (projections): `src/Infrastructure/Persistence/ReadModels/ProductReadModelRepository.cs`.
-- Persistence glue (repositories, unit of work): `src/Infrastructure/Persistence/AggregateRepository.cs`, `src/Infrastructure/Persistence/UnitOfWork.cs`.
+- Event store implementations: `src/Infrastructure/Persistence/EventSourcing`.
+- Read model repositories: `src/Infrastructure/Persistence/ReadModels`.
+- Persistence glue (aggregate repository, unit of work): `src/Infrastructure/Persistence/Repositories`.
 
 ---
 

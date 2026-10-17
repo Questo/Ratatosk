@@ -6,12 +6,9 @@ using Ratatosk.Application.Authentication;
 using Ratatosk.Application.Catalog.Models;
 using Ratatosk.Application.Inventoring;
 using Ratatosk.Application.Ordering;
-using Ratatosk.Application.Shared;
 using Ratatosk.Core.Abstractions;
 using Ratatosk.Domain.Catalog;
-using Ratatosk.Domain.Inventoring;
 using Ratatosk.Infrastructure.Authentication;
-using Ratatosk.Infrastructure.EventStore;
 using Ratatosk.Infrastructure.Persistence;
 using Ratatosk.Infrastructure.Persistence.EventStore;
 using Ratatosk.Infrastructure.Persistence.ReadModels;
@@ -50,38 +47,43 @@ public static class DependencyInjection
             return uow;
         });
 
+        // The in-memory stores *are* the storage, so one instance must outlive every scope.
+        services.AddSingleton<InMemoryEventStore>();
+        services.AddSingleton<InMemorySnapshotStore>();
+
         services.AddScoped<IEventStore>(provider =>
         {
-            var eventStoreOptions = provider
-                .GetRequiredService<IOptions<EventStoreOptions>>()
-                .Value;
-            var uow = provider.GetRequiredService<IUnitOfWork>();
+            var options = provider.GetRequiredService<IOptions<EventStoreOptions>>().Value;
 
-            return eventStoreOptions.Type switch
+            return options.Type switch
             {
                 StoreType.File => new FileEventStore(
-                    eventStoreOptions,
+                    options,
                     provider.GetRequiredService<IEventSerializer>()
                 ),
                 StoreType.Sql => new PostgresEventStore(
-                    uow,
+                    provider.GetRequiredService<IUnitOfWork>(),
                     provider.GetRequiredService<IEventSerializer>()
                 ),
-                StoreType.InMemory or _ => new InMemoryEventStore(),
+                StoreType.InMemory or _ => provider.GetRequiredService<InMemoryEventStore>(),
             };
         });
 
         services.AddScoped<ISnapshotStore>(provider =>
         {
             var options = provider.GetRequiredService<IOptions<EventStoreOptions>>().Value;
-            var serializer = provider.GetRequiredService<ISnapshotSerializer>();
-            var uow = provider.GetRequiredService<IUnitOfWork>();
 
             return options.Type switch
             {
-                StoreType.Sql => new PostgresSnapshotStore(uow, serializer),
-                StoreType.InMemory => new InMemorySnapshotStore(),
-                _ => throw new NotImplementedException(),
+                StoreType.File => new FileSnapshotStore(
+                    options,
+                    provider.GetRequiredService<ISnapshotSerializer>()
+                ),
+                StoreType.Sql => new PostgresSnapshotStore(
+                    provider.GetRequiredService<IUnitOfWork>(),
+                    provider.GetRequiredService<ISnapshotSerializer>()
+                ),
+                StoreType.InMemory or _ => provider.GetRequiredService<InMemorySnapshotStore>(),
             };
         });
 
@@ -90,7 +92,6 @@ public static class DependencyInjection
         services.AddScoped<IProductDomainService, ProductDomainService>();
 
         services.AddScoped<IInventoryReadModelRepository, InventoryReadModelRepository>();
-        services.AddScoped<IInventoryDomainService, InventoryDomainService>();
 
         services.AddScoped<IOrderReadModelRepository, OrderReadModelRepository>();
 
@@ -111,7 +112,7 @@ public static class DependencyInjection
         services.AddScoped<IPasswordHasher, Argon2PasswordHasher>();
         services.AddScoped<ITokenIssuer, JwtTokenIssuer>();
 
-        services.AddHostedService<ProjectionRegistrationService>();
+        services.AddHostedService<EventHandlerDispatcher>();
 
         return services;
     }

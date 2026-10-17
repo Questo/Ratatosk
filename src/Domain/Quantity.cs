@@ -36,7 +36,7 @@ public sealed class Quantity : ValueObject
     private Quantity(int amount, string unit)
     {
         Amount = amount;
-        Unit = ValidUnits.First(u => u.Equals(unit, StringComparison.OrdinalIgnoreCase));
+        Unit = unit;
     }
 
     public static Result<Quantity> Create(int amount, string unit)
@@ -47,11 +47,14 @@ public sealed class Quantity : ValueObject
         if (string.IsNullOrWhiteSpace(unit))
             return Result<Quantity>.Failure("Unit cannot be empty");
 
-        if (!ValidUnits.Contains(unit))
+        if (!ValidUnits.TryGetValue(unit, out var canonicalUnit))
             return Result<Quantity>.Failure($"Unit '{unit}' is not supported");
 
-        return Result<Quantity>.Success(new Quantity(amount, unit));
+        return Result<Quantity>.Success(new Quantity(amount, canonicalUnit));
     }
+
+    // Rebuilds a value that was valid when it was stored, without re-running today's validation.
+    internal static Quantity FromStored(int amount, string unit) => new(amount, unit);
 
     public static Quantity Pieces(int amount) => new(amount, "pcs");
 

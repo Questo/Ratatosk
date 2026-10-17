@@ -1,66 +1,144 @@
+using Microsoft.Extensions.Logging;
 using Ratatosk.Core.Abstractions;
 using Ratatosk.Core.BuildingBlocks;
 using Ratatosk.Core.Primitives;
-using Ratatosk.Infrastructure.EventStore;
 using Ratatosk.Infrastructure.Shared;
 
 namespace Ratatosk.Infrastructure.Persistence.Repositories;
 
-public class AggregateRepository<T>(IEventStore eventStore, ISnapshotStore snapshotStore)
-    : IAggregateRepository<T>
+/// <summary>
+/// Loads aggregates from snapshot + events, and commits them: append in raise order with an
+/// expected-version check, end the transaction, clear, snapshot when due (best-effort, in its
+/// own transaction), then publish. This is the only place that sequence lives.
+/// </summary>
+public class AggregateRepository<T>(
+    IEventStore eventStore,
+    ISnapshotStore snapshotStore,
+    IUnitOfWork uow,
+    IEventBus eventBus,
+    ILogger<AggregateRepository<T>> logger
+) : IAggregateRepository<T>
     where T : AggregateRoot, new()
 {
+    private static readonly string AggregateType = typeof(T).FullName!;
+
     public async Task<Result<T>> LoadAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var streamName = StreamName.For<T>(id);
-        Snapshot? snapshot = await snapshotStore.LoadSnapshotAsync(id, cancellationToken);
+        var aggregate = new T();
+        var fromVersion = 1;
 
-        int fromVersion = 0;
-        T? snapshotAggregate = null;
-
-        if (snapshot is not null && snapshot is T typedSnapshot)
-        {
-            snapshotAggregate = typedSnapshot;
-            fromVersion = snapshotAggregate.Version;
-        }
+        var snapshot = await snapshotStore.LoadSnapshotAsync(AggregateType, id, cancellationToken);
+        var restoredFromSnapshot = snapshot is not null && aggregate.LoadFromSnapshot(snapshot);
+        if (restoredFromSnapshot)
+            fromVersion = snapshot!.Version + 1;
 
         var events = await eventStore.LoadEventsAsync(
-            streamName,
-            fromVersion + 1,
+            StreamName.For<T>(id),
+            fromVersion,
             cancellationToken
         );
 
-        // Combine history: snapshot (if any) + new events
-        if (snapshotAggregate is not null)
-        {
-            snapshotAggregate.LoadFromHistory(events);
-            return Result<T>.Success(snapshotAggregate);
-        }
-
-        if (events.Count == 0)
+        if (!restoredFromSnapshot && events.Count == 0)
             return Result<T>.Failure($"{typeof(T).Name} with ID {id} not found");
 
-        return AggregateRoot.Rehydrate<T>(events);
+        try
+        {
+            aggregate.LoadFromHistory(events);
+        }
+        catch (Exception ex)
+        {
+            return Result<T>.Failure($"Failed to rehydrate aggregate: {ex.Message}");
+        }
+
+        return Result<T>.Success(aggregate);
     }
 
-    public async Task SaveAsync(T aggregate, CancellationToken cancellationToken = default)
+    public async Task CommitAsync(T aggregate, CancellationToken cancellationToken = default)
     {
-        var streamName = StreamName.For<T>(aggregate.Id);
-        var uncommitted = aggregate.UncommittedEvents;
-        await eventStore.AppendEventsAsync(
-            streamName,
-            uncommitted,
-            aggregate.PersistedVersion,
-            cancellationToken
-        );
-
-        if (!aggregate.ShouldCreateSnapshot())
+        var events = aggregate.UncommittedEvents;
+        if (events.Count == 0)
             return;
 
-        var snapshot = aggregate.CreateSnapshot();
-        if (snapshot == null)
+        var snapshotDue = aggregate.ShouldCreateSnapshot();
+        var appended = false;
+
+        try
+        {
+            await eventStore.AppendEventsAsync(
+                StreamName.For<T>(aggregate.Id),
+                events,
+                aggregate.PersistedVersion,
+                cancellationToken
+            );
+            appended = true;
+
+            // Commit before publishing: handlers run in their own scopes and read this state back.
+            uow.Commit();
+        }
+        catch (Exception ex)
+        {
+            uow.Rollback();
+
+            // A store outside the transaction already holds the events; the read models must
+            // still see them, even though the rest of the transaction is lost.
+            if (appended && !eventStore.AppendsInTransaction)
+            {
+                logger.LogError(
+                    ex,
+                    "Transaction failed after {Count} event(s) were stored for {Aggregate} {Id}; publishing them anyway",
+                    events.Count,
+                    typeof(T).Name,
+                    aggregate.Id
+                );
+                aggregate.ClearUncommittedEvents();
+                await PublishAsync(events, cancellationToken);
+            }
+
+            throw;
+        }
+
+        aggregate.ClearUncommittedEvents();
+
+        if (snapshotDue)
+            await TrySaveSnapshotAsync(aggregate, cancellationToken);
+
+        await PublishAsync(events, cancellationToken);
+    }
+
+    // A snapshot only speeds up loading, so failing to save one must not fail the commit. It
+    // gets its own transaction: a failed statement would abort the one the events went into.
+    private async Task TrySaveSnapshotAsync(T aggregate, CancellationToken cancellationToken)
+    {
+        if (aggregate.CreateSnapshot() is not { } snapshot)
             return;
 
-        await snapshotStore.SaveSnapshotAsync(snapshot, cancellationToken);
+        try
+        {
+            snapshot.AggregateType = AggregateType;
+            await snapshotStore.SaveSnapshotAsync(snapshot, cancellationToken);
+            uow.Commit();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            try
+            {
+                uow.Rollback();
+            }
+            catch { }
+
+            logger.LogWarning(
+                ex,
+                "Could not save a snapshot of {Aggregate} {Id} at version {Version}",
+                typeof(T).Name,
+                aggregate.Id,
+                snapshot.Version
+            );
+        }
+    }
+
+    private async Task PublishAsync(IReadOnlyList<DomainEvent> events, CancellationToken cancellationToken)
+    {
+        foreach (var domainEvent in events)
+            await eventBus.PublishAsync(domainEvent, cancellationToken);
     }
 }

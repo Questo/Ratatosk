@@ -1,10 +1,9 @@
-using Ratatosk.Core.Abstractions;
 using Ratatosk.Domain.Catalog.Events;
 using Ratatosk.Domain.Catalog.ValueObjects;
 
 namespace Ratatosk.Domain.Catalog;
 
-public class ProductBuilder : IBuilder<Product>
+public class ProductBuilder
 {
     private ProductName _name = ProductName.Create("Default Product").Value!;
     private SKU _sku = SKU.Create(SkuGenerator.Generate("TEST")).Value!;
@@ -59,15 +58,5 @@ public class ProductBuilder : IBuilder<Product>
         product.LoadFromHistory([created]);
 
         return product;
-    }
-
-    public IBuilder<Product> With<TValue>(string propertyName, TValue value)
-    {
-        var property = typeof(ProductBuilder).GetField(
-            $"_{propertyName}",
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance
-        );
-        property?.SetValue(this, value);
-        return this;
     }
 }

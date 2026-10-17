@@ -12,6 +12,9 @@ public sealed class PasswordHash : ValueObject
         Value = value;
     }
 
+    // Rebuilds a value that was valid when it was stored, without re-running today's validation.
+    internal static PasswordHash FromStored(string value) => new(value);
+
     protected override IEnumerable<object> GetEqualityComponents()
     {
         yield return Value;

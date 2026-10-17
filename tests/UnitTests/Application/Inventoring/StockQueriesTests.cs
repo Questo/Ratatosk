@@ -13,7 +13,7 @@ public class GetStockByProductIdQueryHandlerTests
     {
         var repoMock = new Mock<IInventoryReadModelRepository>();
         var productId = Guid.NewGuid();
-        var stock = new StockReadModel(productId, "TS-1234", 5, 1, "pcs", DateTime.UtcNow);
+        var stock = new StockReadModel(productId, "TS-1234", 5, 1, "pcs", 1, DateTime.UtcNow);
 
         repoMock
             .Setup(r => r.GetByProductIdAsync(productId, It.IsAny<CancellationToken>()))
@@ -50,7 +50,7 @@ public class GetStockBySkuQueryHandlerTests
     public async Task HandleAsync_WhenFound_ShouldReturnSuccess()
     {
         var repoMock = new Mock<IInventoryReadModelRepository>();
-        var stock = new StockReadModel(Guid.NewGuid(), "TS-1234", 5, 1, "pcs", DateTime.UtcNow);
+        var stock = new StockReadModel(Guid.NewGuid(), "TS-1234", 5, 1, "pcs", 1, DateTime.UtcNow);
 
         repoMock
             .Setup(r => r.GetBySkuAsync("TS-1234", It.IsAny<CancellationToken>()))

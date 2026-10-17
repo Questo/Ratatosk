@@ -28,6 +28,10 @@ public sealed class OrderLine : ValueObject
         return Result<OrderLine>.Success(new OrderLine(sku, quantity, unitPrice));
     }
 
+    // Rebuilds a value that was valid when it was stored, without re-running today's validation.
+    internal static OrderLine FromStored(SKU sku, int quantity, Price unitPrice) =>
+        new(sku, quantity, unitPrice);
+
     protected override IEnumerable<object> GetEqualityComponents()
     {
         yield return Sku;

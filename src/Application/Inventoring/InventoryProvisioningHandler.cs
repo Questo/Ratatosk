@@ -4,10 +4,8 @@ using Ratatosk.Domain.Inventoring;
 
 namespace Ratatosk.Application.Inventoring;
 
-public class InventoryProvisioningHandler(
-    IAggregateRepository<Inventory> repository,
-    IEventBus eventBus
-) : IDomainEventHandler<ProductCreated>
+public class InventoryProvisioningHandler(IAggregateRepository<Inventory> repository)
+    : IDomainEventHandler<ProductCreated>
 {
     public async Task WhenAsync(
         ProductCreated domainEvent,
@@ -16,9 +14,6 @@ public class InventoryProvisioningHandler(
     {
         var inventory = Inventory.Create(domainEvent.ProductId);
 
-        await repository.SaveAsync(inventory, cancellationToken);
-
-        foreach (var raised in inventory.UncommittedEvents)
-            await eventBus.PublishAsync(raised, cancellationToken);
+        await repository.CommitAsync(inventory, cancellationToken);
     }
 }

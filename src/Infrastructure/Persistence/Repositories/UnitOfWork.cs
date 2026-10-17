@@ -1,5 +1,4 @@
 using System.Data;
-using Ratatosk.Application.Shared;
 
 namespace Ratatosk.Infrastructure.Persistence;
 
@@ -45,6 +44,24 @@ public class UnitOfWork(string ConnectionString) : IDisposable, IUnitOfWork
             throw new InvalidOperationException("Failed to commit the transaction.", ex);
         }
 
+        Restart();
+    }
+
+    // Rolls back, then reopens a transaction so the scope can carry on (e.g. retry after a conflict).
+    public void Rollback()
+    {
+        if (_transaction == null)
+        {
+            return;
+        }
+
+        _transaction.Rollback();
+        Restart();
+    }
+
+    private void Restart()
+    {
+        _transaction?.Dispose();
         _transaction = _connection!.BeginTransaction();
     }
 
@@ -54,15 +71,5 @@ public class UnitOfWork(string ConnectionString) : IDisposable, IUnitOfWork
         _connection?.Dispose();
 
         GC.SuppressFinalize(this);
-    }
-
-    public void Rollback()
-    {
-        if (_transaction == null)
-        {
-            return;
-        }
-
-        _transaction.Rollback();
     }
 }

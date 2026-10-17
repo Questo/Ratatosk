@@ -1,3 +1,4 @@
+using Ratatosk.Core.BuildingBlocks;
 using Ratatosk.Application.Catalog;
 using Ratatosk.Application.Catalog.Commands;
 using Ratatosk.Application.Catalog.Queries;
@@ -17,11 +18,11 @@ public static class ProductsEndpoints
                 "/products",
                 async (
                     AddProductCommand cmd,
-                    ICatalogService catalogService,
+                    IDispatcher dispatcher,
                     CancellationToken ct
                 ) =>
                 {
-                    var result = await catalogService.AddProductAsync(cmd, ct);
+                    var result = await dispatcher.DispatchAsync(cmd, ct);
                     var response = Response<Guid>.FromResult(result);
 
                     return result.IsFailure
@@ -42,10 +43,10 @@ public static class ProductsEndpoints
 
         app.MapGet(
                 "/products/{id:guid}",
-                async (Guid id, ICatalogService catalogService, CancellationToken ct) =>
+                async (Guid id, IDispatcher dispatcher, CancellationToken ct) =>
                 {
                     var query = new GetProductByIdQuery(id);
-                    var result = await catalogService.GetProductByIdAsync(query, ct);
+                    var result = await dispatcher.DispatchAsync(query, ct);
 
                     return result.IsFailure ? Results.NotFound() : Results.Ok(result.Value);
                 }
@@ -63,11 +64,11 @@ public static class ProductsEndpoints
                 async (
                     Guid id,
                     UpdateProductCommand cmd,
-                    ICatalogService service,
+                    IDispatcher dispatcher,
                     CancellationToken ct
                 ) =>
                 {
-                    var result = await service.UpdateProductAsync(cmd with { ProductId = id }, ct);
+                    var result = await dispatcher.DispatchAsync(cmd with { ProductId = id }, ct);
 
                     return result.IsFailure ? Results.BadRequest(result.Error) : Results.Ok();
                 }
@@ -85,7 +86,7 @@ public static class ProductsEndpoints
                 "/products",
                 async (
                     [AsParameters] SearchProductsRequest request,
-                    ICatalogService catalogService,
+                    IDispatcher dispatcher,
                     CancellationToken ct
                 ) =>
                 {
@@ -94,7 +95,7 @@ public static class ProductsEndpoints
                         request.Page,
                         request.PageSize
                     );
-                    var result = await catalogService.GetProductsAsync(query, ct);
+                    var result = await dispatcher.DispatchAsync(query, ct);
 
                     return result.IsFailure
                         ? Results.BadRequest(result.Error)
@@ -113,10 +114,10 @@ public static class ProductsEndpoints
 
         app.MapDelete(
                 "/products/{id:guid}",
-                async (Guid id, ICatalogService catalogService, CancellationToken ct) =>
+                async (Guid id, IDispatcher dispatcher, CancellationToken ct) =>
                 {
                     var command = new RemoveProductCommand(id);
-                    var result = await catalogService.RemoveProductAsync(command, ct);
+                    var result = await dispatcher.DispatchAsync(command, ct);
 
                     return result.IsFailure ? Results.NotFound() : Results.NoContent();
                 }

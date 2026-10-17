@@ -26,6 +26,9 @@ public sealed partial class Email : ValueObject
         return Result<Email>.Success(new Email(value.ToLower()));
     }
 
+    // Rebuilds a value that was valid when it was stored, without re-running today's validation.
+    internal static Email FromStored(string value) => new(value);
+
     protected override IEnumerable<object> GetEqualityComponents()
     {
         yield return Value;

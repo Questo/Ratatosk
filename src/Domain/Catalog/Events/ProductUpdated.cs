@@ -12,6 +12,6 @@ public sealed class ProductUpdated(
 {
     public Guid ProductId { get; } = productId;
     public ProductName Name { get; } = name;
-    public Description Description { get; } = description ?? default!;
-    public Price Price { get; } = price ?? default!;
+    public Description? Description { get; } = description;
+    public Price? Price { get; } = price;
 }

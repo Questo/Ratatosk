@@ -1,29 +1,24 @@
-using System.Data;
-using Dapper;
-using Microsoft.Extensions.Options;
-using Npgsql;
 using Ratatosk.Domain.Catalog;
-using Ratatosk.Infrastructure.Configuration;
+using Ratatosk.Infrastructure.Persistence;
+using Ratatosk.Infrastructure.Persistence.Repositories;
 
 namespace Ratatosk.Infrastructure.Services;
 
-public class ProductDomainService(IOptions<DatabaseOptions> options) : IProductDomainService
+public class ProductDomainService(IUnitOfWork uow) : PostgresRepository(uow), IProductDomainService
 {
-    private readonly IDbConnection _db = new NpgsqlConnection(options.Value.ConnectionString);
-
     public async Task<bool> IsSkuUniqueAsync(
         string sku,
         CancellationToken cancellationToken = default
     )
     {
-        const string sql = """
+        var count = await ScalarAsync<int>(
+            """
                 SELECT COUNT(1)
                 FROM product_read_models
                 WHERE sku = @Sku
-            """;
-
-        var count = await _db.ExecuteScalarAsync<int>(
-            new CommandDefinition(sql, new { Sku = sku }, cancellationToken: cancellationToken)
+            """,
+            new { Sku = sku },
+            cancellationToken
         );
 
         return count == 0;

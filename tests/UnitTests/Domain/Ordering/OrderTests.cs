@@ -1,4 +1,3 @@
-using Ratatosk.Core.BuildingBlocks;
 using Ratatosk.Domain;
 using Ratatosk.Domain.Catalog;
 using Ratatosk.Domain.Catalog.ValueObjects;
@@ -145,16 +144,18 @@ public class OrderTests
     }
 
     [TestMethod]
-    public void Rehydrate_FromHistory_ShouldRestoreState()
+    public void LoadFromHistory_ShouldRestoreState()
     {
         var line = Line();
         var order = Order.Place(Guid.NewGuid(), [line]).Value!;
         order.MarkLineReserved(line.Sku);
 
-        var rehydrated = AggregateRoot.Rehydrate<Order>(order.UncommittedEvents.Reverse());
+        // Uncommitted events are in raise order, so they replay as-is.
+        var loaded = new Order();
+        loaded.LoadFromHistory(order.UncommittedEvents);
 
-        Assert.IsTrue(rehydrated.IsSuccess);
-        Assert.AreEqual(order.Id, rehydrated.Value!.Id);
-        Assert.AreEqual(OrderStatus.Confirmed, rehydrated.Value!.Status);
+        Assert.AreEqual(order.Id, loaded.Id);
+        Assert.AreEqual(OrderStatus.Confirmed, loaded.Status);
+        Assert.AreEqual(order.PlacedAtUtc, loaded.PlacedAtUtc);
     }
 }

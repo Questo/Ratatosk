@@ -41,6 +41,9 @@ public sealed class Price : ValueObject
         return Result<Price>.Success(new Price(amount, currency));
     }
 
+    // Rebuilds a value that was valid when it was stored, without re-running today's validation.
+    internal static Price FromStored(decimal amount, string currency) => new(amount, currency);
+
     public static Price Free() => new(0, "SEK");
 
     protected override IEnumerable<object> GetEqualityComponents()

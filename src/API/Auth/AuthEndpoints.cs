@@ -1,3 +1,4 @@
+using Ratatosk.Core.BuildingBlocks;
 using Ratatosk.Application.Authentication;
 using Ratatosk.Application.Authentication.Commands;
 using Ratatosk.Application.Authentication.Models;
@@ -14,12 +15,12 @@ public static class AuthEndpoints
                 "/auth/login",
                 async (
                     LoginRequest request,
-                    IAuthenticationService authService,
+                    IDispatcher dispatcher,
                     CancellationToken ct
                 ) =>
                 {
                     var cmd = new LoginCommand(request.Email, request.Password);
-                    var result = await authService.LoginAsync(cmd, ct);
+                    var result = await dispatcher.DispatchAsync(cmd, ct);
                     var response = Response<TokenPair>.FromResult(result);
 
                     if (!result.IsFailure)
@@ -36,12 +37,12 @@ public static class AuthEndpoints
                 "/auth/sign-up",
                 async (
                     SignUpRequest request,
-                    IAuthenticationService service,
+                    IDispatcher dispatcher,
                     CancellationToken ct
                 ) =>
                 {
                     var cmd = new SignUpCommand(request.Email, request.Password);
-                    var result = await service.SignUpAsync(cmd, ct);
+                    var result = await dispatcher.DispatchAsync(cmd, ct);
                     var response = Response<TokenPair>.FromResult(result);
 
                     return result.IsFailure ? Results.BadRequest(response) : Results.Ok(response);
@@ -53,12 +54,12 @@ public static class AuthEndpoints
                 "/auth/refresh",
                 async (
                     RefreshRequest request,
-                    IAuthenticationService authService,
+                    IDispatcher dispatcher,
                     CancellationToken ct
                 ) =>
                 {
                     var cmd = new RefreshTokenCommand(request.RefreshToken);
-                    var result = await authService.RefreshAsync(cmd, ct);
+                    var result = await dispatcher.DispatchAsync(cmd, ct);
                     var response = Response<TokenPair>.FromResult(result);
 
                     return result.IsFailure ? Results.Unauthorized() : Results.Ok(response);

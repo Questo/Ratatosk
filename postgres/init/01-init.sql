@@ -11,12 +11,13 @@ CREATE TABLE IF NOT EXISTS events(
 CREATE INDEX IF NOT EXISTS idx_event_stream_name ON events(stream_name);
 
 CREATE TABLE IF NOT EXISTS snapshots(
-    aggregate_id uuid PRIMARY KEY,
+    aggregate_id uuid NOT NULL,
     version integer NOT NULL,
     aggregate_type text NOT NULL,
     aggregate_data text NOT NULL,
     taken_at_utc timestamptz NOT NULL,
-    UNIQUE (aggregate_id, version)
+    -- Keyed by type too: an Inventory shares its id with its Product.
+    PRIMARY KEY (aggregate_type, aggregate_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_snapshot_aggregate_id ON snapshots(aggregate_id);
@@ -36,9 +37,10 @@ CREATE INDEX IF NOT EXISTS idx_product_read_models_id ON product_read_models(id)
 CREATE TABLE IF NOT EXISTS inventory_stock_read_models(
     product_id uuid PRIMARY KEY,
     sku text NOT NULL,
-    available integer NOT NULL,
+    on_hand integer NOT NULL,
     reserved integer NOT NULL,
     unit text NOT NULL,
+    version integer NOT NULL DEFAULT 0,
     last_updated_utc timestamptz NOT NULL,
     UNIQUE (sku)
 );

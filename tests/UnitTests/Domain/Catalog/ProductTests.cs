@@ -144,8 +144,8 @@ public class ProductTests
 
         Assert.IsNotNull(@event);
         Assert.AreEqual("New Name", @event.Name.Value);
-        Assert.AreEqual("New Description", @event.Description.Value);
-        Assert.AreEqual(120m, @event.Price.Amount);
+        Assert.AreEqual("New Description", @event.Description!.Value);
+        Assert.AreEqual(120m, @event.Price!.Amount);
     }
 
     [TestMethod]
@@ -181,5 +181,20 @@ public class ProductTests
 
         Assert.IsNotNull(@event);
         Assert.AreEqual(product.Id, @event.ProductId);
+    }
+
+    [TestMethod]
+    public void Update_WithOnlyANewName_ShouldKeepDescriptionAndPrice()
+    {
+        var product = new ProductBuilder()
+            .WithDescription("Original description")
+            .WithPrice(42m)
+            .Build();
+
+        product.Update(ProductName.Create("New Name").Value!, null, null);
+
+        Assert.AreEqual("New Name", product.Name.Value);
+        Assert.AreEqual("Original description", product.Description.Value);
+        Assert.AreEqual(42m, product.Price.Amount);
     }
 }

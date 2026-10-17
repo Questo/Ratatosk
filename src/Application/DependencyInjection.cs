@@ -16,10 +16,7 @@ public static class DependencyInjection
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
         services.AddScoped<IDispatcher, Dispatcher>();
-        services.AddScoped<ICatalogService, CatalogService>();
-        services.AddScoped<IInventoryService, InventoryService>();
-        services.AddScoped<IOrderService, OrderService>();
-        services.AddScoped<IAuthenticationService, AuthenticationService>();
+        services.AddScoped<StockKeeper>();
 
         services.AddRequestHandlers();
         services.AddProjections();
@@ -45,27 +42,6 @@ public static class DependencyInjection
         return services;
     }
 
-    // private static IServiceCollection AddImplementationsOfOpenGeneric(this IServiceCollection services, Type openGenericInterface, Assembly targetAssembly)
-    // {
-    //     var typesToRegister = targetAssembly
-    //         .GetTypes()
-    //         .Where(t => !t.IsAbstract &&
-    //                     !t.IsInterface &&
-    //                     t.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == openGenericInterface))
-    //         .ToList();
-
-    //     foreach (var implementationType in typesToRegister)
-    //     {
-    //         var interfaceType = implementationType.GetInterfaces()
-    //             .First(i => i.IsGenericType && i.GetGenericTypeDefinition() == openGenericInterface);
-
-    //         Console.WriteLine($"Registering {implementationType.Name} as {interfaceType.Name}");
-    //         services.AddScoped(interfaceType, implementationType);
-    //     }
-
-    //     return services;
-    // }
-
     private static IServiceCollection AddImplementationsOfOpenGeneric(
         this IServiceCollection services,
         Type openGenericInterface,
@@ -87,7 +63,6 @@ public static class DependencyInjection
 
             foreach (var interfaceType in interfaces)
             {
-                Console.WriteLine($"Registering {implementationType.Name} as {interfaceType.Name}");
                 services.AddScoped(interfaceType, implementationType);
             }
         }

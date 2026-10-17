@@ -1,3 +1,4 @@
+using Ratatosk.Core.BuildingBlocks;
 using Ratatosk.Application.Ordering;
 using Ratatosk.Application.Ordering.Commands;
 using Ratatosk.Application.Ordering.Models;
@@ -15,7 +16,7 @@ public static class OrderEndpoints
                 "/orders",
                 async (
                     PlaceOrderRequest request,
-                    IOrderService orderService,
+                    IDispatcher dispatcher,
                     CancellationToken ct
                 ) =>
                 {
@@ -28,7 +29,7 @@ public static class OrderEndpoints
                             )),
                         ]
                     );
-                    var result = await orderService.PlaceOrderAsync(command, ct);
+                    var result = await dispatcher.DispatchAsync(command, ct);
                     var response = Response<Guid>.FromResult(result);
 
                     return result.IsFailure
@@ -51,10 +52,10 @@ public static class OrderEndpoints
 
         app.MapGet(
                 "/orders/{orderId:guid}",
-                async (Guid orderId, IOrderService orderService, CancellationToken ct) =>
+                async (Guid orderId, IDispatcher dispatcher, CancellationToken ct) =>
                 {
                     var query = new GetOrderByIdQuery(orderId);
-                    var result = await orderService.GetOrderByIdAsync(query, ct);
+                    var result = await dispatcher.DispatchAsync(query, ct);
 
                     return result.IsFailure ? Results.NotFound() : Results.Ok(result.Value);
                 }

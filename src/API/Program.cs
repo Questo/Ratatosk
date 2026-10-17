@@ -5,6 +5,7 @@ using Ratatosk.API.Products;
 using Ratatosk.API.Middleware;
 using Ratatosk.Application;
 using Ratatosk.Infrastructure;
+using Ratatosk.Infrastructure.Persistence;
 using Ratatosk.API;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,6 +16,9 @@ builder.Services.AddApplication();
 builder.Services.AddAPI(builder.Configuration);
 
 var app = builder.Build();
+
+// The read models always live in Postgres, whichever event store is configured.
+await app.Services.UpgradeDatabaseSchemaAsync();
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
@@ -38,9 +42,11 @@ app.UseMiddleware<CleanupResponseMiddleware>();
 
 // Map endpoints
 app.MapGet("/healthz", () => Results.Ok("Healthy"));
-app.MapAuthEndpoints();
-app.MapProductsEndpoints();
-app.MapInventoryEndpoints();
-app.MapOrderEndpoints();
+
+var api = app.MapGroup("").AddEndpointFilter<UnitOfWorkEndpointFilter>();
+api.MapAuthEndpoints();
+api.MapProductsEndpoints();
+api.MapInventoryEndpoints();
+api.MapOrderEndpoints();
 
 app.Run();

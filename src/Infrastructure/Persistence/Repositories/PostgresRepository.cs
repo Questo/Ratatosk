@@ -1,6 +1,7 @@
 using System.Text;
 using Dapper;
 using Ratatosk.Application.Shared;
+using Ratatosk.Infrastructure.Persistence;
 
 namespace Ratatosk.Infrastructure.Persistence.Repositories;
 

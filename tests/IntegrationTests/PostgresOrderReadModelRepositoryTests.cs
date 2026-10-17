@@ -1,7 +1,6 @@
 using Dapper;
 using Ratatosk.Application.Ordering;
 using Ratatosk.Application.Ordering.Models;
-using Ratatosk.Application.Shared;
 using Ratatosk.Infrastructure.Persistence;
 using Ratatosk.Infrastructure.Persistence.ReadModels;
 
