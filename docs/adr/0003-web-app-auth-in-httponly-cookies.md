@@ -1,0 +1,3 @@
+# Web app auth in httpOnly cookies
+
+On login and refresh, the API puts the access JWT and the refresh token in httpOnly, `SameSite=Strict`, `Secure` cookies (the refresh cookie scoped to `/api/auth/refresh`), and it accepts the JWT from that cookie as well as from the `Authorization` header. The browser's built-in `EventSource` can't send headers, so bearer-only auth would need a fetch-based SSE client. Keeping tokens out of JavaScript also removes the "where do we store the refresh token" question. CSRF protection relies on serving the web app and the API from one origin (nginx proxies `/api`) together with `SameSite=Strict`, so splitting them across origins would mean reopening this decision.
