@@ -82,6 +82,28 @@ public sealed class InMemoryInventoryReadModelRepository : IInventoryReadModelRe
     public Task<StockReadModel?> GetBySkuAsync(string sku, CancellationToken cancellationToken = default) =>
         Task.FromResult(_rows.Values.Where(r => r.Sku == sku).Select(Copy).FirstOrDefault());
 
+    public Task<Pagination<StockReadModel>> GetPageAsync(
+        int page = 1,
+        int pageSize = 25,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var rows = _rows
+            .Values.OrderBy(r => r.Sku, StringComparer.Ordinal)
+            .ThenBy(r => r.ProductId)
+            .ToList();
+
+        return Task.FromResult(
+            new Pagination<StockReadModel>
+            {
+                Items = [.. rows.Skip((page - 1) * pageSize).Take(pageSize).Select(Copy)],
+                TotalItems = rows.Count,
+                Page = page,
+                PageSize = pageSize,
+            }
+        );
+    }
+
     // Same contract as the Postgres upsert: never replace a record of the same or a newer version.
     public Task SaveAsync(StockReadModel stock, CancellationToken cancellationToken = default)
     {
@@ -106,15 +128,18 @@ public sealed class InMemoryOrderReadModelRepository : IOrderReadModelRepository
     public Task<OrderReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
         Task.FromResult(_rows.TryGetValue(id, out var row) ? Copy(row) : null);
 
-    public Task<Pagination<OrderReadModel>> GetByCustomerAsync(
-        Guid customerId,
+    public Task<Pagination<OrderReadModel>> GetPageAsync(
+        Guid? customerId = null,
+        string? status = null,
         int page = 1,
         int pageSize = 25,
         CancellationToken cancellationToken = default
     )
     {
         var matches = _rows
-            .Values.Where(r => r.CustomerId == customerId)
+            .Values.Where(r =>
+                (customerId is null || r.CustomerId == customerId) && (status is null || r.Status == status)
+            )
             .OrderByDescending(r => r.CreatedUtc)
             .ThenByDescending(r => r.Id)
             .ToList();

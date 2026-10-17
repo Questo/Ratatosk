@@ -88,17 +88,37 @@ public static class OrderEndpoints
         app.MapGet(
                 "/orders",
                 async (
-                    [AsParameters] ListMyOrdersRequest request,
+                    [AsParameters] ListOrdersRequest request,
                     ClaimsPrincipal user,
                     IDispatcher dispatcher,
                     CancellationToken ct
                 ) =>
                 {
+                    if (user.IsInRole(UserRole.Admin.Name))
+                    {
+                        var adminQuery = new GetOrdersQuery(
+                            request.CustomerId,
+                            request.Status,
+                            request.Page,
+                            request.PageSize
+                        );
+                        var adminResult = await dispatcher.DispatchAsync(adminQuery, ct);
+
+                        return adminResult.IsFailure
+                            ? Results.BadRequest(adminResult.Error)
+                            : Results.Ok(adminResult.Value);
+                    }
+
                     // The customer is the signed-in user; never take it from the request.
                     if (!Guid.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier), out var customerId))
                         return Results.Unauthorized();
 
-                    var query = new GetCustomerOrdersQuery(customerId, request.Page, request.PageSize);
+                    var query = new GetCustomerOrdersQuery(
+                        customerId,
+                        request.Page,
+                        request.PageSize,
+                        request.Status
+                    );
                     var result = await dispatcher.DispatchAsync(query, ct);
 
                     return result.IsFailure
@@ -108,11 +128,13 @@ public static class OrderEndpoints
             )
             .RequireAuthorization(Policies.Authenticated)
             .WithTags(OrdersTag)
-            .WithName("ListMyOrders")
-            .WithSummary("List the signed-in customer's orders")
+            .WithName("ListOrders")
+            .WithSummary("List orders: every order for an Admin, otherwise the caller's own")
             .WithDescription(
-                "Returns the caller's own orders, newest first, with their lines. "
-                    + "Paging defaults to page 1, size 25; the page size is at most 100."
+                "Returns orders newest first, with their lines. An Admin sees every customer's orders "
+                    + "and may narrow them with customerId; anyone else sees only their own orders, "
+                    + "and customerId is ignored. The optional status filter (an order status name, "
+                    + "any case) applies to both. Paging defaults to page 1, size 25; the page size is at most 100."
             )
             .Produces<Pagination<OrderReadModel>>(StatusCodes.Status200OK)
             .Produces<string>(StatusCodes.Status400BadRequest)
@@ -124,4 +146,9 @@ public sealed record PlaceOrderLineRequest(string Sku, int Quantity);
 
 public sealed record PlaceOrderRequest(IReadOnlyList<PlaceOrderLineRequest> Lines);
 
-public sealed record ListMyOrdersRequest([FromQuery] int Page = 1, [FromQuery] int PageSize = 25);
+public sealed record ListOrdersRequest(
+    [FromQuery] int Page = 1,
+    [FromQuery] int PageSize = 25,
+    [FromQuery] string? Status = null,
+    [FromQuery] Guid? CustomerId = null
+);
