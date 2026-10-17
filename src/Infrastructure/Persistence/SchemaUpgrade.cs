@@ -49,6 +49,14 @@ public static class SchemaUpgrade
 
         -- The user id, carried in the token. Null for users created before it was recorded.
         ALTER TABLE IF EXISTS user_auth_read_models ADD COLUMN IF NOT EXISTS id uuid;
+
+        -- The Order status Created is now called Placed.
+        DO $$
+        BEGIN
+            IF to_regclass('order_read_models') IS NOT NULL THEN
+                UPDATE order_read_models SET status = 'Placed' WHERE status = 'Created';
+            END IF;
+        END $$;
         """;
 
     public static Task ApplyAsync(
