@@ -53,7 +53,7 @@ _Avoid_: Unreserve, free, deallocate
 ## Ordering
 
 **Customer**:
-The party an Order is placed for.
+The party an Order is placed for: always the signed-in User who places it.
 _Avoid_: Client, buyer, account
 
 **Order**:
@@ -67,6 +67,10 @@ _Avoid_: Item, row, position
 **Order placement**:
 Creating an Order from a Customer's lines at current Catalog prices. Reserving Stock for its lines follows from placement.
 _Avoid_: Checkout, submit
+
+**Placed**:
+The status of an Order from Order placement until it is Confirmed or Cancelled, while its Reservations are pending.
+_Avoid_: Created, pending, new
 
 **Confirmed**:
 The status of an Order whose every Order line holds a Reservation.
