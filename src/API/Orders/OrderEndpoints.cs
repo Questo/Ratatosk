@@ -6,6 +6,7 @@ using Ratatosk.Application.Ordering.Commands;
 using Ratatosk.Application.Ordering.Models;
 using Ratatosk.Application.Ordering.Queries;
 using Ratatosk.Application.Shared;
+using Ratatosk.Domain.Identity;
 
 namespace Ratatosk.API.Orders;
 
@@ -19,12 +20,17 @@ public static class OrderEndpoints
                 "/orders",
                 async (
                     PlaceOrderRequest request,
+                    ClaimsPrincipal user,
                     IDispatcher dispatcher,
                     CancellationToken ct
                 ) =>
                 {
+                    // The customer is the signed-in user; never take it from the request.
+                    if (!Guid.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier), out var customerId))
+                        return Results.Unauthorized();
+
                     var command = new PlaceOrderCommand(
-                        request.CustomerId,
+                        customerId,
                         [
                             .. (request.Lines ?? []).Select(l => new OrderLineRequest(
                                 l.Sku,
@@ -45,19 +51,23 @@ public static class OrderEndpoints
             .WithName("PlaceOrder")
             .WithSummary("Place a new order")
             .WithDescription(
-                "Creates an order and reserves stock for each line via async events. "
+                "Creates an order for the signed-in user and reserves stock for each line via async events. "
                     + "The order may already be Confirmed or Cancelled by the time this returns; "
                     + "GET /orders/{orderId} always reflects its current status."
             )
             .Accepts<PlaceOrderRequest>("application/json")
             .Produces<Response>(StatusCodes.Status202Accepted)
-            .Produces<Response>(StatusCodes.Status400BadRequest);
+            .Produces<Response>(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized);
 
         app.MapGet(
                 "/orders/{orderId:guid}",
-                async (Guid orderId, IDispatcher dispatcher, CancellationToken ct) =>
+                async (Guid orderId, ClaimsPrincipal user, IDispatcher dispatcher, CancellationToken ct) =>
                 {
-                    var query = new GetOrderByIdQuery(orderId);
+                    if (!Guid.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier), out var callerId))
+                        return Results.Unauthorized();
+
+                    var query = new GetOrderByIdQuery(orderId, callerId, user.IsInRole(UserRole.Admin.Name));
                     var result = await dispatcher.DispatchAsync(query, ct);
 
                     return result.IsFailure ? Results.NotFound() : Results.Ok(result.Value);
@@ -67,9 +77,13 @@ public static class OrderEndpoints
             .WithTags(OrdersTag)
             .WithName("GetOrderById")
             .WithSummary("Get an order by id")
-            .WithDescription("Returns the current read model for the supplied order id.")
+            .WithDescription(
+                "Returns the current read model for the supplied order id. "
+                    + "Returns 404 unless the caller placed the order or is an Admin."
+            )
             .Produces<OrderReadModel>(StatusCodes.Status200OK)
-            .Produces(StatusCodes.Status404NotFound);
+            .Produces(StatusCodes.Status404NotFound)
+            .Produces(StatusCodes.Status401Unauthorized);
 
         app.MapGet(
                 "/orders",
@@ -108,6 +122,6 @@ public static class OrderEndpoints
 
 public sealed record PlaceOrderLineRequest(string Sku, int Quantity);
 
-public sealed record PlaceOrderRequest(Guid CustomerId, IReadOnlyList<PlaceOrderLineRequest> Lines);
+public sealed record PlaceOrderRequest(IReadOnlyList<PlaceOrderLineRequest> Lines);
 
 public sealed record ListMyOrdersRequest([FromQuery] int Page = 1, [FromQuery] int PageSize = 25);
