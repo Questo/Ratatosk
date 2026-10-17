@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Ratatosk.Core.Abstractions;
 using Ratatosk.Core.BuildingBlocks;
 using Ratatosk.Core.Primitives;
@@ -7,14 +8,15 @@ namespace Ratatosk.Infrastructure.Persistence.Repositories;
 
 /// <summary>
 /// Loads aggregates from snapshot + events, and commits them: append in raise order with an
-/// expected-version check, snapshot when due, end the transaction, clear, then publish.
-/// This is the only place that sequence lives.
+/// expected-version check, end the transaction, clear, snapshot when due (best-effort, in its
+/// own transaction), then publish. This is the only place that sequence lives.
 /// </summary>
 public class AggregateRepository<T>(
     IEventStore eventStore,
     ISnapshotStore snapshotStore,
     IUnitOfWork uow,
-    IEventBus eventBus
+    IEventBus eventBus,
+    ILogger<AggregateRepository<T>> logger
 ) : IAggregateRepository<T>
     where T : AggregateRoot, new()
 {
@@ -57,6 +59,9 @@ public class AggregateRepository<T>(
         if (events.Count == 0)
             return;
 
+        var snapshotDue = aggregate.ShouldCreateSnapshot();
+        var appended = false;
+
         try
         {
             await eventStore.AppendEventsAsync(
@@ -65,24 +70,74 @@ public class AggregateRepository<T>(
                 aggregate.PersistedVersion,
                 cancellationToken
             );
-
-            if (aggregate.ShouldCreateSnapshot() && aggregate.CreateSnapshot() is { } snapshot)
-            {
-                snapshot.AggregateType = AggregateType;
-                await snapshotStore.SaveSnapshotAsync(snapshot, cancellationToken);
-            }
+            appended = true;
 
             // Commit before publishing: handlers run in their own scopes and read this state back.
             uow.Commit();
         }
-        catch
+        catch (Exception ex)
         {
             uow.Rollback();
+
+            // A store outside the transaction already holds the events; the read models must
+            // still see them, even though the rest of the transaction is lost.
+            if (appended && !eventStore.AppendsInTransaction)
+            {
+                logger.LogError(
+                    ex,
+                    "Transaction failed after {Count} event(s) were stored for {Aggregate} {Id}; publishing them anyway",
+                    events.Count,
+                    typeof(T).Name,
+                    aggregate.Id
+                );
+                aggregate.ClearUncommittedEvents();
+                await PublishAsync(events, cancellationToken);
+            }
+
             throw;
         }
 
         aggregate.ClearUncommittedEvents();
 
+        if (snapshotDue)
+            await TrySaveSnapshotAsync(aggregate, cancellationToken);
+
+        await PublishAsync(events, cancellationToken);
+    }
+
+    // A snapshot only speeds up loading, so failing to save one must not fail the commit. It
+    // gets its own transaction: a failed statement would abort the one the events went into.
+    private async Task TrySaveSnapshotAsync(T aggregate, CancellationToken cancellationToken)
+    {
+        if (aggregate.CreateSnapshot() is not { } snapshot)
+            return;
+
+        try
+        {
+            snapshot.AggregateType = AggregateType;
+            await snapshotStore.SaveSnapshotAsync(snapshot, cancellationToken);
+            uow.Commit();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            try
+            {
+                uow.Rollback();
+            }
+            catch { }
+
+            logger.LogWarning(
+                ex,
+                "Could not save a snapshot of {Aggregate} {Id} at version {Version}",
+                typeof(T).Name,
+                aggregate.Id,
+                snapshot.Version
+            );
+        }
+    }
+
+    private async Task PublishAsync(IReadOnlyList<DomainEvent> events, CancellationToken cancellationToken)
+    {
         foreach (var domainEvent in events)
             await eventBus.PublishAsync(domainEvent, cancellationToken);
     }

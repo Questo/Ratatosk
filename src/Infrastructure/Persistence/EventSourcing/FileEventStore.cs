@@ -11,6 +11,8 @@ public class FileEventStore(EventStoreOptions options, IEventSerializer serializ
 
     private readonly string _directory = options.FilePath ?? "data/event-store";
 
+    public bool AppendsInTransaction => false;
+
     private void EnsureDirectoryExists()
     {
         if (!Directory.Exists(_directory))

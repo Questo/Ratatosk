@@ -183,6 +183,8 @@ public sealed class FailOnStreamAppend(string streamPrefix, int failOnCall) : IE
 
     public void Arm() => _armed = true;
 
+    public bool AppendsInTransaction => _inner.AppendsInTransaction;
+
     public Task AppendEventsAsync(
         string streamName,
         IEnumerable<DomainEvent> events,

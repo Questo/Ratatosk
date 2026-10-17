@@ -9,6 +9,8 @@ public class InMemoryEventStore : IEventStore
 {
     private readonly ConcurrentDictionary<string, List<DomainEvent>> _eventStore = new();
 
+    public bool AppendsInTransaction => false;
+
     public Task AppendEventsAsync(
         string streamName,
         IEnumerable<DomainEvent> events,

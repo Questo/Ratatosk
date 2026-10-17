@@ -7,6 +7,8 @@ namespace Ratatosk.Infrastructure.Persistence.EventStore;
 
 public class PostgresEventStore(IUnitOfWork uow, IEventSerializer serializer) : IEventStore
 {
+    public bool AppendsInTransaction => true;
+
     public async Task AppendEventsAsync(
         string streamName,
         IEnumerable<DomainEvent> events,

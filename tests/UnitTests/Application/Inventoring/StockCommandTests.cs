@@ -98,6 +98,8 @@ public class StockCommandTests
 
         public void Arm(Func<Task> competitor) => _competitor = competitor;
 
+        public bool AppendsInTransaction => _inner.AppendsInTransaction;
+
         public async Task AppendEventsAsync(
             string streamName,
             IEnumerable<DomainEvent> events,
