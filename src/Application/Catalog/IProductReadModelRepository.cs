@@ -10,6 +10,8 @@ public interface IProductReadModelRepository
         string? searchTerm = null,
         int page = 1,
         int pageSize = 25,
+        decimal? minPrice = null,
+        decimal? maxPrice = null,
         CancellationToken cancellationToken = default
     );
     Task SaveAsync(ProductReadModel product, CancellationToken cancellationToken = default);

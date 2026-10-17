@@ -93,7 +93,9 @@ public static class ProductsEndpoints
                     var query = new SearchProductsQuery(
                         request.SearchTerm,
                         request.Page,
-                        request.PageSize
+                        request.PageSize,
+                        request.MinPrice,
+                        request.MaxPrice
                     );
                     var result = await dispatcher.DispatchAsync(query, ct);
 
@@ -107,7 +109,7 @@ public static class ProductsEndpoints
             .WithName("SearchProducts")
             .WithSummary("Search products")
             .WithDescription(
-                "Returns paged products filtered by an optional search term. Paging defaults to page 1, size 25."
+                "Returns paged products filtered by an optional search term and optional inclusive minPrice/maxPrice bounds. Paging defaults to page 1, size 25."
             )
             .Produces<Pagination<ProductReadModel>>(StatusCodes.Status200OK)
             .Produces<string>(StatusCodes.Status400BadRequest);
