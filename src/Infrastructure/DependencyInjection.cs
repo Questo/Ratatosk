@@ -27,6 +27,7 @@ public static class DependencyInjection
     )
     {
         services.Configure<AuthOptions>(configuration.GetSection(AuthOptions.SectionName));
+        services.Configure<AdminOptions>(configuration.GetSection(AdminOptions.SectionName));
         services.Configure<DatabaseOptions>(configuration.GetSection(DatabaseOptions.SectionName));
         services.Configure<EventStoreOptions>(
             configuration.GetSection(EventStoreOptions.SectionName)
