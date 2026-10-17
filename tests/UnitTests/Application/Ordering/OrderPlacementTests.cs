@@ -32,8 +32,8 @@ public class OrderPlacementTests
     [TestMethod]
     public async Task PlaceOrder_WithEnoughStock_ConfirmsOrderAndReservesEveryLine()
     {
-        var (productA, skuA) = await _host.AddStockedProductAsync(available: 10, price: 19.99m);
-        var (productB, skuB) = await _host.AddStockedProductAsync(available: 5);
+        var (productA, skuA) = await _host.AddStockedProductAsync(onHand: 10, price: 19.99m);
+        var (productB, skuB) = await _host.AddStockedProductAsync(onHand: 5);
 
         var orderId = await _host.PlaceOrderAsync((skuA, 3), (skuB, 5));
 
@@ -50,8 +50,8 @@ public class OrderPlacementTests
     [TestMethod]
     public async Task PlaceOrder_StoresOrderEventsInTheOrderTheyWereRaised()
     {
-        var (_, skuA) = await _host.AddStockedProductAsync(available: 10);
-        var (_, skuB) = await _host.AddStockedProductAsync(available: 10);
+        var (_, skuA) = await _host.AddStockedProductAsync(onHand: 10);
+        var (_, skuB) = await _host.AddStockedProductAsync(onHand: 10);
 
         var orderId = await _host.PlaceOrderAsync((skuA, 1), (skuB, 1));
 
@@ -72,9 +72,9 @@ public class OrderPlacementTests
     [TestMethod]
     public async Task PlaceOrder_WhenALineCannotBeReserved_CancelsOrderAndReleasesEarlierLines()
     {
-        var (productA, skuA) = await _host.AddStockedProductAsync(available: 10);
-        var (productB, skuB) = await _host.AddStockedProductAsync(available: 2);
-        var (productC, skuC) = await _host.AddStockedProductAsync(available: 10);
+        var (productA, skuA) = await _host.AddStockedProductAsync(onHand: 10);
+        var (productB, skuB) = await _host.AddStockedProductAsync(onHand: 2);
+        var (productC, skuC) = await _host.AddStockedProductAsync(onHand: 10);
 
         var orderId = await _host.PlaceOrderAsync((skuA, 4), (skuB, 3), (skuC, 1));
 
@@ -109,8 +109,8 @@ public class OrderPlacementTests
     [TestMethod]
     public async Task Compensation_StillFindsStock_AfterItsProductWasRemovedFromTheCatalog()
     {
-        var (productA, skuA) = await _host.AddStockedProductAsync(available: 10);
-        var (productB, skuB) = await _host.AddStockedProductAsync(available: 1);
+        var (productA, skuA) = await _host.AddStockedProductAsync(onHand: 10);
+        var (productB, skuB) = await _host.AddStockedProductAsync(onHand: 1);
         (await _host.SendAsync(new ReserveStockCommand(productB, 1))).EnsureSuccess();
         (await _host.SendAsync(new RemoveProductCommand(productA))).EnsureSuccess();
 
@@ -130,8 +130,8 @@ public class OrderPlacementTests
     {
         var failing = new FailOnStreamAppend("inventory-", failOnCall: 2);
         using var host = await TestHost.StartAsync(services => failing.Install(services));
-        var (productA, skuA) = await host.AddStockedProductAsync(available: 10);
-        var (_, skuB) = await host.AddStockedProductAsync(available: 10);
+        var (productA, skuA) = await host.AddStockedProductAsync(onHand: 10);
+        var (_, skuB) = await host.AddStockedProductAsync(onHand: 10);
         failing.Arm();
 
         var orderId = await host.PlaceOrderAsync((skuA, 2), (skuB, 2));
@@ -148,7 +148,7 @@ public class OrderPlacementTests
     [TestMethod]
     public async Task ConcurrentOrders_ForTheLastUnits_ConfirmOneAndCancelTheOther()
     {
-        var (productId, sku) = await _host.AddStockedProductAsync(available: 3);
+        var (productId, sku) = await _host.AddStockedProductAsync(onHand: 3);
 
         var first = await _host.PlaceOrderAsync((sku, 2));
         var second = await _host.PlaceOrderAsync((sku, 2));

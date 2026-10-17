@@ -37,7 +37,7 @@ public class CatalogCommandTests
     [TestMethod]
     public async Task AddProduct_WithASkuAlreadyInUse_FailsAndStoresNothing()
     {
-        var (_, sku) = await _host.AddStockedProductAsync(available: 0);
+        var (_, sku) = await _host.AddStockedProductAsync(onHand: 0);
 
         var result = await _host.SendAsync(new AddProductCommand("Other Product", sku, "Another product here", 1m));
 
@@ -56,7 +56,7 @@ public class CatalogCommandTests
     [TestMethod]
     public async Task UpdateProduct_WithOnlyANewName_KeepsDescriptionAndPrice()
     {
-        var (productId, _) = await _host.AddStockedProductAsync(available: 0, price: 12m);
+        var (productId, _) = await _host.AddStockedProductAsync(onHand: 0, price: 12m);
 
         var result = await _host.SendAsync(new UpdateProductCommand(productId, "Renamed Product", null, null));
 
@@ -79,7 +79,7 @@ public class CatalogCommandTests
     [TestMethod]
     public async Task RemoveProduct_RemovesItFromTheCatalog_ButKeepsItsStockRecord()
     {
-        var (productId, sku) = await _host.AddStockedProductAsync(available: 4);
+        var (productId, sku) = await _host.AddStockedProductAsync(onHand: 4);
 
         var result = await _host.SendAsync(new RemoveProductCommand(productId));
 

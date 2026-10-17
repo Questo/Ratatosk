@@ -27,9 +27,10 @@ public class PostgresInventoryReadModelRepositoryTests
                 CREATE TABLE IF NOT EXISTS inventory_stock_read_models(
                     product_id uuid PRIMARY KEY,
                     sku text NOT NULL,
-                    available integer NOT NULL,
+                    on_hand integer NOT NULL,
                     reserved integer NOT NULL,
                     unit text NOT NULL,
+                    version integer NOT NULL DEFAULT 0,
                     last_updated_utc timestamptz NOT NULL,
                     UNIQUE (sku)
                 );
@@ -57,31 +58,48 @@ public class PostgresInventoryReadModelRepositoryTests
     public async Task SaveAsync_ShouldInsertNewStockReadModel()
     {
         var productId = Guid.NewGuid();
-        var stock = new StockReadModel(productId, "NUT-001", 10, 2, "pcs", DateTime.UtcNow);
+        var stock = new StockReadModel(productId, "NUT-001", 10, 2, "pcs", 2, DateTime.UtcNow);
 
         await _repo.SaveAsync(stock, TestContext.CancellationToken);
 
         var saved = await _repo.GetByProductIdAsync(productId, TestContext.CancellationToken);
         Assert.IsNotNull(saved);
         Assert.AreEqual("NUT-001", saved!.Sku);
-        Assert.AreEqual(10, saved.Available);
+        Assert.AreEqual(10, saved.OnHand);
         Assert.AreEqual(2, saved.Reserved);
+        Assert.AreEqual(8, saved.Available);
+        Assert.AreEqual(2, saved.Version);
         Assert.AreEqual("pcs", saved.Unit);
+    }
+
+    [TestMethod]
+    public async Task SaveAsync_WhenANewerVersionExists_ShouldKeepIt()
+    {
+        var productId = Guid.NewGuid();
+        var newer = new StockReadModel(productId, "NUT-001", 25, 5, "pcs", 3, DateTime.UtcNow);
+        await _repo.SaveAsync(newer, TestContext.CancellationToken);
+
+        var older = new StockReadModel(productId, "NUT-001", 10, 2, "pcs", 2, DateTime.UtcNow);
+        await _repo.SaveAsync(older, TestContext.CancellationToken);
+
+        var saved = await _repo.GetByProductIdAsync(productId, TestContext.CancellationToken);
+        Assert.AreEqual(25, saved!.OnHand);
+        Assert.AreEqual(3, saved.Version);
     }
 
     [TestMethod]
     public async Task SaveAsync_WhenRecordAlreadyExists_ShouldUpsert()
     {
         var productId = Guid.NewGuid();
-        var stock = new StockReadModel(productId, "NUT-001", 10, 2, "pcs", DateTime.UtcNow);
+        var stock = new StockReadModel(productId, "NUT-001", 10, 2, "pcs", 2, DateTime.UtcNow);
         await _repo.SaveAsync(stock, TestContext.CancellationToken);
 
-        var updated = new StockReadModel(productId, "NUT-001", 25, 5, "pcs", DateTime.UtcNow);
+        var updated = new StockReadModel(productId, "NUT-001", 25, 5, "pcs", 3, DateTime.UtcNow);
         await _repo.SaveAsync(updated, TestContext.CancellationToken);
 
         var saved = await _repo.GetByProductIdAsync(productId, TestContext.CancellationToken);
         Assert.IsNotNull(saved);
-        Assert.AreEqual(25, saved!.Available);
+        Assert.AreEqual(25, saved!.OnHand);
         Assert.AreEqual(5, saved.Reserved);
     }
 
@@ -97,7 +115,7 @@ public class PostgresInventoryReadModelRepositoryTests
     public async Task GetBySkuAsync_ShouldReturnMatchingRecord()
     {
         var productId = Guid.NewGuid();
-        var stock = new StockReadModel(productId, "NUT-002", 7, 0, "pcs", DateTime.UtcNow);
+        var stock = new StockReadModel(productId, "NUT-002", 7, 0, "pcs", 1, DateTime.UtcNow);
         await _repo.SaveAsync(stock, TestContext.CancellationToken);
 
         var result = await _repo.GetBySkuAsync("NUT-002", TestContext.CancellationToken);

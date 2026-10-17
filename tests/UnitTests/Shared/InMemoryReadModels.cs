@@ -76,14 +76,19 @@ public sealed class InMemoryInventoryReadModelRepository : IInventoryReadModelRe
     public Task<StockReadModel?> GetBySkuAsync(string sku, CancellationToken cancellationToken = default) =>
         Task.FromResult(_rows.Values.Where(r => r.Sku == sku).Select(Copy).FirstOrDefault());
 
+    // Same contract as the Postgres upsert: never replace a record of the same or a newer version.
     public Task SaveAsync(StockReadModel stock, CancellationToken cancellationToken = default)
     {
-        _rows[stock.ProductId] = Copy(stock);
+        _rows.AddOrUpdate(
+            stock.ProductId,
+            _ => Copy(stock),
+            (_, stored) => stored.Version < stock.Version ? Copy(stock) : stored
+        );
         return Task.CompletedTask;
     }
 
     private static StockReadModel Copy(StockReadModel r) =>
-        new(r.ProductId, r.Sku, r.Available, r.Reserved, r.Unit, r.LastUpdatedUtc);
+        new(r.ProductId, r.Sku, r.OnHand, r.Reserved, r.Unit, r.Version, r.LastUpdatedUtc);
 }
 
 public sealed class InMemoryOrderReadModelRepository : IOrderReadModelRepository

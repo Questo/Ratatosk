@@ -22,20 +22,21 @@ public class StockCommandTests
     [TestMethod]
     public async Task Restock_Reserve_Release_UpdateTheStockRecord()
     {
-        var (productId, _) = await _host.AddStockedProductAsync(available: 10);
+        var (productId, _) = await _host.AddStockedProductAsync(onHand: 10);
 
         (await _host.SendAsync(new ReserveStockCommand(productId, 4))).EnsureSuccess();
         (await _host.SendAsync(new ReleaseStockCommand(productId, 1))).EnsureSuccess();
 
         var stock = await _host.Stock.GetByProductIdAsync(productId);
-        Assert.AreEqual(10, stock!.Available);
+        Assert.AreEqual(10, stock!.OnHand);
         Assert.AreEqual(3, stock.Reserved);
+        Assert.AreEqual(7, stock.Available);
     }
 
     [TestMethod]
     public async Task Reserve_MoreThanAvailable_FailsAndChangesNothing()
     {
-        var (productId, _) = await _host.AddStockedProductAsync(available: 2);
+        var (productId, _) = await _host.AddStockedProductAsync(onHand: 2);
 
         var result = await _host.SendAsync(new ReserveStockCommand(productId, 3));
 
@@ -46,7 +47,7 @@ public class StockCommandTests
     [TestMethod]
     public async Task Release_CannotReleaseStockHeldByAnOrder()
     {
-        var (productId, sku) = await _host.AddStockedProductAsync(available: 5);
+        var (productId, sku) = await _host.AddStockedProductAsync(onHand: 5);
         await _host.PlaceOrderAsync((sku, 5));
 
         var result = await _host.SendAsync(new ReleaseStockCommand(productId, 5));
@@ -70,7 +71,7 @@ public class StockCommandTests
     {
         var interfere = new CompeteOnFirstAppend();
         using var host = await TestHost.StartAsync(interfere.Install);
-        var (productId, _) = await host.AddStockedProductAsync(available: 10);
+        var (productId, _) = await host.AddStockedProductAsync(onHand: 10);
         interfere.Arm(() => host.SendAsync(new ReserveStockCommand(productId, 3)));
 
         var result = await host.SendAsync(new ReserveStockCommand(productId, 5));

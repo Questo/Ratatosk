@@ -18,62 +18,43 @@ public sealed class StockKeeper(
 {
     private const int MaxAttempts = 3;
 
-    public async Task<Result> RestockAsync(
+    public Task<Result> RestockAsync(
         Guid productId,
         int quantity,
         CancellationToken cancellationToken = default
-    )
-    {
-        var stock = await stockRecords.GetByProductIdAsync(productId, cancellationToken);
-        if (stock is null)
-            return Result.Failure($"No stock record found for product {productId}");
-
-        var quantityResult = Quantity.Create(quantity, stock.Unit);
-        if (quantityResult.IsFailure)
-            return Result.Failure(quantityResult.Error!);
-
-        return await ChangeAsync(
-            stock,
-            (inventory, sku) => inventory.AddStock(sku, quantityResult.Value!),
+    ) =>
+        ChangeProductStockAsync(
+            productId,
+            quantity,
+            (inventory, sku, amount) => inventory.Restock(sku, amount),
             cancellationToken
         );
-    }
 
     /// <summary>Reserves stock by hand, outside of any order.</summary>
-    public async Task<Result> ReserveAsync(
+    public Task<Result> ReserveAsync(
         Guid productId,
         int quantity,
         CancellationToken cancellationToken = default
-    )
-    {
-        var stock = await stockRecords.GetByProductIdAsync(productId, cancellationToken);
-        if (stock is null)
-            return Result.Failure($"No stock record found for product {productId}");
-
-        return await ChangeAsync(
-            stock,
-            (inventory, sku) => inventory.ReserveStock(sku, quantity),
+    ) =>
+        ChangeProductStockAsync(
+            productId,
+            quantity,
+            (inventory, sku, amount) => inventory.ReserveStock(sku, amount),
             cancellationToken
         );
-    }
 
     /// <summary>Releases stock reserved by hand. Stock held by an order is left alone.</summary>
-    public async Task<Result> ReleaseAsync(
+    public Task<Result> ReleaseAsync(
         Guid productId,
         int quantity,
         CancellationToken cancellationToken = default
-    )
-    {
-        var stock = await stockRecords.GetByProductIdAsync(productId, cancellationToken);
-        if (stock is null)
-            return Result.Failure($"No stock record found for product {productId}");
-
-        return await ChangeAsync(
-            stock,
-            (inventory, sku) => inventory.ReleaseStock(sku, quantity),
+    ) =>
+        ChangeProductStockAsync(
+            productId,
+            quantity,
+            (inventory, sku, amount) => inventory.ReleaseStock(sku, amount),
             cancellationToken
         );
-    }
 
     /// <summary>
     /// Reserves stock for one Order line. Idempotent per order and SKU. A failure carries the
@@ -92,7 +73,8 @@ public sealed class StockKeeper(
 
         return await ChangeAsync(
             stock,
-            (inventory, _) => inventory.ReserveStock(sku, quantity, orderId),
+            quantity,
+            (inventory, _, amount) => inventory.ReserveStock(sku, amount, orderId),
             cancellationToken
         );
     }
@@ -125,6 +107,39 @@ public sealed class StockKeeper(
             throw new InvalidOperationException(
                 $"Could not release stock for SKU {sku} held by order {orderId}: {result.Error}"
             );
+    }
+
+    private async Task<Result> ChangeProductStockAsync(
+        Guid productId,
+        int quantity,
+        Func<Inventory, SKU, Quantity, Result> change,
+        CancellationToken cancellationToken
+    )
+    {
+        var stock = await stockRecords.GetByProductIdAsync(productId, cancellationToken);
+        if (stock is null)
+            return Result.Failure($"No stock record found for product {productId}");
+
+        return await ChangeAsync(stock, quantity, change, cancellationToken);
+    }
+
+    // Quantities from callers are plain amounts, counted in the unit the stock is kept in.
+    private Task<Result> ChangeAsync(
+        StockReadModel stock,
+        int quantity,
+        Func<Inventory, SKU, Quantity, Result> change,
+        CancellationToken cancellationToken
+    )
+    {
+        var quantityResult = Quantity.Create(quantity, stock.Unit);
+        if (quantityResult.IsFailure)
+            return Task.FromResult(Result.Failure(quantityResult.Error!));
+
+        return ChangeAsync(
+            stock,
+            (inventory, sku) => change(inventory, sku, quantityResult.Value!),
+            cancellationToken
+        );
     }
 
     // The change's own Result is returned, but its events are committed either way: a rejected

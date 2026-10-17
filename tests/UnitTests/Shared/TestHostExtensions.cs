@@ -10,7 +10,7 @@ public static class TestHostExtensions
     /// <summary>Adds a product (which provisions its Inventory) and restocks it.</summary>
     public static async Task<(Guid ProductId, string Sku)> AddStockedProductAsync(
         this TestHost host,
-        int available,
+        int onHand,
         decimal price = 10m
     )
     {
@@ -20,8 +20,8 @@ public static class TestHostExtensions
         );
         added.EnsureSuccess();
 
-        if (available > 0)
-            (await host.SendAsync(new RestockCommand(added.Value, available))).EnsureSuccess();
+        if (onHand > 0)
+            (await host.SendAsync(new RestockCommand(added.Value, onHand))).EnsureSuccess();
 
         return (added.Value, sku);
     }
