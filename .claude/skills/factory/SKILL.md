@@ -77,7 +77,10 @@ state that never lands in a commit.
   "branch": "factory/003-rate-limiting",
   "worktree": "/Users/you/code/my-app-factory/003-rate-limiting",
   "stage": "review", "round": 2,
-  "reviews": { "security": "CHANGES", "ux": "PASS", "ui": "pending", "code": "PASS" } }
+  "reviews": { "security": "CHANGES", "ux": "PASS", "ui": "pending", "code": "PASS" },
+  "tokens": [ { "step": "spec", "tokens": 44485 },
+              { "step": "build", "round": 1, "tokens": 312040 },
+              { "step": "review-security", "round": 1, "tokens": 58210 } ] }
 ```
 
 - `stage` is one of `spec`, `build`, `review`, `approve`, `merged`,
@@ -86,6 +89,13 @@ state that never lands in a commit.
 - `reviews` holds the current round only. Each value is `pending`, `PASS` or
   `CHANGES`. Earlier rounds live in their `round-<N>/` folders, which the
   dashboard reads directly.
+- `tokens` lists one entry per agent run, in the order they finish. Each time an
+  agent finishes (a builder resume counts as its own run), append
+  `{ "step", "round", "tokens" }`, taking `tokens` from the `<subagent_tokens>`
+  in its completion notice. `step` is `spec`, `build`, `review-<lens>` or
+  `approve`. `round` is the round the run belongs to: the round a builder run
+  prepares (1 for the first build, N+1 after round N) or the round reviewed or
+  approved; leave it out for `spec`. Your own tokens aren't counted.
 - Rewrite the whole file on every change. `worktree` is always an absolute path.
 
 ### Prompts
@@ -107,7 +117,7 @@ gets `5102 + 10n`, appended as ` Port: <port>.`
    another session took the number, pick the next number and try again.
    The worktree path is `$(cd .. && pwd)/$(basename "$PWD")-factory/<job-id>`,
    run from `<repo>`. Write `job.json` with that `worktree`, `stage: "spec"`,
-   `round: 0` and all reviews `pending`.
+   `round: 0`, all reviews `pending` and `tokens: []`.
 2. **Worktree.** Create the branch and its worktree from `main`:
    ```bash
    git worktree add -b factory/<job-id> <worktree> main
