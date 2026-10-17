@@ -1,3 +1,39 @@
+# [1.0.0](https://github.com/Questo/Ratatosk/compare/v0.3.0...v1.0.0) (2026-10-17)
+
+
+* feat!: deepen the commit path, stock model and order reservation ([#135](https://github.com/Questo/Ratatosk/issues/135)) ([15dad27](https://github.com/Questo/Ratatosk/commit/15dad270edac201300fb7297ae4c67536c2c9c5c))
+
+
+### BREAKING CHANGES
+
+* the stock record returned by /inventory gains onHand and
+version, and available now means on hand minus reserved (it used to be
+the amount on hand). Existing databases are upgraded on startup.
+
+* fix(products): reject an invalid description or price on update
+
+An invalid description or price produced no value, which the handler read as "omitted": it kept the old one and reported success. Both results are now checked and their failure returned.
+
+* refactor(core): remove AggregateRoot.Rehydrate, which only tests used
+
+The repository loads through LoadFromHistory; the tests now do too.
+
+* refactor(infra): rename ProjectionRegistrationService to EventHandlerDispatcher
+
+It delivers every event to every IDomainEventHandler, not only projections.
+
+* test(auth): drive sign-up through TestHost
+
+Sign-up tests now run on the production wiring with in-memory user and refresh-token stores, asserting on what was stored. Only the password hasher and token issuer, the true externals, are mocked.
+
+* docs: align docs and glossary with the commit sequence, stock terms and renames
+
+CLAUDE.md: PostgreSQL is always required; the commit sequence snapshots after the commit, best-effort; non-transactional appends are published even when the transaction fails; InventoryProjection rebuilds from the aggregate. GLOSSARY.md: defines on hand, and names the stored events that keep the avoided terms (StockAdded, StockReservationFailed).
+
+* docs: remove the Ordering bounded context spec and plan
+
+The Ordering context is implemented; the design spec and implementation plan are no longer needed.
+
 # [0.3.0](https://github.com/Questo/Ratatosk/compare/v0.2.0...v0.3.0) (2026-09-25)
 
 
