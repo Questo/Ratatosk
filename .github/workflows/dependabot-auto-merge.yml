@@ -12,7 +12,9 @@ jobs:
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.pull_requests[0] != null
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
+      actions: write
       contents: write
       pull-requests: write
 
@@ -36,5 +38,12 @@ jobs:
             exit 0
           fi
 
+          # docs/COMMITS.md wants a lowercase description; Dependabot capitalises "Bump"
+          title=$(gh pr view "$PR_NUMBER" --json title --jq .title)
+          subject="$(sed -E 's/^([^:]+: )(.)/\1\L\2/' <<< "$title") (#$PR_NUMBER)"
+
           # Only merge the exact commit CI passed on, in case Dependabot pushed again since
-          gh pr merge "$PR_NUMBER" --squash --match-head-commit "$HEAD_SHA"
+          gh pr merge "$PR_NUMBER" --squash --subject "$subject" --match-head-commit "$HEAD_SHA"
+
+          # Pushes made with GITHUB_TOKEN don't trigger workflows, but workflow_dispatch does
+          gh workflow run ci.yml --ref main

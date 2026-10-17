@@ -1,91 +1,78 @@
 name: CI
 
 on:
+  # main is not path-filtered so every merge reaches the release job
   push:
     branches: [main]
-    paths:
-      - 'src/**'
-      - 'tests/**'
-      - 'Dockerfile'
-      - '**/*.cs'
-      - '**/*.csproj'
-      - 'Directory.Packages.props'
-      - '.github/**'
   pull_request:
     branches: [main]
     paths:
       - 'src/**'
       - 'tests/**'
+      - 'scripts/**'
       - 'Dockerfile'
       - '**/*.cs'
       - '**/*.csproj'
       - 'Directory.Packages.props'
+      - 'dotnet-tools.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.releaserc.json'
       - '.github/**'
+  # Started by dependabot-auto-merge, whose GITHUB_TOKEN merges don't trigger push
+  workflow_dispatch:
 
-env:
-  COVERAGE_THRESHOLD: 75
+# Superseded PR runs are cancelled; main runs queue so a release is never cut short
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
       checks: write
-      packages: write
 
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v7
-
-      - name: Log in to GitHub Container Registry
-        uses: ./.github/actions/ghcr-login
-
-      - name: Set lowercase image name and tag
-        uses: ./.github/actions/setup-image-metadata
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: Build Docker image (includes tests + coverage)
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           push: false
           load: true
-          tags: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          tags: ratatosk-api:test
           cache-from: type=gha
           cache-to: type=gha,mode=max
           provenance: false
           sbom: false
 
-      - name: Push image to GHCR
-        run: docker push ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
-
       - name: Copy coverage report from container
         uses: ./.github/actions/copy-container-coverage
         with:
-          container-tag: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          container-tag: ratatosk-api:test
           target-path: coverage
 
-      - name: Generate HTML and Summary.xml
-        uses: ./.github/actions/generate-coverage-report
-        with:
-          input-dir: coverage
-          output-dir: coverage-report
+      - name: Set up .NET SDK
+        uses: ./.github/actions/setup-dotnet-cache
 
-      - name: Enforce coverage threshold
-        uses: ./.github/actions/enforce-coverage-threshold
-        with:
-          summary-path: coverage-report/Summary.xml
-          threshold: ${{ env.COVERAGE_THRESHOLD }}
+      - name: Generate coverage report and enforce threshold
+        run: ./scripts/coverage-report.sh coverage coverage-report
 
       - name: Upload coverage report
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: coverage-html
           path: coverage-report
 
       - name: Publish unit test report
-        uses: dorny/test-reporter@v3
+        uses: dorny/test-reporter@a43b3a5f7366b97d083190328d2c652e1a8b6aa2 # v3.0.0
         if: always()
         with:
           name: Unit Tests
@@ -95,6 +82,7 @@ jobs:
 
   integration-tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
 
@@ -115,7 +103,7 @@ jobs:
 
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up .NET SDK
         uses: ./.github/actions/setup-dotnet-cache
@@ -125,12 +113,13 @@ jobs:
 
   check-formatting:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
 
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up .NET SDK
         uses: ./.github/actions/setup-dotnet-cache
@@ -138,10 +127,50 @@ jobs:
       - name: Verify formatting
         run: dotnet format --verify-no-changes --severity error --verbosity detailed
 
-  release:
+  # Only main builds reach the registry, and only once every check has passed.
+  # Rebuilt from build-and-test's layer cache, so the tests are not run again.
+  push-image:
     needs: [build-and-test, integration-tests, check-formatting]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set lowercase image name
+        uses: ./.github/actions/setup-image-metadata
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Push image to GHCR
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
+            ${{ env.IMAGE_NAME }}:ci
+          cache-from: type=gha
+          provenance: false
+          sbom: false
+
+  release:
+    needs: [push-image]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
       issues: write
@@ -152,24 +181,18 @@ jobs:
 
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
       - name: Set up Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
-
-      - name: Cache npm packages
-        uses: actions/cache@v6
-        with:
-          path: ~/.npm
-          key: npm-${{ runner.os }}-${{ hashFiles('.github/workflows/ci.yml') }}
-          restore-keys: npm-${{ runner.os }}-
+          cache: npm
 
       - name: Install semantic-release
-        run: npm install --no-save semantic-release @semantic-release/commit-analyzer @semantic-release/release-notes-generator @semantic-release/changelog @semantic-release/github @semantic-release/git
+        run: npm ci
 
       - name: Release
         id: semantic
@@ -180,35 +203,43 @@ jobs:
           npx semantic-release
           AFTER=$(git describe --tags --abbrev=0 2>/dev/null || echo "none")
           if [ "$AFTER" != "$BEFORE" ] && [ "$AFTER" != "none" ]; then
-            echo "released=true" >> $GITHUB_OUTPUT
-            echo "new-version=${AFTER#v}" >> $GITHUB_OUTPUT
+            echo "released=true" >> "$GITHUB_OUTPUT"
+            echo "new-version=${AFTER#v}" >> "$GITHUB_OUTPUT"
           else
-            echo "released=false" >> $GITHUB_OUTPUT
+            echo "released=false" >> "$GITHUB_OUTPUT"
           fi
 
   publish:
-    needs: [build-and-test, integration-tests, release]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.release.outputs.released == 'true'
+    needs: [release]
+    if: needs.release.outputs.released == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
       packages: write
 
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Log in to GitHub Container Registry
-        uses: ./.github/actions/ghcr-login
-
-      - name: Set lowercase image name and tag
+      - name: Set lowercase image name
         uses: ./.github/actions/setup-image-metadata
 
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      # Retag the image built from this exact commit, never the moving ci tag
       - name: Tag and push versioned images
+        env:
+          VERSION: ${{ needs.release.outputs.new-version }}
+          SOURCE: ${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
         run: |
-          VERSION="${{ needs.release.outputs.new-version }}"
-          docker pull $IMAGE_NAME:ci
-          docker tag $IMAGE_NAME:ci $IMAGE_NAME:$VERSION
-          docker push $IMAGE_NAME:$VERSION
-          docker tag $IMAGE_NAME:ci $IMAGE_NAME:latest
-          docker push $IMAGE_NAME:latest
+          docker pull "$SOURCE"
+          docker tag "$SOURCE" "$IMAGE_NAME:$VERSION"
+          docker push "$IMAGE_NAME:$VERSION"
+          docker tag "$SOURCE" "$IMAGE_NAME:latest"
+          docker push "$IMAGE_NAME:latest"
