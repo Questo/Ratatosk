@@ -43,6 +43,8 @@
     background: var(--pass); margin-right: 6px; vertical-align: 1px;
   }
   .status.error { color: var(--human); }
+  .total { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-right: auto; }
+  .total b { color: var(--text); font-weight: 600; }
   .status.error .dot { background: var(--human); }
   .banner {
     margin: 12px 32px 0; padding: 10px 14px; border: 1px solid var(--human);
@@ -104,6 +106,7 @@
     font-family: var(--mono); font-size: 11px; color: var(--faint);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
+  .tok { font-family: var(--mono); font-size: 10.5px; color: var(--muted); margin-top: 6px; }
   .rounds { margin-top: 10px; display: grid; gap: 5px; }
   .round { display: flex; align-items: center; gap: 4px; }
   .round .r { font-family: var(--mono); font-size: 10px; color: var(--faint); width: 20px; }
@@ -153,6 +156,9 @@
     color: var(--muted); font-size: 18px; line-height: 1;
   }
   .close:hover { color: var(--text); border-color: var(--muted); }
+  .d-tokens { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 8px; font-family: var(--mono); font-size: 11px; color: var(--faint); }
+  .d-tokens span b { color: var(--muted); font-weight: 500; }
+  .d-tokens .sum b { color: var(--text); }
   .d-body { display: grid; grid-template-columns: 200px 1fr; min-height: 0; }
   .files { border-right: 1px solid var(--line); padding: 14px 10px; overflow-y: auto; }
   .files .group {
@@ -236,6 +242,7 @@
 <body>
 <header>
   <h1>Software factory</h1>
+  <div class="total" id="total"></div>
   <div class="status" id="status">connecting…</div>
 </header>
 <div id="banner"></div>
@@ -254,6 +261,7 @@
       <div class="num" id="d-num"></div>
       <h3 id="d-title"></h3>
       <div class="branch" id="d-branch"></div>
+      <div class="d-tokens" id="d-tokens"></div>
       <button class="close" data-close aria-label="Close">×</button>
     </div>
     <div class="d-body">
@@ -279,6 +287,13 @@ const REVIEWERS = [['security', 'sec'], ['ux', 'ux'], ['ui', 'ui'], ['code', 'co
 const $ = (id) => document.getElementById(id)
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
+
+// job.tokens: one { step, round?, tokens } per agent run (see SKILL.md).
+// Jobs from before token tracking have no list and show no count.
+const tokensOf = (job) => Array.isArray(job.tokens) ? job.tokens.reduce((n, r) => n + (r.tokens || 0), 0) : null
+const fmtTokens = (n) => n >= 1e6 ? `${(n / 1e6).toFixed(2)}M` : n >= 1e3 ? `${(n / 1e3).toFixed(1)}k` : String(n)
+const STEP_LABELS = { 'review-security': 'sec', 'review-ux': 'ux', 'review-ui': 'ui', 'review-code': 'code' }
+const stepLabel = (r) => `${r.round ? `R${r.round} ` : ''}${STEP_LABELS[r.step] || r.step}`
 
 let jobs = []
 let lastRender = ''
@@ -352,6 +367,7 @@ function card(job, past) {
       </div>
       <p class="feature">${esc(job.feature)}</p>
       <div class="branch">${esc(job.branch)}</div>
+      ${tokensOf(job) !== null ? `<div class="tok">${fmtTokens(tokensOf(job))} tokens</div>` : ''}
       ${rows.length ? `<div class="rounds">${rows.join('')}</div>` : ''}
       ${human ? `<div class="hint">/factory approve ${esc(job.id)}<br>/factory rework ${esc(job.id)} …</div>` : ''}
     </button>`
@@ -374,6 +390,11 @@ async function render() {
       </div>
       ${byStage[s.key].reverse().join('') || '<div class="empty">—</div>'}
     </section>`).join('')
+  const tracked = jobs.filter((j) => tokensOf(j) !== null)
+  const total = tracked.reduce((n, j) => n + tokensOf(j), 0)
+  $('total').innerHTML = tracked.length
+    ? `<b>${fmtTokens(total)}</b> tokens · ${tracked.length} job${tracked.length === 1 ? '' : 's'}${tracked.length < jobs.length ? ` (${jobs.length - tracked.length} untracked)` : ''}`
+    : ''
   const banner = problems.map((p) => `<div class="banner">${esc(p)}</div>`).join('')
   if (html + banner !== lastRender) {
     lastRender = html + banner
@@ -451,6 +472,9 @@ async function refreshDrawer() {
   $('d-num').textContent = `${job.id} · ${job.stage}${job.round ? ` · round ${job.round}` : ''}`
   $('d-title').textContent = job.feature
   $('d-branch').textContent = job.branch
+  $('d-tokens').innerHTML = tokensOf(job) === null ? '' :
+    `<span class="sum"><b>${fmtTokens(tokensOf(job))}</b> total</span>` +
+    job.tokens.map((r) => `<span>${esc(stepLabel(r))} <b>${fmtTokens(r.tokens || 0)}</b></span>`).join('')
 
   const base = `jobs/${job.id}/`
   const files = sortFiles(await listFiles(base))
