@@ -1,29 +1,33 @@
 sequenceDiagram
     participant API as API (PlaceOrder)
     participant Order as Order Aggregate
-    participant OH1 as OrderReservationHandler<br/>(Inventoring)
+    participant ORP as OrderReservationProcess<br/>(Ordering)
+    participant SK as StockKeeper<br/>(Inventoring)
     participant Inv as Inventory Aggregate
-    participant OH2 as OrderConfirmationHandler<br/>(Ordering)
-    participant OH3 as OrderCancellationHandler<br/>(Ordering)
-    participant OH4 as ReservationCompensationHandler<br/>(Inventoring)
 
     API->>Order: Place(customerId, lines)
-    Order-->>OH1: OrderCreated
+    Order-->>ORP: OrderCreated (committed, then published)
 
-    loop each line
-        OH1->>Inv: ReserveStock(sku, qty, orderId)
-        alt stock available
-            Inv-->>OH2: StockReserved (orderId, sku)
-        else insufficient stock
-            Inv-->>OH3: StockReservationFailed (orderId, sku, reason)
+    loop each line, until one is rejected
+        ORP->>SK: ReserveForOrder(sku, qty, orderId)
+        SK->>Inv: ReserveStock(sku, qty, orderId)
+        Note over SK,Inv: commit; on ConcurrencyException<br/>reload and retry (max 3)
+        alt reserved
+            Inv-->>SK: StockReserved
+            SK-->>ORP: success
+            ORP->>Order: MarkLineReserved(sku)
+        else rejected
+            Inv-->>SK: StockReservationFailed (recorded)
+            SK-->>ORP: failure(reason)
+            ORP->>Order: Cancel(reason)
         end
     end
 
-    alt all lines reserved
-        OH2->>Order: MarkLineReserved(sku)
-        Note over Order: raises OrderLineReserved<br/>then OrderConfirmed once complete
-    else any line failed
-        OH3->>Order: Cancel(reason)
-        Order-->>OH4: OrderCancelled (lines)
-        OH4->>Inv: ReleaseStock(sku, qty) per already-reserved line
+    ORP->>Order: commit
+    alt every line reserved
+        Note over Order: OrderLineReserved…, OrderConfirmed
+    else cancelled (rejection or unexpected failure)
+        Order-->>ORP: OrderCancelled (lines)
+        ORP->>SK: ReleaseForOrder(sku, orderId) per line
+        SK->>Inv: ReleaseStock(sku, orderId)
     end
