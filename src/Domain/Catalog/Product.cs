@@ -25,9 +25,10 @@ public class Product : AggregateRoot
                 break;
 
             case ProductUpdated e:
+                // Description and Price are optional on an update; null means unchanged.
                 Name = e.Name;
-                Description = e.Description;
-                Price = e.Price;
+                Description = e.Description ?? Description;
+                Price = e.Price ?? Price;
                 break;
         }
     }

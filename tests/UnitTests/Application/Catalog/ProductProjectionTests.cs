@@ -89,8 +89,8 @@ public class ProductProjectionTests
                 repo.SaveAsync(
                     It.Is<ProductReadModel>(rm =>
                         rm.Name == evt.Name.Value
-                        && rm.Description == evt.Description.Value
-                        && rm.Price == evt.Price.Amount
+                        && rm.Description == evt.Description!.Value
+                        && rm.Price == evt.Price!.Amount
                         && rm.LastUpdatedUtc == evt.OccurredAtUtc.UtcDateTime
                     ),
                     It.IsAny<CancellationToken>()
