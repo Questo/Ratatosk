@@ -53,7 +53,7 @@ _Avoid_: Unreserve, free, deallocate
 ## Ordering
 
 **Customer**:
-The party an Order is placed for: always the signed-in User who places it, identified by the user id in the token.
+The party an Order is placed for: always the signed-in User who places it.
 _Avoid_: Client, buyer, account
 
 **Order**:
