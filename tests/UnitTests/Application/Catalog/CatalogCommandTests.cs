@@ -69,6 +69,30 @@ public class CatalogCommandTests
     }
 
     [TestMethod]
+    public async Task UpdateProduct_WithAnInvalidDescription_FailsAndChangesNothing()
+    {
+        var (productId, _) = await _host.AddStockedProductAsync(onHand: 0);
+        var versionBefore = (await _host.LoadAsync<Product>(productId)).Version;
+
+        var result = await _host.SendAsync(new UpdateProductCommand(productId, "Renamed Product", "short", null));
+
+        Assert.IsTrue(result.IsFailure);
+        Assert.AreEqual(versionBefore, (await _host.LoadAsync<Product>(productId)).Version);
+    }
+
+    [TestMethod]
+    public async Task UpdateProduct_WithAnInvalidPrice_FailsAndChangesNothing()
+    {
+        var (productId, _) = await _host.AddStockedProductAsync(onHand: 0);
+        var versionBefore = (await _host.LoadAsync<Product>(productId)).Version;
+
+        var result = await _host.SendAsync(new UpdateProductCommand(productId, "Renamed Product", null, -1m));
+
+        Assert.IsTrue(result.IsFailure);
+        Assert.AreEqual(versionBefore, (await _host.LoadAsync<Product>(productId)).Version);
+    }
+
+    [TestMethod]
     public async Task UpdateProduct_UnknownProduct_Fails()
     {
         var result = await _host.SendAsync(new UpdateProductCommand(Guid.NewGuid(), "Renamed Product", null, null));

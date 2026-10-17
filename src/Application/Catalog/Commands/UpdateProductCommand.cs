@@ -28,10 +28,14 @@ public class UpdateProductCommandHandler(IAggregateRepository<Product> repositor
             var descriptionResult = request.Description is null
                 ? Result<Description?>.Success(null)!
                 : Description.Create(request.Description);
+            if (descriptionResult.IsFailure)
+                return Result.Failure(descriptionResult.Error!);
 
             var priceResult = request.Price is null
                 ? Result<Price?>.Success(null)!
                 : Price.Create(request.Price.Value);
+            if (priceResult.IsFailure)
+                return Result.Failure(priceResult.Error!);
 
             var productResult = await repository.LoadAsync(request.ProductId, cancellationToken);
             if (productResult.IsFailure)
