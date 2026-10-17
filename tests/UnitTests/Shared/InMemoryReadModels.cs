@@ -26,12 +26,16 @@ public sealed class InMemoryProductReadModelRepository : IProductReadModelReposi
         string? searchTerm = null,
         int page = 1,
         int pageSize = 25,
+        decimal? minPrice = null,
+        decimal? maxPrice = null,
         CancellationToken cancellationToken = default
     )
     {
         var matches = _rows
             .Values.Where(r =>
-                searchTerm is null || r.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
+                (searchTerm is null || r.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+                && (minPrice is null || r.Price >= minPrice)
+                && (maxPrice is null || r.Price <= maxPrice)
             )
             .OrderByDescending(r => r.LastUpdatedUtc)
             .ToList();

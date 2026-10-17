@@ -186,7 +186,7 @@ public class PostgresProductReadModelRepositoryTests
             searchTerm: null,
             page: 3,
             pageSize: 1,
-            TestContext.CancellationToken
+            cancellationToken: TestContext.CancellationToken
         );
 
         Assert.HasCount(1, searchResult.Items);
@@ -194,6 +194,63 @@ public class PostgresProductReadModelRepositoryTests
         Assert.AreEqual(3, searchResult.TotalPages);
         Assert.AreEqual("Ratatosk Product C", searchResult.Items.First().Name);
     }
+
+    [TestMethod]
+    public async Task GetAllAsync_WhenUsingPriceRange_ShouldReturnProductsWithinInclusiveBounds()
+    {
+        await InsertPricedProductsAsync();
+
+        var searchResult = await _repo.GetAllAsync(
+            minPrice: 10m,
+            maxPrice: 30m,
+            cancellationToken: TestContext.CancellationToken
+        );
+
+        Assert.AreEqual(3, searchResult.TotalItems);
+        CollectionAssert.AreEquivalent(
+            new[] { "Hazelnut", "Walnut", "Pecan" },
+            searchResult.Items.Select(p => p.Name).ToArray()
+        );
+    }
+
+    [TestMethod]
+    public async Task GetAllAsync_WhenCombiningPriceRangeWithSearchTerm_ShouldApplyBothToEverySearchColumn()
+    {
+        await InsertPricedProductsAsync();
+
+        // "SQRL" only matches through sku (Acorn, Hazelnut) or description (Pecan, Chestnut).
+        // Acorn and Chestnut are out of range, so they only appear if the range binds to
+        // part of the OR-ed search condition instead of all of it.
+        var searchResult = await _repo.GetAllAsync(
+            "SQRL",
+            minPrice: 10m,
+            maxPrice: 30m,
+            cancellationToken: TestContext.CancellationToken
+        );
+
+        Assert.AreEqual(2, searchResult.TotalItems);
+        CollectionAssert.AreEquivalent(
+            new[] { "Hazelnut", "Pecan" },
+            searchResult.Items.Select(p => p.Name).ToArray()
+        );
+    }
+
+    private Task InsertPricedProductsAsync() =>
+        _uow.Connection.ExecuteAsync(
+            """
+                INSERT INTO product_read_models (
+                    id, name, sku,
+                    description, price,
+                    last_updated_utc
+                ) VALUES
+                ('61111111-1111-1111-1111-111111111111', 'Acorn', 'SQRL-001', 'A small nut.', 5, NOW()),
+                ('62222222-1111-1111-1111-111111111111', 'Hazelnut', 'SQRL-002', 'A round nut.', 10, NOW()),
+                ('63333333-1111-1111-1111-111111111111', 'Walnut', 'NUT-003', 'A wrinkled nut.', 20, NOW()),
+                ('64444444-1111-1111-1111-111111111111', 'Pecan', 'NUT-004', 'Favourite of every sqrl.', 30, NOW()),
+                ('65555555-1111-1111-1111-111111111111', 'Chestnut', 'NUT-005', 'Roasted for the sqrl.', 40, NOW())
+            """,
+            transaction: _uow.Transaction
+        );
 
     public TestContext TestContext { get; set; }
 }

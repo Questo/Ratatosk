@@ -30,6 +30,8 @@ public class GetProductsQueryHandlerTests
                     It.IsAny<string>(),
                     It.IsAny<int>(),
                     It.IsAny<int>(),
+                    It.IsAny<decimal?>(),
+                    It.IsAny<decimal?>(),
                     It.IsAny<CancellationToken>()
                 )
             )

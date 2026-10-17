@@ -26,6 +26,8 @@ public sealed class ProductReadModelRepository(IUnitOfWork uow)
         string? searchTerm = null,
         int page = 1,
         int pageSize = 25,
+        decimal? minPrice = null,
+        decimal? maxPrice = null,
         CancellationToken cancellationToken = default
     )
     {
@@ -33,14 +35,28 @@ public sealed class ProductReadModelRepository(IUnitOfWork uow)
         var selectSql = "SELECT *";
         var orderSql = "ORDER BY last_updated_utc DESC";
 
-        string? whereSql = null;
-        object? parameters = null;
+        var conditions = new List<string>();
+        var parameters = new DynamicParameters();
 
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
-            whereSql = """WHERE name ILIKE @searchPattern OR sku ILIKE @searchPattern OR description ILIKE @searchPattern""";
-            parameters = new { searchPattern = $"%{searchTerm}%" };
+            conditions.Add("""(name ILIKE @searchPattern OR sku ILIKE @searchPattern OR description ILIKE @searchPattern)""");
+            parameters.Add("searchPattern", $"%{searchTerm}%");
         }
+
+        if (minPrice is not null)
+        {
+            conditions.Add("price >= @minPrice");
+            parameters.Add("minPrice", minPrice);
+        }
+
+        if (maxPrice is not null)
+        {
+            conditions.Add("price <= @maxPrice");
+            parameters.Add("maxPrice", maxPrice);
+        }
+
+        var whereSql = conditions.Count > 0 ? "WHERE " + string.Join(" AND ", conditions) : null;
 
         return PagedQueryAsync<ProductReadModel>(
             fromAndJoinsSql: fromSql,
