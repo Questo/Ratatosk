@@ -81,6 +81,8 @@ Event store backend is controlled by `appsettings.json`:
 
 For `Sql`, set `DatabaseOptions:ConnectionString`. Auth secrets are in `AuthOptions` (JWT issuer, audience, secret).
 
+The JWT carries the user id as `ClaimTypes.NameIdentifier` (`nameid`); `GET /orders` lists only the orders of that id, never one from the request.
+
 ## Key Patterns
 
 - **Result<T>**: Used for all fallible operations, domain methods included (e.g. `Inventory.ReserveStock` returns `Result`). Propagate by checking `IsFailure` and returning early; reserve exceptions for broken invariants and infrastructure failures.
