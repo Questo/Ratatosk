@@ -6,11 +6,15 @@ using Ratatosk.Core.Primitives;
 namespace Ratatosk.Application.Ordering.Queries;
 
 /// <summary>
-/// A customer's own orders, newest first. The customer id comes from the caller's identity,
-/// never from the client.
+/// A customer's own orders, newest first, optionally only those in one status. The customer id
+/// comes from the caller's identity, never from the client.
 /// </summary>
-public sealed record GetCustomerOrdersQuery(Guid CustomerId, int Page = 1, int PageSize = 25)
-    : IRequest<Result<Pagination<OrderReadModel>>>;
+public sealed record GetCustomerOrdersQuery(
+    Guid CustomerId,
+    int Page = 1,
+    int PageSize = 25,
+    string? Status = null
+) : IRequest<Result<Pagination<OrderReadModel>>>;
 
 public class GetCustomerOrdersQueryHandler(IOrderReadModelRepository repository)
     : IRequestHandler<GetCustomerOrdersQuery, Result<Pagination<OrderReadModel>>>
@@ -30,8 +34,13 @@ public class GetCustomerOrdersQueryHandler(IOrderReadModelRepository repository)
                 $"Page size must be between 1 and {MaxPageSize}."
             );
 
-        var orders = await repository.GetByCustomerAsync(
+        var status = OrderStatusFilter.Resolve(request.Status);
+        if (status.IsFailure)
+            return Result<Pagination<OrderReadModel>>.Failure(status.Error!);
+
+        var orders = await repository.GetPageAsync(
             request.CustomerId,
+            status.Value,
             request.Page,
             request.PageSize,
             cancellationToken

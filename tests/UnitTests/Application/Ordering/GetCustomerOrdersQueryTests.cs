@@ -74,6 +74,31 @@ public class GetCustomerOrdersQueryTests
     }
 
     [TestMethod]
+    public async Task GetCustomerOrders_WithAStatus_ReturnsOnlyTheCustomersOrdersInThatStatus()
+    {
+        var (_, sku) = await _host.AddStockedProductAsync(onHand: 5);
+        var customer = Guid.NewGuid();
+        await _host.PlaceOrderAsync(customer, (sku, 1));
+        var cancelled = await _host.PlaceOrderAsync(customer, (sku, 50));
+        await _host.PlaceOrderAsync(Guid.NewGuid(), (sku, 50));
+
+        var result = await _host.SendAsync(new GetCustomerOrdersQuery(customer, Status: "cancelled"));
+
+        Assert.IsTrue(result.IsSuccess);
+        Assert.AreEqual(cancelled, result.Value!.Items.Single().Id);
+        Assert.AreEqual(1, result.Value.TotalItems);
+    }
+
+    [TestMethod]
+    public async Task GetCustomerOrders_WithAnUnknownStatus_Fails()
+    {
+        var result = await _host.SendAsync(new GetCustomerOrdersQuery(Guid.NewGuid(), Status: "bogus"));
+
+        Assert.IsTrue(result.IsFailure);
+        StringAssert.Contains(result.Error, "Valid statuses");
+    }
+
+    [TestMethod]
     [DataRow(0, 25)]
     [DataRow(1, 0)]
     [DataRow(1, 101)]

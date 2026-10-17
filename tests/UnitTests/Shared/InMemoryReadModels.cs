@@ -106,15 +106,18 @@ public sealed class InMemoryOrderReadModelRepository : IOrderReadModelRepository
     public Task<OrderReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
         Task.FromResult(_rows.TryGetValue(id, out var row) ? Copy(row) : null);
 
-    public Task<Pagination<OrderReadModel>> GetByCustomerAsync(
-        Guid customerId,
+    public Task<Pagination<OrderReadModel>> GetPageAsync(
+        Guid? customerId = null,
+        string? status = null,
         int page = 1,
         int pageSize = 25,
         CancellationToken cancellationToken = default
     )
     {
         var matches = _rows
-            .Values.Where(r => r.CustomerId == customerId)
+            .Values.Where(r =>
+                (customerId is null || r.CustomerId == customerId) && (status is null || r.Status == status)
+            )
             .OrderByDescending(r => r.CreatedUtc)
             .ThenByDescending(r => r.Id)
             .ToList();
