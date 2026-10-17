@@ -1,6 +1,7 @@
 using Ratatosk.Application.Authentication;
 using Ratatosk.Application.Authentication.Models;
 using Ratatosk.Application.Shared;
+using Ratatosk.Infrastructure.Persistence;
 using Ratatosk.Infrastructure.Persistence.Repositories;
 
 namespace Ratatosk.Infrastructure.Persistence.ReadModels;

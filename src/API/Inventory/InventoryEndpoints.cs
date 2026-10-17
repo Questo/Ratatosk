@@ -1,3 +1,4 @@
+using Ratatosk.Core.BuildingBlocks;
 using Ratatosk.Application.Inventoring;
 using Ratatosk.Application.Inventoring.Commands;
 using Ratatosk.Application.Inventoring.Models;
@@ -16,12 +17,12 @@ public static class InventoryEndpoints
                 async (
                     Guid productId,
                     StockQuantityRequest request,
-                    IInventoryService inventoryService,
+                    IDispatcher dispatcher,
                     CancellationToken ct
                 ) =>
                 {
                     var command = new ReserveStockCommand(productId, request.Quantity);
-                    var result = await inventoryService.ReserveStockAsync(command, ct);
+                    var result = await dispatcher.DispatchAsync(command, ct);
                     var response = Response.FromResult(result);
 
                     return result.IsFailure ? Results.BadRequest(response) : Results.Ok(response);
@@ -41,12 +42,12 @@ public static class InventoryEndpoints
                 async (
                     Guid productId,
                     StockQuantityRequest request,
-                    IInventoryService inventoryService,
+                    IDispatcher dispatcher,
                     CancellationToken ct
                 ) =>
                 {
                     var command = new UnreserveStockCommand(productId, request.Quantity);
-                    var result = await inventoryService.UnreserveStockAsync(command, ct);
+                    var result = await dispatcher.DispatchAsync(command, ct);
                     var response = Response.FromResult(result);
 
                     return result.IsFailure ? Results.BadRequest(response) : Results.Ok(response);
@@ -66,12 +67,12 @@ public static class InventoryEndpoints
                 async (
                     Guid productId,
                     StockQuantityRequest request,
-                    IInventoryService inventoryService,
+                    IDispatcher dispatcher,
                     CancellationToken ct
                 ) =>
                 {
                     var command = new RestockCommand(productId, request.Quantity);
-                    var result = await inventoryService.RestockAsync(command, ct);
+                    var result = await dispatcher.DispatchAsync(command, ct);
                     var response = Response.FromResult(result);
 
                     return result.IsFailure ? Results.BadRequest(response) : Results.Ok(response);
@@ -88,10 +89,10 @@ public static class InventoryEndpoints
 
         app.MapGet(
                 "/inventory/{productId:guid}",
-                async (Guid productId, IInventoryService inventoryService, CancellationToken ct) =>
+                async (Guid productId, IDispatcher dispatcher, CancellationToken ct) =>
                 {
                     var query = new GetStockByProductIdQuery(productId);
-                    var result = await inventoryService.GetStockByProductIdAsync(query, ct);
+                    var result = await dispatcher.DispatchAsync(query, ct);
 
                     return result.IsFailure ? Results.NotFound() : Results.Ok(result.Value);
                 }
@@ -105,10 +106,10 @@ public static class InventoryEndpoints
 
         app.MapGet(
                 "/inventory/by-sku/{sku}",
-                async (string sku, IInventoryService inventoryService, CancellationToken ct) =>
+                async (string sku, IDispatcher dispatcher, CancellationToken ct) =>
                 {
                     var query = new GetStockBySkuQuery(sku);
-                    var result = await inventoryService.GetStockBySkuAsync(query, ct);
+                    var result = await dispatcher.DispatchAsync(query, ct);
 
                     return result.IsFailure ? Results.NotFound() : Results.Ok(result.Value);
                 }

@@ -1,66 +1,89 @@
 using Ratatosk.Core.Abstractions;
 using Ratatosk.Core.BuildingBlocks;
 using Ratatosk.Core.Primitives;
-using Ratatosk.Infrastructure.EventStore;
 using Ratatosk.Infrastructure.Shared;
 
 namespace Ratatosk.Infrastructure.Persistence.Repositories;
 
-public class AggregateRepository<T>(IEventStore eventStore, ISnapshotStore snapshotStore)
-    : IAggregateRepository<T>
+/// <summary>
+/// Loads aggregates from snapshot + events, and commits them: append in raise order with an
+/// expected-version check, snapshot when due, end the transaction, clear, then publish.
+/// This is the only place that sequence lives.
+/// </summary>
+public class AggregateRepository<T>(
+    IEventStore eventStore,
+    ISnapshotStore snapshotStore,
+    IUnitOfWork uow,
+    IEventBus eventBus
+) : IAggregateRepository<T>
     where T : AggregateRoot, new()
 {
+    private static readonly string AggregateType = typeof(T).FullName!;
+
     public async Task<Result<T>> LoadAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var streamName = StreamName.For<T>(id);
-        Snapshot? snapshot = await snapshotStore.LoadSnapshotAsync(id, cancellationToken);
+        var aggregate = new T();
+        var fromVersion = 1;
 
-        int fromVersion = 0;
-        T? snapshotAggregate = null;
-
-        if (snapshot is not null && snapshot is T typedSnapshot)
-        {
-            snapshotAggregate = typedSnapshot;
-            fromVersion = snapshotAggregate.Version;
-        }
+        var snapshot = await snapshotStore.LoadSnapshotAsync(AggregateType, id, cancellationToken);
+        var restoredFromSnapshot = snapshot is not null && aggregate.LoadFromSnapshot(snapshot);
+        if (restoredFromSnapshot)
+            fromVersion = snapshot!.Version + 1;
 
         var events = await eventStore.LoadEventsAsync(
-            streamName,
-            fromVersion + 1,
+            StreamName.For<T>(id),
+            fromVersion,
             cancellationToken
         );
 
-        // Combine history: snapshot (if any) + new events
-        if (snapshotAggregate is not null)
-        {
-            snapshotAggregate.LoadFromHistory(events);
-            return Result<T>.Success(snapshotAggregate);
-        }
-
-        if (events.Count == 0)
+        if (!restoredFromSnapshot && events.Count == 0)
             return Result<T>.Failure($"{typeof(T).Name} with ID {id} not found");
 
-        return AggregateRoot.Rehydrate<T>(events);
+        try
+        {
+            aggregate.LoadFromHistory(events);
+        }
+        catch (Exception ex)
+        {
+            return Result<T>.Failure($"Failed to rehydrate aggregate: {ex.Message}");
+        }
+
+        return Result<T>.Success(aggregate);
     }
 
-    public async Task SaveAsync(T aggregate, CancellationToken cancellationToken = default)
+    public async Task CommitAsync(T aggregate, CancellationToken cancellationToken = default)
     {
-        var streamName = StreamName.For<T>(aggregate.Id);
-        var uncommitted = aggregate.UncommittedEvents;
-        await eventStore.AppendEventsAsync(
-            streamName,
-            uncommitted,
-            aggregate.PersistedVersion,
-            cancellationToken
-        );
-
-        if (!aggregate.ShouldCreateSnapshot())
+        var events = aggregate.UncommittedEvents;
+        if (events.Count == 0)
             return;
 
-        var snapshot = aggregate.CreateSnapshot();
-        if (snapshot == null)
-            return;
+        try
+        {
+            await eventStore.AppendEventsAsync(
+                StreamName.For<T>(aggregate.Id),
+                events,
+                aggregate.PersistedVersion,
+                cancellationToken
+            );
 
-        await snapshotStore.SaveSnapshotAsync(snapshot, cancellationToken);
+            if (aggregate.ShouldCreateSnapshot() && aggregate.CreateSnapshot() is { } snapshot)
+            {
+                snapshot.AggregateType = AggregateType;
+                await snapshotStore.SaveSnapshotAsync(snapshot, cancellationToken);
+            }
+
+            // Commit before publishing: handlers run in their own scopes and read this state back.
+            uow.Commit();
+        }
+        catch
+        {
+            uow.Rollback();
+            throw;
+        }
+
+        aggregate.ClearUncommittedEvents();
+
+        foreach (var domainEvent in events)
+            await eventBus.PublishAsync(domainEvent, cancellationToken);
     }
 }

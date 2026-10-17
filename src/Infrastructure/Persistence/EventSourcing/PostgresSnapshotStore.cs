@@ -1,26 +1,25 @@
-using System.Data;
 using Dapper;
-using Ratatosk.Application.Shared;
+using Ratatosk.Core.Abstractions;
 using Ratatosk.Core.BuildingBlocks;
-using Ratatosk.Infrastructure.EventStore;
 
 namespace Ratatosk.Infrastructure.Persistence.EventStore;
 
 public class PostgresSnapshotStore(IUnitOfWork uow, ISnapshotSerializer serializer) : ISnapshotStore
 {
     public async Task<Snapshot?> LoadSnapshotAsync(
+        string aggregateType,
         Guid aggregateId,
-        CancellationToken cancellationToken
+        CancellationToken cancellationToken = default
     )
     {
         const string sql = """
-                SELECT aggregate_data FROM Snapshots
-                WHERE aggregate_id = @AggregateId
+                SELECT aggregate_data FROM snapshots
+                WHERE aggregate_type = @AggregateType AND aggregate_id = @AggregateId
             """;
 
         var snapshotJsonData = await uow.Connection.QueryFirstOrDefaultAsync<string>(
             sql,
-            new { AggregateId = aggregateId },
+            new { AggregateType = aggregateType, AggregateId = aggregateId },
             uow.Transaction
         );
 
@@ -32,7 +31,10 @@ public class PostgresSnapshotStore(IUnitOfWork uow, ISnapshotSerializer serializ
         return serializer.Deserialize(snapshotJsonData);
     }
 
-    public async Task SaveSnapshotAsync(Snapshot snapshot, CancellationToken cancellationToken)
+    public async Task SaveSnapshotAsync(
+        Snapshot snapshot,
+        CancellationToken cancellationToken = default
+    )
     {
         const string sql = """
                 INSERT INTO snapshots (
@@ -48,9 +50,8 @@ public class PostgresSnapshotStore(IUnitOfWork uow, ISnapshotSerializer serializ
                     @SnapshotData,
                     @Timestamp
                 )
-                ON CONFLICT (aggregate_id) DO UPDATE SET
+                ON CONFLICT (aggregate_type, aggregate_id) DO UPDATE SET
                     version = EXCLUDED.version,
-                    aggregate_type = EXCLUDED.aggregate_type,
                     aggregate_data = EXCLUDED.aggregate_data,
                     taken_at_utc = EXCLUDED.taken_at_utc
             """;
@@ -68,6 +69,6 @@ public class PostgresSnapshotStore(IUnitOfWork uow, ISnapshotSerializer serializ
             uow.Transaction
         );
 
-        // ❌ Don't commit here; let the caller commit via IUnitOfWork
+        // Don't commit here; the caller ends the transaction.
     }
 }

@@ -27,7 +27,7 @@ public class InventoryTests
     }
 
     [TestMethod]
-    public void AddStock_WithDifferentUnit_ShouldThrowException()
+    public void AddStock_WithDifferentUnit_ShouldFailWithoutRaisingEvent()
     {
         var inventory = Inventory.Create();
         var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
@@ -35,9 +35,10 @@ public class InventoryTests
 
         inventory.AddStock(sku, quantity);
 
-        Assert.Throws<ArgumentException>(() =>
-            inventory.AddStock(sku, Quantity.Create(10, "kg").Value!)
-        );
+        var result = inventory.AddStock(sku, Quantity.Create(10, "kg").Value!);
+
+        Assert.IsTrue(result.IsFailure);
+        Assert.HasCount(2, inventory.UncommittedEvents);
     }
 
     [TestMethod]
@@ -59,17 +60,17 @@ public class InventoryTests
     }
 
     [TestMethod]
-    public void ReserveStock_WithNegativeQuantity_ShouldThrowException()
+    public void ReserveStock_WithNegativeQuantity_ShouldFail()
     {
         var inventory = Inventory.Create();
         var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
         var quantity = -5;
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => inventory.ReserveStock(sku, quantity));
+        Assert.IsTrue(inventory.ReserveStock(sku, quantity).IsFailure);
     }
 
     [TestMethod]
-    public void ReserveStock_WithInsufficientStock_ShouldThrowException()
+    public void ReserveStock_WithInsufficientStock_ShouldFailWithoutRecordingAnything()
     {
         var inventory = Inventory.Create();
         var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
@@ -77,7 +78,10 @@ public class InventoryTests
 
         inventory.AddStock(sku, Quantity.Pieces(3));
 
-        Assert.Throws<InvalidOperationException>(() => inventory.ReserveStock(sku, quantity));
+        var result = inventory.ReserveStock(sku, quantity);
+
+        Assert.IsTrue(result.IsFailure);
+        Assert.IsEmpty(inventory.UncommittedEvents.OfType<StockReservationFailed>());
     }
 
     [TestMethod]
@@ -100,13 +104,13 @@ public class InventoryTests
     }
 
     [TestMethod]
-    public void ReleaseStock_WithNegativeQuantity_ShouldThrowException()
+    public void ReleaseStock_WithNegativeQuantity_ShouldFail()
     {
         var inventory = Inventory.Create();
         var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
         var quantity = -5;
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => inventory.ReleaseStock(sku, quantity));
+        Assert.IsTrue(inventory.ReleaseStock(sku, quantity).IsFailure);
     }
 
     [TestMethod]
@@ -128,7 +132,7 @@ public class InventoryTests
     }
 
     [TestMethod]
-    public void RemoveStock_WithNegativeQuantity_ShouldThrowException()
+    public void RemoveStock_MoreThanAvailable_ShouldFail()
     {
         var inventory = Inventory.Create();
         var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
@@ -136,19 +140,17 @@ public class InventoryTests
 
         inventory.AddStock(sku, quantity);
 
-        Assert.Throws<InvalidOperationException>(() =>
-            inventory.RemoveStock(sku, Quantity.Pieces(6))
-        );
+        Assert.IsTrue(inventory.RemoveStock(sku, Quantity.Pieces(6)).IsFailure);
     }
 
     [TestMethod]
-    public void RemoveStock_WhenSkuNotFound_ShouldThrowException()
+    public void RemoveStock_WhenSkuNotFound_ShouldFail()
     {
         var inventory = Inventory.Create();
         var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
         var quantity = Quantity.Pieces(5);
 
-        Assert.Throws<InvalidOperationException>(() => inventory.RemoveStock(sku, quantity));
+        Assert.IsTrue(inventory.RemoveStock(sku, quantity).IsFailure);
     }
 
     [TestMethod]
@@ -319,5 +321,57 @@ public class InventoryTests
 
         Assert.AreEqual(1, inventory.UncommittedEvents.OfType<StockReleased>().Count());
         Assert.IsTrue(inventory.IsInStock(sku, 10));
+    }
+
+    [TestMethod]
+    public void ReleaseStock_ByHand_CannotReleaseStockHeldByAnOrder()
+    {
+        var inventory = Inventory.Create();
+        var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
+        inventory.AddStock(sku, Quantity.Pieces(10));
+        inventory.ReserveStock(sku, 2);
+        inventory.ReserveStock(sku, 5, Guid.NewGuid());
+
+        Assert.IsTrue(inventory.ReleaseStock(sku, 3).IsFailure);
+        Assert.IsTrue(inventory.ReleaseStock(sku, 2).IsSuccess);
+        Assert.IsFalse(inventory.IsInStock(sku, 6), "the order's 5 units must stay reserved");
+    }
+
+    [TestMethod]
+    public void ReserveStock_ForAnOrderThatAlreadyHoldsTheSku_IsANoOp()
+    {
+        var inventory = Inventory.Create();
+        var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
+        var orderId = Guid.NewGuid();
+        inventory.AddStock(sku, Quantity.Pieces(10));
+        inventory.ReserveStock(sku, 4, orderId);
+
+        var again = inventory.ReserveStock(sku, 4, orderId);
+
+        Assert.IsTrue(again.IsSuccess);
+        Assert.HasCount(1, inventory.UncommittedEvents.OfType<StockReserved>());
+    }
+
+    [TestMethod]
+    public void AddStock_FirstRestockInAnotherUnit_SetsTheUnit()
+    {
+        var inventory = Inventory.Create();
+        var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
+
+        var result = inventory.AddStock(sku, Quantity.Kilograms(3));
+
+        Assert.IsTrue(result.IsSuccess);
+        Assert.IsTrue(inventory.RemoveStock(sku, Quantity.Kilograms(3)).IsSuccess);
+    }
+
+    [TestMethod]
+    public void RemoveStock_CannotRemoveReservedStock()
+    {
+        var inventory = Inventory.Create();
+        var sku = SKU.Create(SkuGenerator.Generate("TS")).Value!;
+        inventory.AddStock(sku, Quantity.Pieces(10));
+        inventory.ReserveStock(sku, 8, Guid.NewGuid());
+
+        Assert.IsTrue(inventory.RemoveStock(sku, Quantity.Pieces(3)).IsFailure);
     }
 }

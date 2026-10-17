@@ -1,9 +1,10 @@
 using System.Collections.Concurrent;
+using Ratatosk.Core.Abstractions;
 using Ratatosk.Core.BuildingBlocks;
-using Ratatosk.Infrastructure.EventStore;
 
 namespace Ratatosk.Infrastructure.Persistence.EventStore;
 
+// Must be registered as a singleton: it is the store, not a connection to one.
 public class InMemoryEventStore : IEventStore
 {
     private readonly ConcurrentDictionary<string, List<DomainEvent>> _eventStore = new();
@@ -11,21 +12,28 @@ public class InMemoryEventStore : IEventStore
     public Task AppendEventsAsync(
         string streamName,
         IEnumerable<DomainEvent> events,
-        int startingVersion,
+        int expectedVersion,
         CancellationToken cancellationToken = default
     )
     {
         var stream = _eventStore.GetOrAdd(streamName, _ => []);
         lock (stream)
         {
-            stream.AddRange(events);
+            if (stream.Count != expectedVersion)
+                throw new ConcurrencyException(streamName, expectedVersion);
+
+            foreach (var domainEvent in events)
+            {
+                domainEvent.Version = stream.Count + 1;
+                stream.Add(domainEvent);
+            }
         }
         return Task.CompletedTask;
     }
 
     public Task<IReadOnlyCollection<DomainEvent>> LoadEventsAsync(
         string streamName,
-        int startingVersion = 0,
+        int fromVersion = 1,
         CancellationToken cancellationToken = default
     )
     {
@@ -33,7 +41,9 @@ public class InMemoryEventStore : IEventStore
         {
             lock (stream)
             {
-                return Task.FromResult<IReadOnlyCollection<DomainEvent>>([.. stream]);
+                return Task.FromResult<IReadOnlyCollection<DomainEvent>>(
+                    [.. stream.Skip(Math.Max(fromVersion - 1, 0))]
+                );
             }
         }
 

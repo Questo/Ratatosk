@@ -1,5 +1,4 @@
 using Dapper;
-using Ratatosk.Application.Shared;
 using Ratatosk.Core.BuildingBlocks;
 using Ratatosk.Infrastructure.Persistence;
 using Ratatosk.Infrastructure.Persistence.EventStore;
@@ -27,18 +26,27 @@ public class PostgresSnapshotStoreTests
             """
                 DROP TABLE IF EXISTS snapshots;
                 CREATE TABLE IF NOT EXISTS snapshots(
-                    aggregate_id uuid PRIMARY KEY,
+                    aggregate_id uuid NOT NULL,
                     version integer NOT NULL,
                     aggregate_type text NOT NULL,
                     aggregate_data text NOT NULL,
                     taken_at_utc timestamptz NOT NULL,
-                    UNIQUE (aggregate_id, version)
+                    -- Keyed by type too: an Inventory shares its id with its Product.
+                    PRIMARY KEY (aggregate_type, aggregate_id)
                 );
             """,
             transaction: _uow.Transaction
         );
 
         _snapshotStore = new PostgresSnapshotStore(_uow, serializer);
+    }
+
+    [TestCleanup]
+    public void Cleanup()
+    {
+        // Each test's schema changes stay uncommitted; ending them releases the table locks.
+        _uow.Rollback();
+        _uow.Dispose();
     }
 
     [TestMethod]
@@ -58,6 +66,7 @@ public class PostgresSnapshotStoreTests
 
         // Load the snapshot
         var loadedSnapshot = await _snapshotStore.LoadSnapshotAsync(
+            "TestAggregate",
             aggregateId,
             CancellationToken.None
         );
@@ -66,6 +75,26 @@ public class PostgresSnapshotStoreTests
         Assert.AreEqual(snapshot.AggregateId, loadedSnapshot.AggregateId);
         Assert.AreEqual(snapshot.Version, loadedSnapshot.Version);
         Assert.AreEqual(snapshot.AggregateType, loadedSnapshot.AggregateType);
+    }
+
+    [TestMethod]
+    public async Task Snapshots_OfDifferentAggregateTypes_WithTheSameId_DoNotOverwriteEachOther()
+    {
+        var sharedId = Guid.NewGuid();
+        await _snapshotStore.SaveSnapshotAsync(
+            new TestSnapshot { AggregateId = sharedId, Version = 25, AggregateType = "Product", Name = "product" },
+            CancellationToken.None
+        );
+        await _snapshotStore.SaveSnapshotAsync(
+            new TestSnapshot { AggregateId = sharedId, Version = 50, AggregateType = "Inventory", Name = "inventory" },
+            CancellationToken.None
+        );
+
+        var product = (TestSnapshot?)await _snapshotStore.LoadSnapshotAsync("Product", sharedId, CancellationToken.None);
+        var inventory = (TestSnapshot?)await _snapshotStore.LoadSnapshotAsync("Inventory", sharedId, CancellationToken.None);
+
+        Assert.AreEqual("product", product!.Name);
+        Assert.AreEqual("inventory", inventory!.Name);
     }
 
     private class TestSnapshot : Snapshot

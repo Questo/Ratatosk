@@ -1,13 +1,15 @@
 using Ratatosk.Application.Inventoring.Models;
 using Ratatosk.Core.Abstractions;
+using Ratatosk.Domain;
 using Ratatosk.Domain.Catalog.Events;
 using Ratatosk.Domain.Inventoring.Events;
 
 namespace Ratatosk.Application.Inventoring;
 
+// No ProductRemoved handler: the stock record outlives its product, because orders may still
+// hold reservations against it that must be released.
 public class InventoryProjection(IInventoryReadModelRepository repo)
     : IDomainEventHandler<ProductCreated>,
-        IDomainEventHandler<ProductRemoved>,
         IDomainEventHandler<StockAdded>,
         IDomainEventHandler<StockReserved>,
         IDomainEventHandler<StockReleased>,
@@ -21,19 +23,11 @@ public class InventoryProjection(IInventoryReadModelRepository repo)
             Sku = domainEvent.Sku.Value,
             Available = 0,
             Reserved = 0,
-            Unit = "pcs",
+            Unit = Quantity.Pieces(0).Unit,
             LastUpdatedUtc = domainEvent.OccurredAtUtc.UtcDateTime,
         };
 
         await repo.SaveAsync(readModel, cancellationToken);
-    }
-
-    public async Task WhenAsync(
-        ProductRemoved domainEvent,
-        CancellationToken cancellationToken = default
-    )
-    {
-        await repo.DeleteAsync(domainEvent.ProductId, cancellationToken);
     }
 
     public async Task WhenAsync(StockAdded domainEvent, CancellationToken cancellationToken)

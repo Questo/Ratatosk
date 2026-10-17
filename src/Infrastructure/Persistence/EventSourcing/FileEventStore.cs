@@ -1,11 +1,14 @@
+using Ratatosk.Core.Abstractions;
 using Ratatosk.Core.BuildingBlocks;
 using Ratatosk.Infrastructure.Configuration;
-using Ratatosk.Infrastructure.EventStore;
 
 namespace Ratatosk.Infrastructure.Persistence.EventStore;
 
 public class FileEventStore(EventStoreOptions options, IEventSerializer serializer) : IEventStore
 {
+    // One lock for every stream file: appends are rare and this keeps the version check atomic.
+    private static readonly SemaphoreSlim AppendLock = new(1, 1);
+
     private readonly string _directory = options.FilePath ?? "data/event-store";
 
     private void EnsureDirectoryExists()
@@ -20,36 +23,56 @@ public class FileEventStore(EventStoreOptions options, IEventSerializer serializ
     public async Task AppendEventsAsync(
         string streamName,
         IEnumerable<DomainEvent> events,
-        int startingVersion,
+        int expectedVersion,
         CancellationToken cancellationToken = default
     )
     {
         var filePath = GetStreamFilePath(streamName);
         EnsureDirectoryExists();
 
-        var lines = events
-            .Select(serializer.Serialize)
-            .Select(serialized => serialized + Environment.NewLine);
+        await AppendLock.WaitAsync(cancellationToken);
+        try
+        {
+            var currentVersion = (await ReadLinesAsync(filePath, cancellationToken)).Count;
+            if (currentVersion != expectedVersion)
+                throw new ConcurrencyException(streamName, expectedVersion);
 
-        await File.AppendAllLinesAsync(filePath, lines, cancellationToken);
+            var lines = events
+                .Select((domainEvent, i) =>
+                {
+                    domainEvent.Version = expectedVersion + i + 1;
+                    return serializer.Serialize(domainEvent);
+                })
+                .ToList();
+
+            await File.AppendAllLinesAsync(filePath, lines, cancellationToken);
+        }
+        finally
+        {
+            AppendLock.Release();
+        }
     }
 
     public async Task<IReadOnlyCollection<DomainEvent>> LoadEventsAsync(
         string streamName,
-        int startingVersion = 0,
+        int fromVersion = 1,
         CancellationToken cancellationToken = default
     )
     {
-        var filePath = GetStreamFilePath(streamName);
+        var lines = await ReadLinesAsync(GetStreamFilePath(streamName), cancellationToken);
+
+        return [.. lines.Skip(Math.Max(fromVersion - 1, 0)).Select(serializer.Deserialize)];
+    }
+
+    private static async Task<List<string>> ReadLinesAsync(
+        string filePath,
+        CancellationToken cancellationToken
+    )
+    {
         if (!File.Exists(filePath))
             return [];
 
         var lines = await File.ReadAllLinesAsync(filePath, cancellationToken);
-        var events = lines
-            .Where(line => !string.IsNullOrWhiteSpace(line))
-            .Select(serializer.Deserialize)
-            .ToList();
-
-        return events;
+        return [.. lines.Where(line => !string.IsNullOrWhiteSpace(line))];
     }
 }

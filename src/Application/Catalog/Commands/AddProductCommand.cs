@@ -9,7 +9,6 @@ public sealed record AddProductCommand(string Name, string Sku, string Descripti
 
 public class AddProductCommandHandler(
     IAggregateRepository<Product> repository,
-    IEventBus eventBus,
     IProductDomainService domainService
 ) : IRequestHandler<AddProductCommand, Result<Guid>>
 {
@@ -36,10 +35,7 @@ public class AddProductCommandHandler(
 
             var product = productResult.Value!;
 
-            await repository.SaveAsync(product, cancellationToken);
-
-            foreach (var domainEvent in product.UncommittedEvents)
-                await eventBus.PublishAsync(domainEvent, cancellationToken);
+            await repository.CommitAsync(product, cancellationToken);
 
             return Result<Guid>.Success(product.Id);
         }

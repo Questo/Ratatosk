@@ -21,7 +21,9 @@ public class Inventory : AggregateRoot
 
             case StockAdded stockAdded:
                 entry = GetStockEntry(stockAdded.SKU);
-                entry = entry with { Available = entry.Available + stockAdded.Quantity };
+                entry = entry.Available.Amount == 0
+                    ? entry with { Available = stockAdded.Quantity }
+                    : entry with { Available = entry.Available + stockAdded.Quantity };
                 _stockBySku[stockAdded.SKU] = entry;
                 break;
 
@@ -86,81 +88,79 @@ public class Inventory : AggregateRoot
             : new StockEntry(Quantity.Pieces(0), 0);
     }
 
-    public void AddStock(SKU sku, Quantity quantity)
-    {
-        var @event = new StockAdded(Id, sku, quantity);
-        var stockEntry = _stockBySku.GetValueOrDefault(sku);
+    // Reserved stock not held by any order, i.e. reserved by hand rather than by order placement.
+    private int UnallocatedReserved(SKU sku) =>
+        GetStockEntry(sku).Reserved
+        - _reservedByOrder.Where(r => r.Key.Sku.Equals(sku)).Sum(r => r.Value);
 
-        if (stockEntry != null && stockEntry.Available.Unit != quantity.Unit)
+    public Result AddStock(SKU sku, Quantity quantity)
+    {
+        if (quantity.Amount <= 0)
+            return Result.Failure("Quantity must be greater than zero");
+
+        if (
+            _stockBySku.TryGetValue(sku, out var stockEntry)
+            && stockEntry.Available.Amount > 0
+            && !string.Equals(stockEntry.Available.Unit, quantity.Unit, StringComparison.OrdinalIgnoreCase)
+        )
         {
-            throw new ArgumentException(
+            return Result.Failure(
                 $"Unit mismatch for SKU {sku}. Expected {stockEntry.Available.Unit}, but got {quantity.Unit}"
             );
         }
 
-        RaiseEvent(@event);
+        RaiseEvent(new StockAdded(Id, sku, quantity));
+        return Result.Success();
     }
 
-    public void ReserveStock(SKU sku, int quantity, Guid? orderId = null)
+    /// <summary>
+    /// Reserves stock, optionally on behalf of an order. A rejected reservation for an order is
+    /// recorded as <see cref="StockReservationFailed"/> as well as returned as a failure.
+    /// Reserving again for an order that already holds a reservation for this SKU is a no-op.
+    /// </summary>
+    public Result ReserveStock(SKU sku, int quantity, Guid? orderId = null)
     {
-        Guard.AgainstNegativeOrZero(quantity, nameof(quantity));
+        if (quantity <= 0)
+            return Result.Failure("Quantity must be greater than zero");
 
-        if (!_stockBySku.TryGetValue(sku, out var stockEntry))
+        if (orderId is Guid heldBy && _reservedByOrder.ContainsKey((sku, heldBy)))
+            return Result.Success();
+
+        string? rejection = null;
+        if (!_stockBySku.ContainsKey(sku))
+            rejection = $"SKU {sku} not found in inventory";
+        else if (!IsInStock(sku, quantity))
+            rejection = $"Not enough stock available for SKU {sku}";
+
+        if (rejection is not null)
         {
-            if (orderId is Guid orderIdForMissingSku)
-            {
-                RaiseEvent(
-                    new StockReservationFailed(
-                        Id,
-                        sku,
-                        orderIdForMissingSku,
-                        quantity,
-                        $"SKU {sku} not found in inventory"
-                    )
-                );
-                return;
-            }
+            if (orderId is Guid rejectedOrderId)
+                RaiseEvent(new StockReservationFailed(Id, sku, rejectedOrderId, quantity, rejection));
 
-            throw new InvalidOperationException($"SKU {sku} not found in inventory");
-        }
-
-        if (stockEntry.Available.Amount - stockEntry.Reserved < quantity)
-        {
-            if (orderId is Guid correlatedOrderId)
-            {
-                RaiseEvent(
-                    new StockReservationFailed(
-                        Id,
-                        sku,
-                        correlatedOrderId,
-                        quantity,
-                        "Not enough stock available"
-                    )
-                );
-                return;
-            }
-
-            throw new InvalidOperationException($"Not enough stock available for SKU {sku}");
+            return Result.Failure(rejection);
         }
 
         RaiseEvent(new StockReserved(Id, sku, quantity, orderId));
+        return Result.Success();
     }
 
-    public void ReleaseStock(SKU sku, int quantity)
+    /// <summary>
+    /// Releases stock that was reserved by hand. Stock held by an order can only be released
+    /// through <see cref="ReleaseStock(SKU, Guid)"/>.
+    /// </summary>
+    public Result ReleaseStock(SKU sku, int quantity)
     {
-        Guard.AgainstNegativeOrZero(quantity, nameof(quantity));
+        if (quantity <= 0)
+            return Result.Failure("Quantity must be greater than zero");
 
-        if (!_stockBySku.TryGetValue(sku, out var stockEntry))
-        {
-            throw new InvalidOperationException($"SKU {sku} not found in inventory");
-        }
+        if (!_stockBySku.ContainsKey(sku))
+            return Result.Failure($"SKU {sku} not found in inventory");
 
-        if (stockEntry.Reserved < quantity)
-        {
-            throw new InvalidOperationException($"Not enough reserved stock for SKU {sku}");
-        }
+        if (UnallocatedReserved(sku) < quantity)
+            return Result.Failure($"Not enough reserved stock for SKU {sku}");
 
         RaiseEvent(new StockReleased(Id, sku, quantity));
+        return Result.Success();
     }
 
     // Releases exactly what the order reserved for this SKU; a safe no-op if it reserved nothing.
@@ -172,19 +172,21 @@ public class Inventory : AggregateRoot
         RaiseEvent(new StockReleased(Id, sku, reservedQuantity, orderId));
     }
 
-    public void RemoveStock(SKU sku, Quantity quantity)
+    public Result RemoveStock(SKU sku, Quantity quantity)
     {
         if (!_stockBySku.TryGetValue(sku, out var stockEntry))
-        {
-            throw new InvalidOperationException($"SKU {sku} not found in inventory");
-        }
+            return Result.Failure($"SKU {sku} not found in inventory");
 
-        if (stockEntry.Available < quantity)
-        {
-            throw new InvalidOperationException($"Not enough available stock for SKU {sku}");
-        }
+        if (!string.Equals(stockEntry.Available.Unit, quantity.Unit, StringComparison.OrdinalIgnoreCase))
+            return Result.Failure(
+                $"Unit mismatch for SKU {sku}. Expected {stockEntry.Available.Unit}, but got {quantity.Unit}"
+            );
+
+        if (!IsInStock(sku, quantity.Amount))
+            return Result.Failure($"Not enough available stock for SKU {sku}");
 
         RaiseEvent(new StockRemoved(Id, sku, quantity));
+        return Result.Success();
     }
 }
 

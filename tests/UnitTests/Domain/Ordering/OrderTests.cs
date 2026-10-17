@@ -151,10 +151,12 @@ public class OrderTests
         var order = Order.Place(Guid.NewGuid(), [line]).Value!;
         order.MarkLineReserved(line.Sku);
 
-        var rehydrated = AggregateRoot.Rehydrate<Order>(order.UncommittedEvents.Reverse());
+        // Uncommitted events are in raise order, so they replay as-is.
+        var rehydrated = AggregateRoot.Rehydrate<Order>(order.UncommittedEvents);
 
         Assert.IsTrue(rehydrated.IsSuccess);
         Assert.AreEqual(order.Id, rehydrated.Value!.Id);
         Assert.AreEqual(OrderStatus.Confirmed, rehydrated.Value!.Status);
+        Assert.AreEqual(order.PlacedAtUtc, rehydrated.Value!.PlacedAtUtc);
     }
 }

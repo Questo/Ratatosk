@@ -1,7 +1,6 @@
 using Dapper;
 using Ratatosk.Application.Inventoring;
 using Ratatosk.Application.Inventoring.Models;
-using Ratatosk.Application.Shared;
 using Ratatosk.Infrastructure.Persistence;
 using Ratatosk.Infrastructure.Persistence.ReadModels;
 
@@ -112,19 +111,6 @@ public class PostgresInventoryReadModelRepositoryTests
     {
         var result = await _repo.GetBySkuAsync("UNKNOWN-SKU", TestContext.CancellationToken);
 
-        Assert.IsNull(result);
-    }
-
-    [TestMethod]
-    public async Task DeleteAsync_ShouldRemoveRecord()
-    {
-        var productId = Guid.NewGuid();
-        var stock = new StockReadModel(productId, "NUT-003", 3, 0, "pcs", DateTime.UtcNow);
-        await _repo.SaveAsync(stock, TestContext.CancellationToken);
-
-        await _repo.DeleteAsync(productId, TestContext.CancellationToken);
-
-        var result = await _repo.GetByProductIdAsync(productId, TestContext.CancellationToken);
         Assert.IsNull(result);
     }
 

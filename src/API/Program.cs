@@ -38,9 +38,11 @@ app.UseMiddleware<CleanupResponseMiddleware>();
 
 // Map endpoints
 app.MapGet("/healthz", () => Results.Ok("Healthy"));
-app.MapAuthEndpoints();
-app.MapProductsEndpoints();
-app.MapInventoryEndpoints();
-app.MapOrderEndpoints();
+
+var api = app.MapGroup("").AddEndpointFilter<UnitOfWorkEndpointFilter>();
+api.MapAuthEndpoints();
+api.MapProductsEndpoints();
+api.MapInventoryEndpoints();
+api.MapOrderEndpoints();
 
 app.Run();

@@ -1,14 +1,10 @@
-using Microsoft.Extensions.Logging;
 using Ratatosk.Application.Catalog;
 using Ratatosk.Application.Inventoring;
-using Ratatosk.Application.Ordering.Models;
-using Ratatosk.Application.Shared;
 using Ratatosk.Core.Abstractions;
 using Ratatosk.Core.Primitives;
 using Ratatosk.Domain;
 using Ratatosk.Domain.Catalog.ValueObjects;
 using Ratatosk.Domain.Ordering;
-using Ratatosk.Domain.Ordering.Events;
 
 namespace Ratatosk.Application.Ordering.Commands;
 
@@ -20,11 +16,7 @@ public sealed record PlaceOrderCommand(Guid CustomerId, IReadOnlyList<OrderLineR
 public class PlaceOrderCommandHandler(
     IInventoryReadModelRepository inventoryReadModelRepository,
     IProductReadModelRepository productReadModelRepository,
-    IAggregateRepository<Order> repository,
-    IOrderReadModelRepository orderReadModelRepository,
-    IEventBus eventBus,
-    IUnitOfWork uow,
-    ILogger<PlaceOrderCommandHandler> logger
+    IAggregateRepository<Order> repository
 ) : IRequestHandler<PlaceOrderCommand, Result<Guid>>
 {
     public async Task<Result<Guid>> HandleAsync(
@@ -74,45 +66,9 @@ public class PlaceOrderCommandHandler(
             return Result<Guid>.Failure(orderResult.Error!);
 
         var order = orderResult.Value!;
-        await repository.SaveAsync(order, cancellationToken);
 
-        var occurredAtUtc = order
-            .UncommittedEvents.OfType<OrderCreated>()
-            .First()
-            .OccurredAtUtc.UtcDateTime;
-
-        var readModel = new OrderReadModel
-        {
-            Id = order.Id,
-            CustomerId = order.CustomerId,
-            Status = order.Status.ToString(),
-            Lines =
-            [
-                .. order.Lines.Select(l => new OrderLineReadModel(
-                    l.Sku.Value,
-                    l.Quantity,
-                    l.UnitPrice.Amount,
-                    l.UnitPrice.Currency
-                )),
-            ],
-            CreatedUtc = occurredAtUtc,
-            LastUpdatedUtc = occurredAtUtc,
-        };
-        await orderReadModelRepository.SaveAsync(readModel, cancellationToken);
-
-        // Commit before publishing so cascading handlers don't race or deadlock on this order.
-        uow.Commit();
-
-        try
-        {
-            foreach (var raised in order.UncommittedEvents)
-                await eventBus.PublishAsync(raised, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            // The order is already committed; a downstream failure leaves it Created, not a 500.
-            logger.LogError(ex, "Failed to publish events for order {OrderId}", order.Id);
-        }
+        // Reservation, confirmation/cancellation and the read model all follow from OrderCreated.
+        await repository.CommitAsync(order, cancellationToken);
 
         return Result<Guid>.Success(order.Id);
     }

@@ -10,7 +10,6 @@ public sealed record SignUpCommand(string Email, string Password) : IRequest<Res
 
 public sealed class SignUpCommandHandler(
     IAggregateRepository<User> userRepository,
-    IEventBus eventBus,
     IUserAuthRepository userAuthRepository,
     IRefreshTokenRepository refreshTokenRepository,
     IPasswordHasher passwordHasher,
@@ -40,10 +39,7 @@ public sealed class SignUpCommandHandler(
             var passwordHash = passwordHasher.Hash(passwordResult.Value!);
 
             var user = User.Create(request.Email, UserRole.User, passwordHash.Value!);
-            await userRepository.SaveAsync(user, cancellationToken);
-
-            foreach (var domainEvent in user.UncommittedEvents)
-                await eventBus.PublishAsync(domainEvent, cancellationToken);
+            await userRepository.CommitAsync(user, cancellationToken);
 
             var tokenResult = tokenIssuer.IssueToken(user.Email.Value, user.Role.Name);
             if (tokenResult.IsFailure)

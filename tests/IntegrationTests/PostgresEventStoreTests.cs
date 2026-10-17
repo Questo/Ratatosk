@@ -1,4 +1,5 @@
 using Dapper;
+using Ratatosk.Core.Abstractions;
 using Ratatosk.Core.BuildingBlocks;
 using Ratatosk.Infrastructure.Persistence.EventStore;
 using Ratatosk.Infrastructure.Persistence;
@@ -63,7 +64,7 @@ public class PostgresEventStoreTests
         await _eventStore.AppendEventsAsync(
             streamName,
             events,
-            startingVersion: 0,
+            expectedVersion: 0,
             TestContext.CancellationToken
         );
         var loadedEvents = await _eventStore.LoadEventsAsync(
@@ -75,6 +76,22 @@ public class PostgresEventStoreTests
         var loaded = (TestEvent)loadedEvents.First();
         Assert.AreEqual("Alice", loaded.NewValue);
         Assert.AreEqual(3, loadedEvents.Sum(e => e.Version));
+    }
+
+    [TestMethod]
+    public async Task Append_AtAStaleVersion_ThrowsConcurrencyException_AndRollbackLeavesTheUnitOfWorkUsable()
+    {
+        await _eventStore.AppendEventsAsync("order-1", [new TestEvent("Placed", "1")], 0, TestContext.CancellationToken);
+        _uow.Commit();
+
+        await Assert.ThrowsAsync<ConcurrencyException>(() =>
+            _eventStore.AppendEventsAsync("order-1", [new TestEvent("Placed", "again")], 0, TestContext.CancellationToken)
+        );
+        _uow.Rollback();
+
+        await _eventStore.AppendEventsAsync("order-1", [new TestEvent("Confirmed", "2")], 1, TestContext.CancellationToken);
+        var loaded = await _eventStore.LoadEventsAsync("order-1", cancellationToken: TestContext.CancellationToken);
+        CollectionAssert.AreEqual(new[] { "1", "2" }, loaded.Cast<TestEvent>().Select(e => e.NewValue).ToArray());
     }
 
     private class TestEvent(string eventName, string newValue) : DomainEvent

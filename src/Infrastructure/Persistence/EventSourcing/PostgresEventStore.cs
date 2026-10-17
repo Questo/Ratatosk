@@ -1,7 +1,7 @@
 using Dapper;
-using Ratatosk.Application.Shared;
+using Npgsql;
+using Ratatosk.Core.Abstractions;
 using Ratatosk.Core.BuildingBlocks;
-using Ratatosk.Infrastructure.EventStore;
 
 namespace Ratatosk.Infrastructure.Persistence.EventStore;
 
@@ -10,7 +10,7 @@ public class PostgresEventStore(IUnitOfWork uow, IEventSerializer serializer) : 
     public async Task AppendEventsAsync(
         string streamName,
         IEnumerable<DomainEvent> events,
-        int startingVersion,
+        int expectedVersion,
         CancellationToken cancellationToken = default
     )
     {
@@ -23,59 +23,55 @@ public class PostgresEventStore(IUnitOfWork uow, IEventSerializer serializer) : 
         for (int i = 0; i < eventList.Count; i++)
         {
             var domainEvent = eventList[i];
-            var version = startingVersion + i + 1;
+            var version = expectedVersion + i + 1;
 
             domainEvent.Version = version;
 
             var eventData = serializer.Serialize(domainEvent);
-            await uow.Connection.ExecuteAsync(
-                sql,
-                new
-                {
-                    EventId = Guid.NewGuid(),
-                    StreamName = streamName,
-                    EventType = domainEvent.GetType().FullName ?? "Unknown",
-                    EventData = eventData,
-                    CreatedAt = DateTime.UtcNow,
-                    Version = version,
-                },
-                uow.Transaction
-            );
+            try
+            {
+                await uow.Connection.ExecuteAsync(
+                    sql,
+                    new
+                    {
+                        EventId = Guid.NewGuid(),
+                        StreamName = streamName,
+                        EventType = domainEvent.GetType().FullName ?? "Unknown",
+                        EventData = eventData,
+                        CreatedAt = DateTime.UtcNow,
+                        Version = version,
+                    },
+                    uow.Transaction
+                );
+            }
+            catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.UniqueViolation)
+            {
+                // UNIQUE (stream_name, version): someone else already wrote this version.
+                throw new ConcurrencyException(streamName, expectedVersion, ex);
+            }
 
-            // ❌ Don't commit here; let the caller commit via IUnitOfWork
+            // Don't commit here; the caller ends the transaction.
         }
     }
 
     public async Task<IReadOnlyCollection<DomainEvent>> LoadEventsAsync(
         string streamName,
-        int startingVersion = 0,
+        int fromVersion = 1,
         CancellationToken cancellationToken = default
     )
     {
         const string sql = """
                 SELECT event_data FROM events
-                WHERE stream_name = @StreamName AND version >= @StartingVersion
+                WHERE stream_name = @StreamName AND version >= @FromVersion
                 ORDER BY version ASC
             """;
 
         var eventJsonData = await uow.Connection.QueryAsync<string>(
             sql,
-            new { StreamName = streamName, StartingVersion = startingVersion },
+            new { StreamName = streamName, FromVersion = fromVersion },
             uow.Transaction
         );
 
-        var events = new List<DomainEvent>();
-        foreach (var jsonData in eventJsonData)
-        {
-            var domainEvent = serializer.Deserialize(jsonData);
-            if (domainEvent == null)
-            {
-                continue;
-            }
-
-            events.Add(domainEvent);
-        }
-
-        return [.. events];
+        return [.. eventJsonData.Select(serializer.Deserialize)];
     }
 }

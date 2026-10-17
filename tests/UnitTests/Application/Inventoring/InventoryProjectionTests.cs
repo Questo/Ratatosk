@@ -52,20 +52,6 @@ public class InventoryProjectionTests
     }
 
     [TestMethod]
-    public async Task When_ProductRemoved_ShouldDeleteReadModel()
-    {
-        var productId = Guid.NewGuid();
-        var evt = new ProductRemoved(productId);
-
-        await _projection.WhenAsync(evt, CancellationToken.None);
-
-        _repoMock.Verify(
-            r => r.DeleteAsync(productId, It.IsAny<CancellationToken>()),
-            Times.Once
-        );
-    }
-
-    [TestMethod]
     public async Task When_StockAdded_AndModelExists_ShouldIncreaseAvailable()
     {
         var productId = Guid.NewGuid();

@@ -12,10 +12,7 @@ public sealed record UpdateProductCommand(
     decimal? Price
 ) : IRequest<Result>;
 
-public class UpdateProductCommandHandler(
-    IAggregateRepository<Product> repository,
-    IEventBus eventBus
-) : IRequestHandler<UpdateProductCommand, Result>
+public class UpdateProductCommandHandler(IAggregateRepository<Product> repository) : IRequestHandler<UpdateProductCommand, Result>
 {
     public async Task<Result> HandleAsync(
         UpdateProductCommand request,
@@ -43,10 +40,7 @@ public class UpdateProductCommandHandler(
             var product = productResult.Value!;
             product.Update(nameResult.Value!, descriptionResult.Value, priceResult.Value);
 
-            await repository.SaveAsync(product, cancellationToken);
-
-            foreach (var domainEvent in product.UncommittedEvents)
-                await eventBus.PublishAsync(domainEvent, cancellationToken);
+            await repository.CommitAsync(product, cancellationToken);
 
             return Result.Success();
         }

@@ -10,5 +10,4 @@ public interface IInventoryReadModelRepository
     );
     Task<StockReadModel?> GetBySkuAsync(string sku, CancellationToken cancellationToken = default);
     Task SaveAsync(StockReadModel stock, CancellationToken cancellationToken = default);
-    Task DeleteAsync(Guid productId, CancellationToken cancellationToken = default);
 }

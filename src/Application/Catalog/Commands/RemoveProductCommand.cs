@@ -6,10 +6,7 @@ namespace Ratatosk.Application.Catalog.Commands;
 
 public sealed record RemoveProductCommand(Guid ProductId) : IRequest<Result>;
 
-public class RemoveProductCommandHandler(
-    IAggregateRepository<Product> repository,
-    IEventBus eventBus
-) : IRequestHandler<RemoveProductCommand, Result>
+public class RemoveProductCommandHandler(IAggregateRepository<Product> repository) : IRequestHandler<RemoveProductCommand, Result>
 {
     public async Task<Result> HandleAsync(
         RemoveProductCommand request,
@@ -25,10 +22,7 @@ public class RemoveProductCommandHandler(
             var product = result.Value!;
             product.Remove();
 
-            await repository.SaveAsync(product, cancellationToken);
-
-            foreach (var domainEvent in product.UncommittedEvents)
-                await eventBus.PublishAsync(domainEvent, cancellationToken);
+            await repository.CommitAsync(product, cancellationToken);
 
             return Result.Success();
         }

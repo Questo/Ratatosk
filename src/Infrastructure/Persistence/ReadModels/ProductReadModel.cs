@@ -3,6 +3,7 @@ using Dapper;
 using Ratatosk.Application.Catalog;
 using Ratatosk.Application.Catalog.Models;
 using Ratatosk.Application.Shared;
+using Ratatosk.Infrastructure.Persistence;
 using Ratatosk.Infrastructure.Persistence.Repositories;
 
 namespace Ratatosk.Infrastructure.Persistence.ReadModels;

@@ -1,6 +1,6 @@
 using Ratatosk.Core.BuildingBlocks;
 
-namespace Ratatosk.Infrastructure.EventStore;
+namespace Ratatosk.Core.Abstractions;
 
 public interface ISnapshotSerializer
 {

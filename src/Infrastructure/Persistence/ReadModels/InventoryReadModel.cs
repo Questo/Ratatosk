@@ -1,6 +1,7 @@
 using Ratatosk.Application.Inventoring;
 using Ratatosk.Application.Inventoring.Models;
 using Ratatosk.Application.Shared;
+using Ratatosk.Infrastructure.Persistence;
 using Ratatosk.Infrastructure.Persistence.Repositories;
 
 namespace Ratatosk.Infrastructure.Persistence.ReadModels;
@@ -9,16 +10,6 @@ public sealed class InventoryReadModelRepository(IUnitOfWork uow)
     : PostgresRepository(uow),
       IInventoryReadModelRepository
 {
-    public Task DeleteAsync(Guid productId, CancellationToken cancellationToken = default) =>
-        ExecAsync(
-            """
-                DELETE FROM inventory_stock_read_models
-                WHERE product_id = @ProductId
-            """,
-            new { ProductId = productId },
-            cancellationToken
-        );
-
     public Task<StockReadModel?> GetByProductIdAsync(
         Guid productId,
         CancellationToken cancellationToken = default

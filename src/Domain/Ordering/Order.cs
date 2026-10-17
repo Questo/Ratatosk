@@ -13,9 +13,13 @@ public class Order : AggregateRoot
     public Guid CustomerId { get; private set; }
     public OrderStatus Status { get; private set; }
     public IReadOnlyList<OrderLine> Lines => _lines;
+    public DateTimeOffset PlacedAtUtc { get; private set; }
+    public DateTimeOffset LastUpdatedUtc { get; private set; }
 
     protected override void ApplyEvent(DomainEvent domainEvent)
     {
+        LastUpdatedUtc = domainEvent.OccurredAtUtc;
+
         switch (domainEvent)
         {
             case OrderCreated e:
@@ -23,6 +27,7 @@ public class Order : AggregateRoot
                 CustomerId = e.CustomerId;
                 _lines.AddRange(e.Lines);
                 Status = OrderStatus.Created;
+                PlacedAtUtc = e.OccurredAtUtc;
                 break;
 
             case OrderLineReserved e:

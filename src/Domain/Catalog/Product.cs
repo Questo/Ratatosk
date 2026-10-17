@@ -45,6 +45,18 @@ public class Product : AggregateRoot
             Price = Price,
         };
 
+    protected override bool RestoreSnapshot(Snapshot snapshot)
+    {
+        if (snapshot is not ProductSnapshot s)
+            return false;
+
+        Name = s.Name;
+        Sku = s.Sku;
+        Description = s.Description;
+        Price = s.Price;
+        return true;
+    }
+
     public static Result<Product> Create(string name, string sku, string description, decimal price)
     {
         var nameResult = ProductName.Create(name);

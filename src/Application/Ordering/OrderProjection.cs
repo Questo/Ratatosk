@@ -5,36 +5,37 @@ using Ratatosk.Domain.Ordering.Events;
 
 namespace Ratatosk.Application.Ordering;
 
-// The initial row is created by PlaceOrderCommandHandler, not here — see its comment for why.
-public class OrderProjection(IOrderReadModelRepository repo, IAggregateRepository<Order> orderRepository)
-    : IDomainEventHandler<OrderConfirmed>,
+/// <summary>
+/// The Order read model's only writer. Every Order event rewrites the row from the (committed)
+/// Order aggregate rather than applying the event as a delta. Events are delivered depth-first,
+/// so OrderConfirmed can be handled before OrderCreated is; reading the aggregate makes the
+/// outcome independent of that order.
+/// </summary>
+public class OrderProjection(IOrderReadModelRepository repo, IAggregateRepository<Order> orders)
+    : IDomainEventHandler<OrderCreated>,
+        IDomainEventHandler<OrderConfirmed>,
         IDomainEventHandler<OrderCancelled>
 {
-    public async Task WhenAsync(
-        OrderConfirmed domainEvent,
-        CancellationToken cancellationToken = default
-    ) => await SyncFromAggregateAsync(domainEvent.OrderId, domainEvent.OccurredAtUtc.UtcDateTime, cancellationToken);
+    public Task WhenAsync(OrderCreated domainEvent, CancellationToken cancellationToken = default) =>
+        SyncAsync(domainEvent.OrderId, cancellationToken);
 
-    public async Task WhenAsync(
-        OrderCancelled domainEvent,
-        CancellationToken cancellationToken = default
-    ) => await SyncFromAggregateAsync(domainEvent.OrderId, domainEvent.OccurredAtUtc.UtcDateTime, cancellationToken);
+    public Task WhenAsync(OrderConfirmed domainEvent, CancellationToken cancellationToken = default) =>
+        SyncAsync(domainEvent.OrderId, cancellationToken);
 
-    // Reads the Order aggregate (always committed by now) rather than trusting Status is fresh.
-    private async Task SyncFromAggregateAsync(
-        Guid orderId,
-        DateTime occurredAtUtc,
-        CancellationToken cancellationToken
-    )
+    public Task WhenAsync(OrderCancelled domainEvent, CancellationToken cancellationToken = default) =>
+        SyncAsync(domainEvent.OrderId, cancellationToken);
+
+    private async Task SyncAsync(Guid orderId, CancellationToken cancellationToken)
     {
-        var orderResult = await orderRepository.LoadAsync(orderId, cancellationToken);
+        var orderResult = await orders.LoadAsync(orderId, cancellationToken);
         if (orderResult.IsFailure)
-            return;
+            throw new InvalidOperationException(orderResult.Error);
 
-        var order = orderResult.Value!;
-        var existing = await repo.GetByIdAsync(orderId, cancellationToken);
+        await repo.SaveAsync(ToReadModel(orderResult.Value!), cancellationToken);
+    }
 
-        var readModel = new OrderReadModel
+    private static OrderReadModel ToReadModel(Order order) =>
+        new()
         {
             Id = order.Id,
             CustomerId = order.CustomerId,
@@ -48,10 +49,7 @@ public class OrderProjection(IOrderReadModelRepository repo, IAggregateRepositor
                     l.UnitPrice.Currency
                 )),
             ],
-            CreatedUtc = existing?.CreatedUtc ?? occurredAtUtc,
-            LastUpdatedUtc = occurredAtUtc,
+            CreatedUtc = order.PlacedAtUtc.UtcDateTime,
+            LastUpdatedUtc = order.LastUpdatedUtc.UtcDateTime,
         };
-
-        await repo.SaveAsync(readModel, cancellationToken);
-    }
 }

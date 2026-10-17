@@ -13,7 +13,6 @@ namespace Ratatosk.UnitTests.Application.Authentication;
 public class SignUpCommandHandlerTests
 {
     private Mock<IAggregateRepository<User>> _userRepositoryMock = null!;
-    private Mock<IEventBus> _eventBusMock = null!;
     private Mock<IUserAuthRepository> _userAuthRepositoryMock = null!;
     private Mock<IRefreshTokenRepository> _refreshTokenRepositoryMock = null!;
     private Mock<IPasswordHasher> _passwordHasherMock = null!;
@@ -27,7 +26,6 @@ public class SignUpCommandHandlerTests
     public void Setup()
     {
         _userRepositoryMock = new Mock<IAggregateRepository<User>>();
-        _eventBusMock = new Mock<IEventBus>();
         _userAuthRepositoryMock = new Mock<IUserAuthRepository>();
         _refreshTokenRepositoryMock = new Mock<IRefreshTokenRepository>();
         _passwordHasherMock = new Mock<IPasswordHasher>();
@@ -35,7 +33,6 @@ public class SignUpCommandHandlerTests
 
         _handler = new SignUpCommandHandler(
             _userRepositoryMock.Object,
-            _eventBusMock.Object,
             _userAuthRepositoryMock.Object,
             _refreshTokenRepositoryMock.Object,
             _passwordHasherMock.Object,
@@ -89,13 +86,8 @@ public class SignUpCommandHandlerTests
 
         // Assert
         _userRepositoryMock.Verify(
-            x => x.SaveAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()),
+            x => x.CommitAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()),
             Times.Once
-        );
-
-        _eventBusMock.Verify(
-            x => x.PublishAsync(It.IsAny<DomainEvent>(), It.IsAny<CancellationToken>()),
-            Times.AtLeastOnce
         );
 
         _refreshTokenRepositoryMock.Verify(
@@ -122,7 +114,7 @@ public class SignUpCommandHandlerTests
         Assert.AreEqual(Errors.Authentication.AccountAlreadyExists.Message, result.Error);
 
         _userRepositoryMock.Verify(
-            x => x.SaveAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()),
+            x => x.CommitAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()),
             Times.Never
         );
     }
@@ -142,7 +134,7 @@ public class SignUpCommandHandlerTests
         Assert.IsTrue(result.IsFailure);
 
         _userRepositoryMock.Verify(
-            x => x.SaveAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()),
+            x => x.CommitAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()),
             Times.Never
         );
     }
