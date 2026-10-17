@@ -10,9 +10,13 @@ namespace Ratatosk.Infrastructure.Authentication;
 
 public sealed class JwtTokenIssuer(IOptions<AuthOptions> options) : ITokenIssuer
 {
-    public Result<string> IssueToken(string email, string role)
+    public Result<string> IssueToken(Guid userId, string email, string role)
     {
-        var claims = new[] { new Claim(ClaimTypes.Email, email), new Claim(ClaimTypes.Role, role) };
+        var claims = new List<Claim> { new(ClaimTypes.Email, email), new(ClaimTypes.Role, role) };
+
+        // Users created before ids were recorded have none to put in the token.
+        if (userId != Guid.Empty)
+            claims.Add(new Claim(ClaimTypes.NameIdentifier, userId.ToString()));
 
         var key = new SymmetricSecurityKey(options.Value.GetKeyBytes());
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

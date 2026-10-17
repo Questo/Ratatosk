@@ -23,7 +23,7 @@ public sealed class UserAuthReadModel(IUnitOfWork uow)
     public Task<Pagination<UserAuth>> GetAllAsync(CancellationToken cancellationToken)
     {
         var fromSql = "FROM user_auth_read_models";
-        var selectSql = "SELECT *";
+        var selectSql = "SELECT email, role, hash, id";
         var orderSql = "ORDER BY email";
 
         return PagedQueryAsync<UserAuth>(
@@ -46,7 +46,7 @@ public sealed class UserAuthReadModel(IUnitOfWork uow)
     )
     {
         var fromSql = "FROM user_auth_read_models";
-        var selectSql = "SELECT *";
+        var selectSql = "SELECT email, role, hash, id";
         var orderSql = "ORDER BY email";
         var whereSql = """WHERE role = @Role""";
         var args = new { Role = role };
@@ -66,7 +66,7 @@ public sealed class UserAuthReadModel(IUnitOfWork uow)
     public Task<UserAuth?> GetByEmailAsync(string email, CancellationToken cancellationToken) =>
         QueryFirstOrDefaultAsync<UserAuth?>(
             """
-                SELECT email, role, hash
+                SELECT email, role, hash, id
                 FROM user_auth_read_models
                 WHERE email = @Email
             """,
@@ -77,12 +77,13 @@ public sealed class UserAuthReadModel(IUnitOfWork uow)
     public Task SaveAsync(UserAuth userAuth, CancellationToken cancellationToken) =>
         ExecAsync(
             """
-                INSERT INTO user_auth_read_models (email, role, hash)
-                VALUES (@Email, @Role, @Hash)
+                INSERT INTO user_auth_read_models (email, role, hash, id)
+                VALUES (@Email, @Role, @Hash, @Id)
                 ON CONFLICT (email) DO UPDATE SET
                   email = EXCLUDED.email,
                   role = EXCLUDED.role,
-                  hash = EXCLUDED.hash
+                  hash = EXCLUDED.hash,
+                  id = EXCLUDED.id
             """,
             userAuth,
             cancellationToken

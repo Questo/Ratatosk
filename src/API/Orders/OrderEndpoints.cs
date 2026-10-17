@@ -1,8 +1,11 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Mvc;
 using Ratatosk.Core.BuildingBlocks;
 using Ratatosk.Application.Ordering;
 using Ratatosk.Application.Ordering.Commands;
 using Ratatosk.Application.Ordering.Models;
 using Ratatosk.Application.Ordering.Queries;
+using Ratatosk.Application.Shared;
 
 namespace Ratatosk.API.Orders;
 
@@ -67,9 +70,44 @@ public static class OrderEndpoints
             .WithDescription("Returns the current read model for the supplied order id.")
             .Produces<OrderReadModel>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound);
+
+        app.MapGet(
+                "/orders",
+                async (
+                    [AsParameters] ListMyOrdersRequest request,
+                    ClaimsPrincipal user,
+                    IDispatcher dispatcher,
+                    CancellationToken ct
+                ) =>
+                {
+                    // The customer is the signed-in user; never take it from the request.
+                    if (!Guid.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier), out var customerId))
+                        return Results.Unauthorized();
+
+                    var query = new GetCustomerOrdersQuery(customerId, request.Page, request.PageSize);
+                    var result = await dispatcher.DispatchAsync(query, ct);
+
+                    return result.IsFailure
+                        ? Results.BadRequest(result.Error)
+                        : Results.Ok(result.Value);
+                }
+            )
+            .RequireAuthorization(Policies.Authenticated)
+            .WithTags(OrdersTag)
+            .WithName("ListMyOrders")
+            .WithSummary("List the signed-in customer's orders")
+            .WithDescription(
+                "Returns the caller's own orders, newest first, with their lines. "
+                    + "Paging defaults to page 1, size 25; the page size is at most 100."
+            )
+            .Produces<Pagination<OrderReadModel>>(StatusCodes.Status200OK)
+            .Produces<string>(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized);
     }
 }
 
 public sealed record PlaceOrderLineRequest(string Sku, int Quantity);
 
 public sealed record PlaceOrderRequest(Guid CustomerId, IReadOnlyList<PlaceOrderLineRequest> Lines);
+
+public sealed record ListMyOrdersRequest([FromQuery] int Page = 1, [FromQuery] int PageSize = 25);

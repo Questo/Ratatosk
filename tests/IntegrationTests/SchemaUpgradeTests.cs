@@ -1,5 +1,7 @@
 using Dapper;
+using Ratatosk.Application.Authentication.Models;
 using Ratatosk.Infrastructure.Persistence;
+using Ratatosk.Infrastructure.Persistence.ReadModels;
 
 namespace Ratatosk.IntegrationTests;
 
@@ -39,6 +41,13 @@ public class SchemaUpgradeTests
                 );
                 INSERT INTO inventory_stock_read_models VALUES
                     ('6f1f6c43-1d1f-4a55-9d0c-1f2b3c4d5e6f', 'NUT-001', 10, 2, 'pcs', now());
+                DROP TABLE IF EXISTS user_auth_read_models;
+                CREATE TABLE user_auth_read_models(
+                    email text PRIMARY KEY,
+                    role text NOT NULL,
+                    hash text NOT NULL
+                );
+                INSERT INTO user_auth_read_models VALUES ('old@example.com', 'User', 'hash');
             """,
             transaction: _uow.Transaction
         );
@@ -81,5 +90,20 @@ public class SchemaUpgradeTests
             transaction: _uow.Transaction
         );
         Assert.AreEqual((10, 2, 0), row);
+    }
+
+    [TestMethod]
+    public async Task Apply_AddsANullableUserId_ThatOldRowsReadAsEmpty()
+    {
+        await SchemaUpgrade.ApplyAsync(_uow.Connection, _uow.Transaction);
+        await SchemaUpgrade.ApplyAsync(_uow.Connection, _uow.Transaction);
+
+        var users = new UserAuthReadModel(_uow);
+        var old = await users.GetByEmailAsync("old@example.com", CancellationToken.None);
+        Assert.AreEqual(new UserAuth("old@example.com", "User", "hash", Guid.Empty), old);
+
+        var id = Guid.NewGuid();
+        await users.SaveAsync(new UserAuth("new@example.com", "User", "hash", id), CancellationToken.None);
+        Assert.AreEqual(id, (await users.GetByEmailAsync("new@example.com", CancellationToken.None))!.Id);
     }
 }

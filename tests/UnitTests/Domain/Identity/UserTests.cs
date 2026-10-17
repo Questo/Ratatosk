@@ -32,7 +32,8 @@ public class UserTests
         var @event = user.UncommittedEvents.OfType<UserCreated>().FirstOrDefault();
 
         Assert.IsNotNull(@event);
-        Assert.AreEqual(email.Value, @event!.Email);
+        Assert.AreEqual(user.Id, @event!.UserId);
+        Assert.AreEqual(email.Value, @event.Email);
         Assert.AreEqual(UserRole.Admin, @event.Role);
         Assert.AreEqual(passwordHash.Value, @event.PasswordHash);
     }

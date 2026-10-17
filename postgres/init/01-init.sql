@@ -50,7 +50,8 @@ CREATE INDEX IF NOT EXISTS idx_inventory_stock_read_models_sku ON inventory_stoc
 CREATE TABLE IF NOT EXISTS user_auth_read_models(
     email text PRIMARY KEY,
     role text NOT NULL,
-    hash text NOT NULL
+    hash text NOT NULL,
+    id uuid
 );
 
 CREATE INDEX IF NOT EXISTS idx_user_auth_read_models_id ON user_auth_read_models(email);

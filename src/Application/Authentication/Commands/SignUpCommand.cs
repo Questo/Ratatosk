@@ -41,7 +41,7 @@ public sealed class SignUpCommandHandler(
             var user = User.Create(request.Email, UserRole.User, passwordHash.Value!);
             await userRepository.CommitAsync(user, cancellationToken);
 
-            var tokenResult = tokenIssuer.IssueToken(user.Email.Value, user.Role.Name);
+            var tokenResult = tokenIssuer.IssueToken(user.Id, user.Email.Value, user.Role.Name);
             if (tokenResult.IsFailure)
                 return Result<TokenPair>.Failure(Errors.Authentication.InvalidToken.Message);
 

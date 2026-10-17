@@ -46,6 +46,9 @@ public static class SchemaUpgrade
 
         ALTER TABLE IF EXISTS inventory_stock_read_models
             ADD COLUMN IF NOT EXISTS version integer NOT NULL DEFAULT 0;
+
+        -- The user id, carried in the token. Null for users created before it was recorded.
+        ALTER TABLE IF EXISTS user_auth_read_models ADD COLUMN IF NOT EXISTS id uuid;
         """;
 
     public static Task ApplyAsync(

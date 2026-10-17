@@ -32,7 +32,7 @@ public sealed class RefreshTokenCommandHandler(
         // Rotate: revoke old token before issuing new pair
         await refreshTokenRepository.RevokeAsync(request.Token, cancellationToken);
 
-        var tokenResult = tokenIssuer.IssueToken(userAuth.Email, userAuth.Role);
+        var tokenResult = tokenIssuer.IssueToken(userAuth.Id, userAuth.Email, userAuth.Role);
         if (tokenResult.IsFailure)
             return Result<TokenPair>.Failure(Errors.Authentication.InvalidToken.Message);
 

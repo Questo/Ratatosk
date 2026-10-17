@@ -24,6 +24,7 @@ public sealed class User : AggregateRoot
         switch (domainEvent)
         {
             case UserCreated userCreated:
+                Id = userCreated.UserId;
                 Email = userCreated.Email;
                 Role = userCreated.Role;
                 PasswordHash = userCreated.PasswordHash;
@@ -53,7 +54,9 @@ public sealed class User : AggregateRoot
 
         var user = new User();
 
-        user.RaiseEvent(new UserCreated(emailResult.Value!, role, hashResult.Value!));
+        user.RaiseEvent(
+            new UserCreated(user.Id, emailResult.Value!, role, hashResult.Value!)
+        );
 
         return user;
     }

@@ -7,6 +7,7 @@ using Ratatosk.Application.Shared;
 using Ratatosk.Core.Abstractions;
 using Ratatosk.Core.Primitives;
 using Ratatosk.Domain.Identity;
+using Ratatosk.Domain.Identity.Events;
 using Ratatosk.UnitTests.Shared;
 
 namespace Ratatosk.UnitTests.Application.Authentication;
@@ -27,7 +28,7 @@ public class SignUpCommandHandlerTests
     {
         _passwordHasher.Setup(x => x.Hash(It.IsAny<Password>())).Returns(PasswordHash.Create("hashed").Value!);
         _tokenIssuer
-            .Setup(x => x.IssueToken(It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(x => x.IssueToken(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>()))
             .Returns(Result<string>.Success("access_token"));
 
         _host = await TestHost.StartAsync(services =>
@@ -57,6 +58,29 @@ public class SignUpCommandHandlerTests
     }
 
     [TestMethod]
+    public async Task SignUp_StoresAndIssuesTheUsersStreamId()
+    {
+        (await _host.SendAsync(new SignUpCommand(ValidEmail, ValidPassword))).EnsureSuccess();
+
+        var userAuth = await _host.Users.GetByEmailAsync(ValidEmail, CancellationToken.None);
+        Assert.AreNotEqual(Guid.Empty, userAuth!.Id);
+        Assert.IsInstanceOfType<UserCreated>((await _host.StreamAsync<User>(userAuth.Id)).Single());
+        _tokenIssuer.Verify(x => x.IssueToken(userAuth.Id, ValidEmail, UserRole.User.Name), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task SignUp_ThenLoadingTheUser_KeepsTheIdItWasCreatedWith()
+    {
+        (await _host.SendAsync(new SignUpCommand(ValidEmail, ValidPassword))).EnsureSuccess();
+        var userAuth = await _host.Users.GetByEmailAsync(ValidEmail, CancellationToken.None);
+
+        var user = await _host.LoadAsync<User>(userAuth!.Id);
+
+        Assert.AreEqual(userAuth.Id, user.Id);
+        Assert.AreEqual(ValidEmail, user.Email.Value);
+    }
+
+    [TestMethod]
     public async Task SignUp_WithAnEmailAlreadyInUse_FailsAndCreatesNoSecondUser()
     {
         (await _host.SendAsync(new SignUpCommand(ValidEmail, ValidPassword))).EnsureSuccess();
@@ -82,7 +106,7 @@ public class SignUpCommandHandlerTests
     public async Task SignUp_WhenNoTokenCanBeIssued_FailsWithoutStoringARefreshToken()
     {
         _tokenIssuer
-            .Setup(x => x.IssueToken(It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(x => x.IssueToken(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>()))
             .Returns(Result<string>.Failure("signing error"));
 
         var result = await _host.SendAsync(new SignUpCommand(ValidEmail, ValidPassword));

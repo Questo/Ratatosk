@@ -4,5 +4,5 @@ namespace Ratatosk.Application.Authentication;
 
 public interface ITokenIssuer
 {
-    Result<string> IssueToken(string email, string role);
+    Result<string> IssueToken(Guid userId, string email, string role);
 }

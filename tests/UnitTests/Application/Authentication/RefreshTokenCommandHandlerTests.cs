@@ -14,6 +14,7 @@ public class RefreshTokenCommandHandlerTests
     private Mock<ITokenIssuer> _tokenIssuerMock = null!;
     private RefreshTokenCommandHandler _handler = null!;
 
+    private static readonly Guid UserId = Guid.NewGuid();
     private const string ValidEmail = "user@example.com";
     private const string TokenValue = "existing_refresh_token";
 
@@ -36,7 +37,7 @@ public class RefreshTokenCommandHandlerTests
     {
         // Arrange
         var storedToken = new RefreshToken(TokenValue, ValidEmail, DateTimeOffset.UtcNow.AddDays(7));
-        var userAuth = new UserAuth(ValidEmail, "User", "hash");
+        var userAuth = new UserAuth(ValidEmail, "User", "hash", UserId);
 
         _refreshTokenRepositoryMock
             .Setup(x => x.GetByTokenAsync(TokenValue, It.IsAny<CancellationToken>()))
@@ -47,7 +48,7 @@ public class RefreshTokenCommandHandlerTests
             .ReturnsAsync(userAuth);
 
         _tokenIssuerMock
-            .Setup(x => x.IssueToken(ValidEmail, "User"))
+            .Setup(x => x.IssueToken(UserId, ValidEmail, "User"))
             .Returns(Result<string>.Success("new_access_token"));
 
         // Act

@@ -36,7 +36,7 @@ public sealed class LoginCommandHandler(
             return Result<TokenPair>.Failure(Errors.Authentication.InvalidCredentials.Message);
         }
 
-        var tokenResult = tokenIssuer.IssueToken(userAuth.Email, userAuth.Role);
+        var tokenResult = tokenIssuer.IssueToken(userAuth.Id, userAuth.Email, userAuth.Role);
         if (tokenResult.IsFailure)
             return Result<TokenPair>.Failure(Errors.Authentication.InvalidToken.Message);
 
