@@ -1,12 +1,9 @@
 name: "Copy Container Coverage"
-description: "Copies the /coverage folder from a container"
+description: "Copies the /coverage folder out of a built image"
 inputs:
   container-tag:
-    required: false
-    description: "Container image tag (used for docker create)"
-  container-name:
-    required: false
-    description: "Running container name (used for docker cp)"
+    required: true
+    description: "Image tag to create a throwaway container from"
   target-path:
     required: true
     description: "Directory in host to copy coverage to"
@@ -14,16 +11,11 @@ runs:
   using: "composite"
   steps:
     - run: |
-        mkdir -p "${{ inputs.target-path }}"
-        if [ -n "${{ inputs.container-tag }}" ]; then
-          container_id=$(docker create "${{ inputs.container-tag }}")
-          docker cp "$container_id:/coverage" "${{ inputs.target-path }}"
-          docker rm "$container_id"
-        elif [ -n "${{ inputs.container-name }}" ]; then
-          container_id=$(docker ps -aqf "name=${{ inputs.container-name }}")
-          docker cp "$container_id:/coverage" "${{ inputs.target-path }}"
-        else
-          echo "❌ Must provide either container-tag or container-name"
-          exit 1
-        fi
+        mkdir -p "$TARGET_PATH"
+        container_id=$(docker create "$CONTAINER_TAG")
+        docker cp "$container_id:/coverage" "$TARGET_PATH"
+        docker rm "$container_id"
       shell: bash
+      env:
+        CONTAINER_TAG: ${{ inputs.container-tag }}
+        TARGET_PATH: ${{ inputs.target-path }}
