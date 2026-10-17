@@ -2,6 +2,7 @@ using Moq;
 using Ratatosk.Application.Authentication;
 using Ratatosk.Application.Authentication.Commands;
 using Ratatosk.Application.Authentication.Models;
+using Ratatosk.Application.Shared;
 using Ratatosk.Core.Primitives;
 using Ratatosk.Domain.Identity;
 
@@ -66,6 +67,46 @@ public class LoginCommandHandlerTests
         _refreshTokenRepositoryMock.Verify(
             x => x.SaveAsync(It.IsAny<RefreshToken>(), It.IsAny<CancellationToken>()),
             Times.Once
+        );
+    }
+
+    [TestMethod]
+    public async Task HandleAsync_Should_Look_Up_The_Normalized_Email()
+    {
+        // Arrange
+        var userAuth = new UserAuth(ValidEmail, "User", StoredHash, UserId);
+
+        _userAuthRepositoryMock
+            .Setup(x => x.GetByEmailAsync(ValidEmail, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(userAuth);
+
+        _passwordHasherMock
+            .Setup(x => x.Verify(It.IsAny<Password>(), It.IsAny<PasswordHash>()))
+            .Returns(true);
+
+        _tokenIssuerMock
+            .Setup(x => x.IssueToken(UserId, ValidEmail, "User"))
+            .Returns(Result<string>.Success("access_token"));
+
+        // Act
+        var result = await _handler.HandleAsync(new LoginCommand("User@Example.com", ValidPassword));
+
+        // Assert
+        Assert.IsTrue(result.IsSuccess);
+    }
+
+    [TestMethod]
+    public async Task HandleAsync_Should_Return_Failure_When_Email_Is_Invalid()
+    {
+        // Act
+        var result = await _handler.HandleAsync(new LoginCommand("not-an-email", ValidPassword));
+
+        // Assert
+        Assert.IsTrue(result.IsFailure);
+        Assert.AreEqual(Errors.Authentication.InvalidCredentials.Message, result.Error);
+        _userAuthRepositoryMock.Verify(
+            x => x.GetByEmailAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never
         );
     }
 

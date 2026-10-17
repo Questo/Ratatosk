@@ -86,6 +86,20 @@ public class SeedAdminCommandHandlerTests
     }
 
     [TestMethod]
+    public async Task SeedAdmin_WithADifferentlyCasedEmail_LeavesTheExistingUserAsItIs()
+    {
+        (await _host.SendAsync(new SignUpCommand(AdminEmail, "user-password"))).EnsureSuccess();
+
+        var result = await _host.SendAsync(new SeedAdminCommand("Admin@Example.com", AdminPassword));
+
+        Assert.IsTrue(result.IsSuccess);
+        Assert.AreEqual(1, (await _host.Users.GetAllAsync(CancellationToken.None)).TotalItems);
+        var userAuth = await _host.Users.GetByEmailAsync(AdminEmail, CancellationToken.None);
+        Assert.AreEqual(UserRole.User.Name, userAuth!.Role);
+        Assert.AreEqual("hashed:user-password", userAuth.Hash);
+    }
+
+    [TestMethod]
     public async Task SeedAdmin_WithAnEmptyPassword_FailsAndCreatesNoUser()
     {
         var result = await _host.SendAsync(new SeedAdminCommand(AdminEmail, ""));

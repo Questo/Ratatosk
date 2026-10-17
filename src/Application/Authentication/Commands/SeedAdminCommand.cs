@@ -24,8 +24,13 @@ public sealed class SeedAdminCommandHandler(
     {
         try
         {
+            // Stored emails are normalized by Email.Create; look up the same form.
+            var emailResult = Email.Create(request.Email);
+            if (emailResult.IsFailure)
+                return Result.Failure(emailResult.Error!);
+
             var userAuth = await userAuthRepository.GetByEmailAsync(
-                request.Email,
+                emailResult.Value!.Value,
                 cancellationToken
             );
             if (userAuth is not null)
@@ -37,7 +42,7 @@ public sealed class SeedAdminCommandHandler(
 
             var passwordHash = passwordHasher.Hash(passwordResult.Value!);
 
-            var user = User.Create(request.Email, UserRole.Admin, passwordHash.Value!);
+            var user = User.Create(emailResult.Value.Value, UserRole.Admin, passwordHash.Value!);
             await userRepository.CommitAsync(user, cancellationToken);
 
             return Result.Success();
