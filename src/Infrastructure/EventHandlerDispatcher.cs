@@ -15,10 +15,10 @@ namespace Ratatosk.Infrastructure;
 /// back and logged without affecting the publisher (whose events are already committed) or the
 /// event's other handlers.
 /// </summary>
-public class ProjectionRegistrationService(
+public class EventHandlerDispatcher(
     IServiceProvider serviceProvider,
     IEventBus eventBus,
-    ILogger<ProjectionRegistrationService> logger
+    ILogger<EventHandlerDispatcher> logger
 ) : IHostedService
 {
     public Task StartAsync(CancellationToken cancellationToken)

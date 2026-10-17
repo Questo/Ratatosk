@@ -81,7 +81,7 @@ public sealed class TestHost : IDisposable
         configure?.Invoke(services);
 
         var provider = services.BuildServiceProvider(validateScopes: true);
-        var dispatch = ActivatorUtilities.CreateInstance<ProjectionRegistrationService>(provider);
+        var dispatch = ActivatorUtilities.CreateInstance<EventHandlerDispatcher>(provider);
         await dispatch.StartAsync(CancellationToken.None);
 
         return new TestHost(provider, logs);

@@ -112,7 +112,7 @@ public static class DependencyInjection
         services.AddScoped<IPasswordHasher, Argon2PasswordHasher>();
         services.AddScoped<ITokenIssuer, JwtTokenIssuer>();
 
-        services.AddHostedService<ProjectionRegistrationService>();
+        services.AddHostedService<EventHandlerDispatcher>();
 
         return services;
     }
