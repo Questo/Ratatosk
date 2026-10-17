@@ -39,7 +39,7 @@ Coverage is reported for `Core`, `Domain`, and `Application` assemblies only (no
 `/factory <feature>` (`.claude/skills/factory/SKILL.md`) runs spec → build → review → approve, each job in its own worktree. The agents read this section:
 
 - **Fresh checkout setup**: `dotnet tool restore && dotnet restore`.
-- **Dev server on a port**: start Postgres first (`docker compose up -d db`, reads `.env`; it's shared, so start it only if `localhost:5432` isn't already up), then `ASPNETCORE_ENVIRONMENT=Development Authentication__Secret=factory-dev-secret-at-least-32-bytes dotnet run --project src/API --no-launch-profile --urls http://localhost:<port>`. There is no UI, so exercise endpoints with `curl` instead of a browser.
+- **Dev server on a port**: start Postgres first (`docker compose up -d db`, reads `.env`; it's shared, so start it only if `localhost:5432` isn't already up), then `ASPNETCORE_ENVIRONMENT=Development Authentication__Secret=factory-dev-secret-at-least-32-bytes Admin__Email=admin@factory.local Admin__Password=factory-admin-password dotnet run --project src/API --no-launch-profile --urls http://localhost:<port>`. There is no UI, so exercise endpoints with `curl` instead of a browser.
 - **Validation**: `dotnet build`, `./scripts/run-unit-tests.sh` (75% coverage threshold), and `dotnet format --verify-no-changes --severity error` (what CI runs; pass `--include <changed files>` to scope it, never run `dotnet format` without `--verify-no-changes`). Integration tests (`./scripts/run-integration-tests.sh`) use a fixed container on port 5433, so run them only for changes to Infrastructure persistence, and never from two jobs at once.
 
 ## Architecture
@@ -80,6 +80,8 @@ Event store backend is controlled by `appsettings.json`:
 ```
 
 For `Sql`, set `DatabaseOptions:ConnectionString`. Auth secrets are in `AuthOptions` (JWT issuer, audience, secret).
+
+`Admin__Email`/`Admin__Password` (`AdminOptions`) seed one Admin User at startup (`AdminSeeder`). Seeding is skipped when either is unset, and an existing User with that email is left as is. Adding, updating and removing Products, Restock, and by-hand Reservation and Release require the Admin role.
 
 The JWT carries the user id as `ClaimTypes.NameIdentifier`, serialized under its full claim URI (`http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier`), not the short `nameid`. `GET /orders` gives a non-Admin only their own Orders (that id, never one from the request) and an Admin every Order, filterable by `status` and `customerId`; `POST /orders` places the Order for that id. `GET /orders/{orderId}` returns 404 unless the caller placed the Order or is an Admin, and a token with no user id gets 401 from the Order endpoints.
 
