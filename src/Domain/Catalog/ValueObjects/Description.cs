@@ -45,6 +45,9 @@ public sealed partial class Description : ValueObject
         return Result<Description>.Success(new Description(sanitized));
     }
 
+    // Rebuilds a value that was valid when it was stored, without re-running today's validation.
+    internal static Description FromStored(string value) => new(value);
+
     protected override IEnumerable<object> GetEqualityComponents()
     {
         yield return Value;

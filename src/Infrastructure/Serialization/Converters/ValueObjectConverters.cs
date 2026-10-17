@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Ratatosk.Domain;
 using Ratatosk.Domain.Catalog.ValueObjects;
+using Ratatosk.Domain.Identity;
 using Ratatosk.Domain.Ordering;
 
 namespace Ratatosk.Infrastructure.Serialization.Converters;
@@ -14,15 +15,8 @@ public class ProductNameConverter : JsonConverter<ProductName>
         JsonSerializerOptions options
     )
     {
-        var value = reader.GetString();
-        var result = ProductName.Create(value!);
-
-        if (!result.IsSuccess)
-        {
-            throw new JsonException("ProductName cannot be null");
-        }
-
-        return result.Value!;
+        var value = reader.GetString() ?? throw new JsonException("ProductName cannot be null");
+        return ProductName.FromStored(value);
     }
 
     public override void Write(
@@ -43,15 +37,8 @@ public class SKUConverter : JsonConverter<SKU>
         JsonSerializerOptions options
     )
     {
-        var value = reader.GetString();
-        var result = SKU.Create(value!);
-
-        if (!result.IsSuccess)
-        {
-            throw new JsonException("SKU cannot be null");
-        }
-
-        return result.Value!;
+        var value = reader.GetString() ?? throw new JsonException("SKU cannot be null");
+        return SKU.FromStored(value);
     }
 
     public override void Write(Utf8JsonWriter writer, SKU value, JsonSerializerOptions options)
@@ -68,15 +55,8 @@ public class DescriptionConverter : JsonConverter<Description>
         JsonSerializerOptions options
     )
     {
-        var value = reader.GetString();
-        var result = Description.Create(value!);
-
-        if (!result.IsSuccess)
-        {
-            throw new JsonException("ProductDescription cannot be null");
-        }
-
-        return result.Value!;
+        var value = reader.GetString() ?? throw new JsonException("Description cannot be null");
+        return Description.FromStored(value);
     }
 
     public override void Write(
@@ -134,12 +114,7 @@ public class PriceConverter : JsonConverter<Price>
         if (amount is null || string.IsNullOrWhiteSpace(currency))
             throw new JsonException("Missing required Price properties");
 
-        var result = Price.Create(amount.Value, currency!);
-
-        if (!result.IsSuccess)
-            throw new JsonException($"Invalid Price: {result.Error}");
-
-        return result.Value!;
+        return Price.FromStored(amount.Value, currency!);
     }
 
     public override void Write(Utf8JsonWriter writer, Price value, JsonSerializerOptions options)
@@ -196,12 +171,7 @@ public class QuantityConverter : JsonConverter<Quantity>
         if (amount is null || string.IsNullOrWhiteSpace(unit))
             throw new JsonException("Missing required Quantity properties");
 
-        var result = Quantity.Create(amount.Value, unit);
-
-        if (!result.IsSuccess)
-            throw new JsonException($"Invalid Quantity: {result.Error}");
-
-        return result.Value!;
+        return Quantity.FromStored(amount.Value, unit);
     }
 
     public override void Write(Utf8JsonWriter writer, Quantity value, JsonSerializerOptions options)
@@ -262,12 +232,7 @@ public class OrderLineConverter : JsonConverter<OrderLine>
         if (sku is null || quantity is null || unitPrice is null)
             throw new JsonException("Missing required OrderLine properties");
 
-        var result = OrderLine.Create(sku, quantity.Value, unitPrice);
-
-        if (!result.IsSuccess)
-            throw new JsonException($"Invalid OrderLine: {result.Error}");
-
-        return result.Value!;
+        return OrderLine.FromStored(sku, quantity.Value, unitPrice);
     }
 
     public override void Write(
@@ -284,4 +249,55 @@ public class OrderLineConverter : JsonConverter<OrderLine>
         JsonSerializer.Serialize(writer, value.UnitPrice, options);
         writer.WriteEndObject();
     }
+}
+
+// Email and PasswordHash are written as { "Value": "..." }, the shape the default serializer
+// produced before these converters existed, so older records read back unchanged.
+public abstract class SingleValueObjectConverter<T> : JsonConverter<T>
+{
+    protected abstract T FromStored(string value);
+    protected abstract string ToStored(T value);
+
+    public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType == JsonTokenType.String)
+            return FromStored(reader.GetString()!);
+
+        if (reader.TokenType != JsonTokenType.StartObject)
+            throw new JsonException($"Expected string or object for {typeof(T).Name}");
+
+        string? value = null;
+        while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
+        {
+            var propName = reader.GetString();
+            reader.Read();
+            if (propName == "Value")
+                value = reader.GetString();
+            else
+                reader.Skip();
+        }
+
+        return FromStored(value ?? throw new JsonException($"Missing {typeof(T).Name} value"));
+    }
+
+    public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("Value", ToStored(value));
+        writer.WriteEndObject();
+    }
+}
+
+public class EmailConverter : SingleValueObjectConverter<Email>
+{
+    protected override Email FromStored(string value) => Email.FromStored(value);
+
+    protected override string ToStored(Email value) => value.Value;
+}
+
+public class PasswordHashConverter : SingleValueObjectConverter<PasswordHash>
+{
+    protected override PasswordHash FromStored(string value) => PasswordHash.FromStored(value);
+
+    protected override string ToStored(PasswordHash value) => value.Value;
 }

@@ -41,6 +41,9 @@ public sealed partial class SKU : ValueObject
         return Result<SKU>.Success(new SKU(value));
     }
 
+    // Rebuilds a value that was valid when it was stored, without re-running today's validation.
+    internal static SKU FromStored(string value) => new(value);
+
     protected override IEnumerable<object> GetEqualityComponents()
     {
         yield return Value;

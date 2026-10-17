@@ -1,5 +1,9 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
+using Ratatosk.Domain;
+using Ratatosk.Domain.Identity;
+using Ratatosk.Domain.Identity.Events;
+using Ratatosk.Domain.Inventoring.Events;
 using Ratatosk.Infrastructure.Serialization.Serializers;
 using Ratatosk.UnitTests.Shared;
 
@@ -46,6 +50,68 @@ public class JsonEventSerializerTests
 
         Assert.IsInstanceOfType<TestEvent>(deserializedEvent);
         Assert.AreEqual("acorn", ((TestEvent)deserializedEvent).Value);
+    }
+
+    [TestMethod]
+    public void Serialize_StoresTheTypeWithoutAnAssemblyVersion()
+    {
+        var serialized = _serializer.Serialize(new TestEvent("acorn"));
+
+        StringAssert.Contains(serialized, "\"Type\":\"Ratatosk.UnitTests.Shared.TestEvent\"");
+        Assert.DoesNotContain("Version=", serialized);
+    }
+
+    [TestMethod]
+    public void Deserialize_LegacyAssemblyQualifiedTypeName_StillResolves()
+    {
+        var legacy = _serializer
+            .Serialize(new TestEvent("acorn"))
+            .Replace(
+                "\"Ratatosk.UnitTests.Shared.TestEvent\"",
+                $"\"{typeof(TestEvent).AssemblyQualifiedName}\""
+            );
+
+        var deserialized = _serializer.Deserialize(legacy);
+
+        Assert.AreEqual("acorn", ((TestEvent)deserialized).Value);
+    }
+
+    [TestMethod]
+    public void RoundTrip_PreservesWhenTheEventOccurred()
+    {
+        var domainEvent = new TestEvent("acorn") { OccurredAtUtc = new DateTimeOffset(2020, 1, 2, 3, 4, 5, TimeSpan.Zero) };
+
+        var deserialized = _serializer.Deserialize(_serializer.Serialize(domainEvent));
+
+        Assert.AreEqual(domainEvent.OccurredAtUtc, deserialized.OccurredAtUtc);
+    }
+
+    [TestMethod]
+    public void Deserialize_StoredValueThatTodaysValidationRejects_StillLoads()
+    {
+        var stored = _serializer
+            .Serialize(new StockAdded(Guid.NewGuid(), SKU.Create("TS-ABCD1234").Value!, Quantity.Pieces(3)))
+            .Replace("TS-ABCD1234", "legacy_sku");
+
+        var deserialized = (StockAdded)_serializer.Deserialize(stored);
+
+        Assert.AreEqual("legacy_sku", deserialized.SKU.Value);
+    }
+
+    [TestMethod]
+    public void RoundTrip_UserCreated_RestoresIdentityValueObjects()
+    {
+        var created = new UserCreated(
+            Email.Create("someone@example.com").Value!,
+            UserRole.Admin,
+            PasswordHash.Create("hash").Value!
+        );
+
+        var deserialized = (UserCreated)_serializer.Deserialize(_serializer.Serialize(created));
+
+        Assert.AreEqual(created.Email, deserialized.Email);
+        Assert.AreEqual(created.PasswordHash, deserialized.PasswordHash);
+        Assert.AreEqual(UserRole.Admin, deserialized.Role);
     }
 }
 

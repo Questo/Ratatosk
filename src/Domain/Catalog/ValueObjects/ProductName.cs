@@ -35,6 +35,9 @@ public sealed partial class ProductName : ValueObject
         return Result<ProductName>.Success(new ProductName(value.Trim()));
     }
 
+    // Rebuilds a value that was valid when it was stored, without re-running today's validation.
+    internal static ProductName FromStored(string value) => new(value);
+
     protected override IEnumerable<object> GetEqualityComponents()
     {
         yield return Value;
