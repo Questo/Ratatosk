@@ -25,7 +25,7 @@ public class StockCommandTests
         var (productId, _) = await _host.AddStockedProductAsync(available: 10);
 
         (await _host.SendAsync(new ReserveStockCommand(productId, 4))).EnsureSuccess();
-        (await _host.SendAsync(new UnreserveStockCommand(productId, 1))).EnsureSuccess();
+        (await _host.SendAsync(new ReleaseStockCommand(productId, 1))).EnsureSuccess();
 
         var stock = await _host.Stock.GetByProductIdAsync(productId);
         Assert.AreEqual(10, stock!.Available);
@@ -44,12 +44,12 @@ public class StockCommandTests
     }
 
     [TestMethod]
-    public async Task Unreserve_CannotReleaseStockHeldByAnOrder()
+    public async Task Release_CannotReleaseStockHeldByAnOrder()
     {
         var (productId, sku) = await _host.AddStockedProductAsync(available: 5);
         await _host.PlaceOrderAsync((sku, 5));
 
-        var result = await _host.SendAsync(new UnreserveStockCommand(productId, 5));
+        var result = await _host.SendAsync(new ReleaseStockCommand(productId, 5));
 
         Assert.IsTrue(result.IsFailure);
         Assert.AreEqual(5, (await _host.Stock.GetByProductIdAsync(productId))!.Reserved);
@@ -62,7 +62,7 @@ public class StockCommandTests
 
         Assert.IsTrue((await _host.SendAsync(new RestockCommand(unknown, 1))).IsFailure);
         Assert.IsTrue((await _host.SendAsync(new ReserveStockCommand(unknown, 1))).IsFailure);
-        Assert.IsTrue((await _host.SendAsync(new UnreserveStockCommand(unknown, 1))).IsFailure);
+        Assert.IsTrue((await _host.SendAsync(new ReleaseStockCommand(unknown, 1))).IsFailure);
     }
 
     [TestMethod]

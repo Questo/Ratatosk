@@ -46,7 +46,7 @@ public static class InventoryEndpoints
                     CancellationToken ct
                 ) =>
                 {
-                    var command = new UnreserveStockCommand(productId, request.Quantity);
+                    var command = new ReleaseStockCommand(productId, request.Quantity);
                     var result = await dispatcher.DispatchAsync(command, ct);
                     var response = Response.FromResult(result);
 
