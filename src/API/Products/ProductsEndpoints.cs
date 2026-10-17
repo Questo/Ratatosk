@@ -30,7 +30,7 @@ public static class ProductsEndpoints
                         : Results.Created($"/products/{result.Value}", response);
                 }
             )
-            .RequireAuthorization(Policies.Authenticated)
+            .RequireAuthorization(Policies.Admin)
             .WithTags(ProductsTag)
             .WithName("CreateProduct")
             .WithSummary("Create a new product")
@@ -39,7 +39,9 @@ public static class ProductsEndpoints
             )
             .Accepts<AddProductCommand>("application/json")
             .Produces<Response<Guid>>(StatusCodes.Status201Created)
-            .Produces<Response<Guid>>(StatusCodes.Status400BadRequest);
+            .Produces<Response<Guid>>(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status403Forbidden);
 
         app.MapGet(
                 "/products/{id:guid}",
@@ -73,14 +75,16 @@ public static class ProductsEndpoints
                     return result.IsFailure ? Results.BadRequest(result.Error) : Results.Ok();
                 }
             )
-            .RequireAuthorization(Policies.Authenticated)
+            .RequireAuthorization(Policies.Admin)
             .WithTags(ProductsTag)
             .WithName("UpdateProduct")
             .WithSummary("Update an existing product")
             .WithDescription("Updates a product by id using the supplied payload.")
             .Accepts<UpdateProductCommand>("application/json")
             .Produces(StatusCodes.Status200OK)
-            .Produces<string>(StatusCodes.Status400BadRequest);
+            .Produces<string>(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status403Forbidden);
 
         app.MapGet(
                 "/products",
@@ -130,7 +134,9 @@ public static class ProductsEndpoints
             .WithSummary("Delete a product")
             .WithDescription("Deletes the product by id. Returns 404 if it does not exist.")
             .Produces(StatusCodes.Status204NoContent)
-            .Produces(StatusCodes.Status404NotFound);
+            .Produces(StatusCodes.Status404NotFound)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status403Forbidden);
 
         // Example: requires a valid token AND the Admin role
         app.MapGet(
