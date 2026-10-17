@@ -39,7 +39,7 @@
     ```bash
     AUTHENTICATION_SECRET=RC9r7YtLzYVn0xOkGzAIxx7am6i83hgx1ot1nzR6m38=
     ADMIN_EMAIL=admin@example.com
-    ADMIN_PASSWORD=change-me
+    ADMIN_PASSWORD=change-me  # pick a strong password: this account controls the catalog and stock
     ```
 
     Docker compose already passes `Authentication__Secret` from `.env`; `appsettings*.json` intentionally leave `Authentication:Secret` blank to avoid committing secrets.
