@@ -81,7 +81,7 @@ Event store backend is controlled by `appsettings.json`:
 
 For `Sql`, set `DatabaseOptions:ConnectionString`. Auth secrets are in `AuthOptions` (JWT issuer, audience, secret).
 
-The JWT carries the user id as `ClaimTypes.NameIdentifier`, serialized under its full claim URI (`http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier`), not the short `nameid`; `GET /orders` lists only the orders of that id, never one from the request.
+The JWT carries the user id as `ClaimTypes.NameIdentifier`, serialized under its full claim URI (`http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier`), not the short `nameid`; `GET /orders` lists only the orders of that id, never one from the request, and `POST /orders` places the Order for that id. `GET /orders/{orderId}` returns 404 unless the caller placed the Order or is an Admin, and a token with no user id gets 401 from the Order endpoints.
 
 ## Key Patterns
 
