@@ -16,6 +16,7 @@ public class LoginCommandHandlerTests
     private Mock<ITokenIssuer> _tokenIssuerMock = null!;
     private LoginCommandHandler _handler = null!;
 
+    private static readonly Guid UserId = Guid.NewGuid();
     private const string ValidEmail = "user@example.com";
     private const string ValidPassword = "password";
     private const string StoredHash = "argon2hash";
@@ -40,7 +41,7 @@ public class LoginCommandHandlerTests
     public async Task HandleAsync_Should_Return_TokenPair_When_Credentials_Are_Valid()
     {
         // Arrange
-        var userAuth = new UserAuth(ValidEmail, "User", StoredHash);
+        var userAuth = new UserAuth(ValidEmail, "User", StoredHash, UserId);
 
         _userAuthRepositoryMock
             .Setup(x => x.GetByEmailAsync(ValidEmail, It.IsAny<CancellationToken>()))
@@ -51,7 +52,7 @@ public class LoginCommandHandlerTests
             .Returns(true);
 
         _tokenIssuerMock
-            .Setup(x => x.IssueToken(ValidEmail, "User"))
+            .Setup(x => x.IssueToken(UserId, ValidEmail, "User"))
             .Returns(Result<string>.Success("access_token"));
 
         // Act
@@ -93,7 +94,7 @@ public class LoginCommandHandlerTests
     public async Task HandleAsync_Should_Return_Failure_When_Password_Does_Not_Match()
     {
         // Arrange
-        var userAuth = new UserAuth(ValidEmail, "User", StoredHash);
+        var userAuth = new UserAuth(ValidEmail, "User", StoredHash, UserId);
 
         _userAuthRepositoryMock
             .Setup(x => x.GetByEmailAsync(ValidEmail, It.IsAny<CancellationToken>()))
@@ -120,7 +121,7 @@ public class LoginCommandHandlerTests
     public async Task HandleAsync_Should_Return_Failure_When_Password_Is_Empty()
     {
         // Arrange
-        var userAuth = new UserAuth(ValidEmail, "User", StoredHash);
+        var userAuth = new UserAuth(ValidEmail, "User", StoredHash, UserId);
 
         _userAuthRepositoryMock
             .Setup(x => x.GetByEmailAsync(ValidEmail, It.IsAny<CancellationToken>()))
@@ -138,7 +139,7 @@ public class LoginCommandHandlerTests
     public async Task HandleAsync_Should_Return_Failure_When_Token_Issuer_Fails()
     {
         // Arrange
-        var userAuth = new UserAuth(ValidEmail, "User", StoredHash);
+        var userAuth = new UserAuth(ValidEmail, "User", StoredHash, UserId);
 
         _userAuthRepositoryMock
             .Setup(x => x.GetByEmailAsync(ValidEmail, It.IsAny<CancellationToken>()))
@@ -149,7 +150,7 @@ public class LoginCommandHandlerTests
             .Returns(true);
 
         _tokenIssuerMock
-            .Setup(x => x.IssueToken(It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(x => x.IssueToken(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>()))
             .Returns(Result<string>.Failure("signing error"));
 
         // Act

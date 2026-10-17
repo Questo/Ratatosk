@@ -102,6 +102,7 @@ public class JsonEventSerializerTests
     public void RoundTrip_UserCreated_RestoresIdentityValueObjects()
     {
         var created = new UserCreated(
+            Guid.NewGuid(),
             Email.Create("someone@example.com").Value!,
             UserRole.Admin,
             PasswordHash.Create("hash").Value!
@@ -109,9 +110,32 @@ public class JsonEventSerializerTests
 
         var deserialized = (UserCreated)_serializer.Deserialize(_serializer.Serialize(created));
 
+        Assert.AreEqual(created.UserId, deserialized.UserId);
         Assert.AreEqual(created.Email, deserialized.Email);
         Assert.AreEqual(created.PasswordHash, deserialized.PasswordHash);
         Assert.AreEqual(UserRole.Admin, deserialized.Role);
+    }
+
+    [TestMethod]
+    public void Deserialize_UserCreatedStoredWithoutAUserId_LoadsWithAnEmptyId()
+    {
+        var userId = Guid.NewGuid();
+        var stored = _serializer
+            .Serialize(
+                new UserCreated(
+                    userId,
+                    Email.Create("someone@example.com").Value!,
+                    UserRole.User,
+                    PasswordHash.Create("hash").Value!
+                )
+            )
+            .Replace($"\"UserId\":\"{userId}\",", "");
+        Assert.DoesNotContain("UserId", stored);
+
+        var deserialized = (UserCreated)_serializer.Deserialize(stored);
+
+        Assert.AreEqual(Guid.Empty, deserialized.UserId);
+        Assert.AreEqual("someone@example.com", deserialized.Email.Value);
     }
 }
 
