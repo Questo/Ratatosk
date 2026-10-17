@@ -1,4 +1,5 @@
 using Ratatosk.Application.Inventoring.Models;
+using Ratatosk.Application.Shared;
 
 namespace Ratatosk.Application.Inventoring;
 
@@ -9,6 +10,13 @@ public interface IInventoryReadModelRepository
         CancellationToken cancellationToken = default
     );
     Task<StockReadModel?> GetBySkuAsync(string sku, CancellationToken cancellationToken = default);
+
+    /// <summary>Every Stock record, ordered by SKU and then product id.</summary>
+    Task<Pagination<StockReadModel>> GetPageAsync(
+        int page = 1,
+        int pageSize = 25,
+        CancellationToken cancellationToken = default
+    );
 
     /// <summary>
     /// Inserts or replaces the product's record, unless the stored one reflects the same or a
