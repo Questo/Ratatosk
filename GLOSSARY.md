@@ -27,7 +27,7 @@ The record of one Product's Stock. Each Product has exactly one, created when th
 _Avoid_: Warehouse, stock item
 
 **Stock**:
-The quantity of a Product the shop holds. It splits into **available** (on hand and unclaimed) and **reserved** (claimed but not yet shipped).
+The quantity of a Product the shop holds. Stock **on hand** splits into **reserved** (claimed but not yet shipped) and **available** (on hand and unclaimed: on hand minus reserved).
 _Avoid_: Inventory level, supply
 
 **Quantity**:
@@ -35,7 +35,7 @@ An amount together with its unit (pieces, kilograms, litres, …).
 _Avoid_: Count, amount
 
 **Restock**:
-Adding Stock to an Inventory.
+Adding Stock to an Inventory. Recorded as the `StockAdded` event, whose stored name can't change.
 _Avoid_: Add stock, replenish
 
 **Reservation**:
@@ -43,7 +43,7 @@ A claim on available Stock, either held by an Order or made by hand. A by-hand R
 _Avoid_: Allocation, hold, booking
 
 **Rejected reservation**:
-A Reservation for an Order that the Inventory refused (unknown SKU or not enough available Stock). It is recorded on the Inventory.
+A Reservation for an Order that the Inventory refused (unknown SKU or not enough available Stock). It is recorded on the Inventory as the `StockReservationFailed` event, whose stored name can't change.
 _Avoid_: Failed reservation, stock-out
 
 **Release**:

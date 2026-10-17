@@ -11,7 +11,8 @@ docker-compose up
 # Build only
 dotnet build
 
-# Run the API without Docker (requires local PostgreSQL or InMemory event store)
+# Run the API without Docker (always needs PostgreSQL: the read models and unit of work live there,
+# whichever event store is configured; the schema is upgraded on startup)
 dotnet run --project src/API
 ```
 
@@ -49,19 +50,19 @@ API → Application → Domain → Core
 
 **Application** — Command/query handlers (dispatched via `IDispatcher`, which endpoints call directly), event handlers, read model types, and repository interfaces. Commands return `Result<T>`. Cross-context coordination lives in modules here: `OrderReservationProcess` (the Order → stock saga) and `StockKeeper` (every stock change, with concurrency retry).
 
-**Infrastructure** — Concrete implementations: three event store backends (`InMemory`, `File`, `PostgresEventStore`) with matching snapshot stores, `AggregateRepository<T>` (load from snapshot + events; commit), `IUnitOfWork`, `ProjectionRegistrationService` (delivers events to every `IDomainEventHandler`), `Argon2PasswordHasher`, `JwtTokenIssuer`.
+**Infrastructure** — Concrete implementations: three event store backends (`InMemory`, `File`, `PostgresEventStore`) with matching snapshot stores, `AggregateRepository<T>` (load from snapshot + events; commit), `IUnitOfWork`, `EventHandlerDispatcher` (delivers events to every `IDomainEventHandler`), `Argon2PasswordHasher`, `JwtTokenIssuer`.
 
 **API** — Minimal API endpoints organized by feature (`/auth`, `/products`, `/inventory`, `/orders`). `CleanupResponseMiddleware` wraps all responses in a `Result` envelope; `UnitOfWorkEndpointFilter` commits the request's transaction on success (status < 400) and rolls it back otherwise.
 
 ## Event Sourcing Flow
 
-Write path: Command → Handler → `IAggregateRepository<T>.LoadAsync` → domain method → `RaiseEvent()` → `CommitAsync`. `CommitAsync` is the only place the persistence sequence lives: append in raise order with an expected-version check (`ConcurrencyException` on conflict), snapshot when due, commit, clear, then publish. Handlers never commit or publish themselves.
+Write path: Command → Handler → `IAggregateRepository<T>.LoadAsync` → domain method → `RaiseEvent()` → `CommitAsync`. `CommitAsync` is the only place the persistence sequence lives: append in raise order with an expected-version check (`ConcurrencyException` on conflict), commit, clear, snapshot when due, then publish. Handlers never commit or publish themselves. Only the Sql event store appends inside the transaction; if the transaction fails after an InMemory/File append, the stored events are still published and the error rethrown.
 
-Event handling: `ProjectionRegistrationService` runs each handler in its own DI scope and transaction, depth-first and synchronously. A failing handler is rolled back and logged; it never fails the publisher or the event's other handlers. Read models that can see events out of order (e.g. `OrderProjection`) rebuild from the committed aggregate instead of applying deltas.
+Event handling: `EventHandlerDispatcher` runs each handler in its own DI scope and transaction, depth-first and synchronously. A failing handler is rolled back and logged; it never fails the publisher or the event's other handlers. Read models that can see events out of order or concurrently (`OrderProjection`, `InventoryProjection`) rebuild from the committed aggregate instead of applying deltas; the stock record also carries the Inventory version so an older rebuild never overwrites a newer one.
 
 Read path: Query → Handler → Repository hits denormalized read model table directly (no event replay).
 
-Snapshots: When a commit carries an aggregate across a multiple of `SnapshotFrequency`, a snapshot is saved, keyed by aggregate type + id (an Inventory shares its Product's id). On load, the repository restores the snapshot via the aggregate's `RestoreSnapshot` override, then replays only later events. An aggregate that creates snapshots must also override `RestoreSnapshot`.
+Snapshots: When a commit carries an aggregate across a multiple of `SnapshotFrequency`, a snapshot is saved after the commit, in its own transaction and best-effort (a failure is logged, never fails the commit), keyed by aggregate type + id (an Inventory shares its Product's id). On load, the repository restores the snapshot via the aggregate's `RestoreSnapshot` override, then replays only later events. An aggregate that creates snapshots must also override `RestoreSnapshot`.
 
 ## Configuration
 

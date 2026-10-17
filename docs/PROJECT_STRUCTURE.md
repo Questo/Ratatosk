@@ -33,9 +33,9 @@ Infrastructure sits beside `Application`/`Domain` and is composed in at runtime 
 - `src/Domain/Catalog` — Product aggregate + snapshot, domain services, SKU generation; mirrors DDD glossary in `DDD.md`.
 - `src/Application/Catalog` — Command/query handlers and `IProductReadModelRepository` interface that the read side must implement.
 - `src/Infrastructure/Persistence/EventSourcing` — Event store & snapshot store implementations (in-memory, file-backed, Postgres).
-- `src/Infrastructure/Persistence/Repositories` — `AggregateRepository` (load from snapshot + events; commit = append, snapshot, commit, publish) and `UnitOfWork`.
+- `src/Infrastructure/Persistence/Repositories` — `AggregateRepository` (load from snapshot + events; commit = append, commit, snapshot, publish) and `UnitOfWork`.
 - `src/Infrastructure/Persistence/ReadModels` — Postgres read-model repositories (product, stock, order, user auth, refresh tokens) consumed by query handlers.
-- `src/Infrastructure/ProjectionRegistrationService.cs` — Delivers each published event to every `IDomainEventHandler<T>`, each in its own scope and transaction.
+- `src/Infrastructure/EventHandlerDispatcher.cs` — Delivers each published event to every `IDomainEventHandler<T>`, each in its own scope and transaction.
 - `src/API/Products`, `src/API/Inventory`, `src/API/Orders` & `src/API/Auth` — HTTP endpoints, DTOs, and request contracts.
 
 ---
@@ -52,7 +52,7 @@ Infrastructure sits beside `Application`/`Domain` and is composed in at runtime 
 ## Quick pathfinder
 
 - Event sourcing plumbing: `src/Infrastructure/Persistence/EventSourcing/*`
-- Event handler dispatch: `src/Infrastructure/ProjectionRegistrationService.cs`
+- Event handler dispatch: `src/Infrastructure/EventHandlerDispatcher.cs`
 - Authentication: `src/Application/Authentication`, `src/Infrastructure/Authentication`
 - Cross-cutting helpers: `src/Application/Shared`, `src/Infrastructure/Shared`
 - Endpoint wiring: `src/API/Program.cs`, `src/API/Middleware`

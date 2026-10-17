@@ -46,7 +46,7 @@ Write path (commands):
 1. A Command arrives (e.g., `AddProductCommand`).
 2. Application layer finds the `Aggregate` (via `AggregateRepository`) or creates a new one.
 3. The aggregate executes domain logic and emits domain events (e.g., `ProductCreated`, `ProductPriceChanged`).
-4. The handler calls `AggregateRepository.CommitAsync`, which appends the events to the `Event Store` (rejecting a stale version), stores a `Snapshot` when one is due, commits the transaction, and then publishes the events to their handlers.
+4. The handler calls `AggregateRepository.CommitAsync`, which appends the events to the `Event Store` (rejecting a stale version), commits the transaction, stores a `Snapshot` when one is due (best-effort), and then publishes the events to their handlers.
 
 Read path (queries):
 
@@ -78,7 +78,7 @@ Projections are processes that subscribe to the event stream and maintain read m
 
 How projections are represented here:
 
-- Projectors are `IDomainEventHandler<T>` classes in `src/Application/<Context>` (e.g., `ProductProjection`, `OrderProjection`). `ProjectionRegistrationService` delivers each committed event to them.
+- Projectors are `IDomainEventHandler<T>` classes in `src/Application/<Context>` (e.g., `ProductProjection`, `OrderProjection`). `EventHandlerDispatcher` delivers each committed event to them.
 - Read model repositories (e.g., `ProductReadModel.cs`) provide CRUD-like access to the derived view used by query handlers.
 
 Example responsibilities of `ProductReadModelRepository`:
