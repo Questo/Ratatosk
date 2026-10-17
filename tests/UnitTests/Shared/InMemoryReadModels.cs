@@ -102,6 +102,30 @@ public sealed class InMemoryOrderReadModelRepository : IOrderReadModelRepository
     public Task<OrderReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
         Task.FromResult(_rows.TryGetValue(id, out var row) ? Copy(row) : null);
 
+    public Task<Pagination<OrderReadModel>> GetByCustomerAsync(
+        Guid customerId,
+        int page = 1,
+        int pageSize = 25,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var matches = _rows
+            .Values.Where(r => r.CustomerId == customerId)
+            .OrderByDescending(r => r.CreatedUtc)
+            .ThenByDescending(r => r.Id)
+            .ToList();
+
+        return Task.FromResult(
+            new Pagination<OrderReadModel>
+            {
+                Items = [.. matches.Skip((page - 1) * pageSize).Take(pageSize).Select(Copy)],
+                TotalItems = matches.Count,
+                Page = page,
+                PageSize = pageSize,
+            }
+        );
+    }
+
     public Task SaveAsync(OrderReadModel order, CancellationToken cancellationToken = default)
     {
         SaveCount++;

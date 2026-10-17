@@ -26,13 +26,19 @@ public static class TestHostExtensions
         return (added.Value, sku);
     }
 
+    public static Task<Guid> PlaceOrderAsync(
+        this TestHost host,
+        params (string Sku, int Quantity)[] lines
+    ) => host.PlaceOrderAsync(Guid.NewGuid(), lines);
+
     public static async Task<Guid> PlaceOrderAsync(
         this TestHost host,
+        Guid customerId,
         params (string Sku, int Quantity)[] lines
     )
     {
         var placed = await host.SendAsync(
-            new PlaceOrderCommand(Guid.NewGuid(), [.. lines.Select(l => new OrderLineRequest(l.Sku, l.Quantity))])
+            new PlaceOrderCommand(customerId, [.. lines.Select(l => new OrderLineRequest(l.Sku, l.Quantity))])
         );
         placed.EnsureSuccess();
         return placed.Value;

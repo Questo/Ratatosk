@@ -42,6 +42,50 @@ public sealed class OrderReadModelRepository(IUnitOfWork uow)
         return order;
     }
 
+    public async Task<Pagination<OrderReadModel>> GetByCustomerAsync(
+        Guid customerId,
+        int page = 1,
+        int pageSize = 25,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var orders = await PagedQueryAsync<OrderReadModel>(
+            fromAndJoinsSql: "FROM order_read_models",
+            selectColumnsSql: "SELECT id, customer_id, status, created_utc, last_updated_utc",
+            whereSql: "WHERE customer_id = @CustomerId",
+            parameters: new { CustomerId = customerId },
+            orderBySql: "ORDER BY created_utc DESC, id DESC",
+            page: page,
+            pageSize: pageSize,
+            ct: cancellationToken
+        );
+
+        if (orders.Items.Count == 0)
+            return orders;
+
+        var lines = await QueryAsync<OrderLineRow>(
+            """
+                SELECT order_id, sku, quantity, unit_price, currency
+                FROM order_line_read_models
+                WHERE order_id = ANY(@Ids)
+            """,
+            new { Ids = orders.Items.Select(o => o.Id).ToArray() },
+            cancellationToken
+        );
+
+        var linesByOrder = lines.ToLookup(l => l.OrderId);
+        foreach (var order in orders.Items)
+        {
+            order.Lines =
+            [
+                .. linesByOrder[order.Id]
+                    .Select(l => new OrderLineReadModel(l.Sku, l.Quantity, l.UnitPrice, l.Currency)),
+            ];
+        }
+
+        return orders;
+    }
+
     public async Task SaveAsync(
         OrderReadModel order,
         CancellationToken cancellationToken = default
@@ -87,4 +131,12 @@ public sealed class OrderReadModelRepository(IUnitOfWork uow)
             );
         }
     }
+
+    private sealed record OrderLineRow(
+        Guid OrderId,
+        string Sku,
+        int Quantity,
+        decimal UnitPrice,
+        string Currency
+    );
 }
