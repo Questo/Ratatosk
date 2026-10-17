@@ -7,7 +7,10 @@ using Ratatosk.Infrastructure.Serialization.Serializers;
 
 namespace Ratatosk.IntegrationTests;
 
+// One test commits its CREATE TABLE events; a sibling creating the same table
+// concurrently then fails with 23505 on pg_type_typname_nsp_index.
 [TestClass]
+[DoNotParallelize]
 public class PostgresEventStoreTests
 {
     private const string ConnectionString =
