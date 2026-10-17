@@ -34,7 +34,7 @@ public class OrderTests
         Assert.AreEqual(order.Id, @event.OrderId);
         Assert.AreEqual(customerId, @event.CustomerId);
         Assert.AreEqual(1, @event.Lines.Count);
-        Assert.AreEqual(OrderStatus.Created, order.Status);
+        Assert.AreEqual(OrderStatus.Placed, order.Status);
     }
 
     [TestMethod]
@@ -87,7 +87,7 @@ public class OrderTests
         var order = Order.Place(Guid.NewGuid(), [lineA, lineB]).Value!;
 
         order.MarkLineReserved(lineA.Sku);
-        Assert.AreEqual(OrderStatus.Created, order.Status);
+        Assert.AreEqual(OrderStatus.Placed, order.Status);
 
         order.MarkLineReserved(lineB.Sku);
         Assert.AreEqual(OrderStatus.Confirmed, order.Status);

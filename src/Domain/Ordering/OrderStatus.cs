@@ -2,7 +2,7 @@ namespace Ratatosk.Domain.Ordering;
 
 public enum OrderStatus
 {
-    Created,
+    Placed,
     Confirmed,
     Cancelled,
 }

@@ -81,7 +81,9 @@ Event store backend is controlled by `appsettings.json`:
 
 For `Sql`, set `DatabaseOptions:ConnectionString`. Auth secrets are in `AuthOptions` (JWT issuer, audience, secret).
 
-The JWT carries the user id as `ClaimTypes.NameIdentifier`, serialized under its full claim URI (`http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier`), not the short `nameid`; `GET /orders` gives a non-Admin only their own Orders (the id from the token, never one from the request), and an Admin every Order, filterable by `status` and `customerId`.
+The JWT carries the user id as `ClaimTypes.NameIdentifier`, serialized under its full claim URI (`http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier`), not the short `nameid`. `GET /orders` gives a non-Admin only their own Orders (that id, never one from the request) and an Admin every Order, filterable by `status` and `customerId`; `POST /orders` places the Order for that id. `GET /orders/{orderId}` returns 404 unless the caller placed the Order or is an Admin, and a token with no user id gets 401 from the Order endpoints.
+
+Login and refresh also set the tokens as httpOnly, `Secure`, `SameSite=Strict` cookies: `access_token` (path `/`) and `refresh_token` (scoped to `/api/auth/refresh`, the path the browser sees behind the proxy). The API accepts the JWT from the `access_token` cookie when no `Authorization` header is sent (the header wins), refresh falls back to the `refresh_token` cookie when the body has no token, and `POST /auth/logout` clears both cookies (ADR 0003, `docs/adr/0003-web-app-auth-in-httponly-cookies.md`).
 
 ## Key Patterns
 

@@ -19,7 +19,7 @@ public sealed class OrderReservationProcess(IAggregateRepository<Order> orders, 
     public async Task WhenAsync(OrderCreated domainEvent, CancellationToken cancellationToken = default)
     {
         var order = await LoadAsync(domainEvent.OrderId, cancellationToken);
-        if (order.Status != OrderStatus.Created)
+        if (order.Status != OrderStatus.Placed)
             return;
 
         try
@@ -47,7 +47,7 @@ public sealed class OrderReservationProcess(IAggregateRepository<Order> orders, 
         }
         catch (Exception) when (!cancellationToken.IsCancellationRequested)
         {
-            // Never leave an Order stuck in Created while it may hold stock: cancel it, which
+            // Never leave an Order stuck in Placed while it may hold stock: cancel it, which
             // releases anything already reserved, then let the failure surface.
             var fresh = await LoadAsync(domainEvent.OrderId, cancellationToken);
             if (fresh.Cancel(UnexpectedFailureReason).IsSuccess)

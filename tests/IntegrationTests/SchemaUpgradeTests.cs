@@ -106,4 +106,33 @@ public class SchemaUpgradeTests
         await users.SaveAsync(new UserAuth("new@example.com", "User", "hash", id), CancellationToken.None);
         Assert.AreEqual(id, (await users.GetByEmailAsync("new@example.com", CancellationToken.None))!.Id);
     }
+
+    [TestMethod]
+    public async Task Apply_RenamesCreatedOrdersToPlaced_AndLeavesOtherStatuses()
+    {
+        var created = Guid.NewGuid();
+        var confirmed = Guid.NewGuid();
+        await _uow.Connection.ExecuteAsync(
+            """
+                INSERT INTO order_read_models (id, customer_id, status, created_utc, last_updated_utc) VALUES
+                    (@Created, @Customer, 'Created', now(), now()),
+                    (@Confirmed, @Customer, 'Confirmed', now(), now());
+            """,
+            new { Created = created, Confirmed = confirmed, Customer = Guid.NewGuid() },
+            _uow.Transaction
+        );
+
+        await SchemaUpgrade.ApplyAsync(_uow.Connection, _uow.Transaction);
+        await SchemaUpgrade.ApplyAsync(_uow.Connection, _uow.Transaction);
+
+        const string status = "SELECT status FROM order_read_models WHERE id = @Id";
+        Assert.AreEqual(
+            "Placed",
+            await _uow.Connection.QuerySingleAsync<string>(status, new { Id = created }, _uow.Transaction)
+        );
+        Assert.AreEqual(
+            "Confirmed",
+            await _uow.Connection.QuerySingleAsync<string>(status, new { Id = confirmed }, _uow.Transaction)
+        );
+    }
 }

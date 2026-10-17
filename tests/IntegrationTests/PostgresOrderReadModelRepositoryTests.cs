@@ -64,7 +64,7 @@ public class PostgresOrderReadModelRepositoryTests
         {
             Id = Guid.NewGuid(),
             CustomerId = Guid.NewGuid(),
-            Status = "Created",
+            Status = "Placed",
             Lines = [new OrderLineReadModel("TS-ABCD1234", 2, 9.99m, "SEK")],
             CreatedUtc = DateTime.UtcNow,
             LastUpdatedUtc = DateTime.UtcNow,
@@ -87,7 +87,7 @@ public class PostgresOrderReadModelRepositoryTests
         {
             Id = Guid.NewGuid(),
             CustomerId = Guid.NewGuid(),
-            Status = "Created",
+            Status = "Placed",
             Lines = [new OrderLineReadModel("TS-ABCD1234", 2, 9.99m, "SEK")],
             CreatedUtc = DateTime.UtcNow,
             LastUpdatedUtc = DateTime.UtcNow,
@@ -244,7 +244,7 @@ public class PostgresOrderReadModelRepositoryTests
         Guid customerId,
         DateTime createdUtc,
         params (string Sku, int Quantity)[] lines
-    ) => SaveOrderAsync(customerId, createdUtc, "Created", lines);
+    ) => SaveOrderAsync(customerId, createdUtc, "Placed", lines);
 
     private async Task<Guid> SaveOrderAsync(
         Guid customerId,

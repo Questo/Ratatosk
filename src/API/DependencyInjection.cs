@@ -1,6 +1,8 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Net.Http.Headers;
 using Microsoft.IdentityModel.Tokens;
+using Ratatosk.API.Auth;
 using Ratatosk.Core.Primitives;
 using Ratatosk.Domain.Identity;
 using Ratatosk.Infrastructure.Configuration;
@@ -37,6 +39,18 @@ public static class DependencyInjection
 
                     ValidateLifetime = true,
                     ClockSkew = TimeSpan.Zero,
+                };
+
+                // The web app sends the JWT in the httpOnly cookie; the Authorization header wins when present.
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        if (!context.Request.Headers.ContainsKey(HeaderNames.Authorization))
+                            context.Token = context.Request.Cookies[AuthCookies.AccessTokenName];
+
+                        return Task.CompletedTask;
+                    },
                 };
             });
         services.AddAuthorization(options =>
