@@ -538,3 +538,6 @@ obj/
 # End of https://www.toptal.com/developers/gitignore/api/aspnetcore,dotnetcore,dotenv,csharp
 
 /coverage-report
+
+# Software factory runtime state
+/factory/jobs/

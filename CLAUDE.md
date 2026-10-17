@@ -34,6 +34,14 @@ dotnet test tests/UnitTests --filter "FullyQualifiedName~ProductTests.Create_Sho
 
 Coverage is reported for `Core`, `Domain`, and `Application` assemblies only (not Infrastructure or API).
 
+## Software factory
+
+`/factory <feature>` (`.claude/skills/factory/SKILL.md`) runs spec → build → review → approve, each job in its own worktree. The agents read this section:
+
+- **Fresh checkout setup**: `dotnet tool restore && dotnet restore`.
+- **Dev server on a port**: start Postgres first (`docker compose up -d db`, reads `.env`; it's shared, so start it only if `localhost:5432` isn't already up), then `ASPNETCORE_ENVIRONMENT=Development Authentication__Secret=factory-dev-secret-at-least-32-bytes dotnet run --project src/API --no-launch-profile --urls http://localhost:<port>`. There is no UI, so exercise endpoints with `curl` instead of a browser.
+- **Validation**: `dotnet build`, `./scripts/run-unit-tests.sh` (75% coverage threshold), and `dotnet format --verify-no-changes --severity error` (what CI runs; pass `--include <changed files>` to scope it, never run `dotnet format` without `--verify-no-changes`). Integration tests (`./scripts/run-integration-tests.sh`) use a fixed container on port 5433, so run them only for changes to Infrastructure persistence, and never from two jobs at once.
+
 ## Architecture
 
 Ratatosk is a DDD + Event Sourcing + CQRS reference implementation. Dependency direction is strict:
