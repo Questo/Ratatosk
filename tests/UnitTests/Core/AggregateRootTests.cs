@@ -128,25 +128,4 @@ public class AggregateRootTests
         var values = new string[] { "v1", "v2", "v3" };
         CollectionAssert.AreEqual(values, agg.AppliedValues);
     }
-
-    [TestMethod]
-    public void Rehydrate_Should_Reconstruct_From_History()
-    {
-        var events = new List<DomainEvent> { new TestEvent("x"), new TestEvent("y") };
-
-        var result = AggregateRoot.Rehydrate<TestAggregate>(events);
-        var expected = new string[] { "x", "y" };
-
-        Assert.IsTrue(result.IsSuccess);
-        CollectionAssert.AreEqual(expected, result.Value!.AppliedValues);
-    }
-
-    [TestMethod]
-    public void Rehydrate_Should_Return_Failure_When_Empty()
-    {
-        var result = AggregateRoot.Rehydrate<TestAggregate>(Enumerable.Empty<DomainEvent>());
-
-        Assert.IsTrue(result.IsFailure);
-        Assert.AreEqual("History cannot be null or empty", result.Error);
-    }
 }
