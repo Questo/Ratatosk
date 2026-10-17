@@ -26,7 +26,7 @@ public class Order : AggregateRoot
                 Id = e.OrderId;
                 CustomerId = e.CustomerId;
                 _lines.AddRange(e.Lines);
-                Status = OrderStatus.Created;
+                Status = OrderStatus.Placed;
                 PlacedAtUtc = e.OccurredAtUtc;
                 break;
 
@@ -71,7 +71,7 @@ public class Order : AggregateRoot
 
     public Result MarkLineReserved(SKU sku)
     {
-        if (Status != OrderStatus.Created)
+        if (Status != OrderStatus.Placed)
             return Result.Failure($"Cannot reserve a line for an order in status {Status}");
 
         if (!_lines.Any(l => l.Sku.Equals(sku)))
@@ -94,7 +94,7 @@ public class Order : AggregateRoot
         {
             Guard.AgainstNullOrEmpty(reason, nameof(reason));
 
-            if (Status != OrderStatus.Created)
+            if (Status != OrderStatus.Placed)
                 return Result.Failure($"Cannot cancel an order in status {Status}");
 
             RaiseEvent(new OrderCancelled(Id, reason, _lines));

@@ -64,7 +64,7 @@ public class PostgresOrderReadModelRepositoryTests
         {
             Id = Guid.NewGuid(),
             CustomerId = Guid.NewGuid(),
-            Status = "Created",
+            Status = "Placed",
             Lines = [new OrderLineReadModel("TS-ABCD1234", 2, 9.99m, "SEK")],
             CreatedUtc = DateTime.UtcNow,
             LastUpdatedUtc = DateTime.UtcNow,
@@ -87,7 +87,7 @@ public class PostgresOrderReadModelRepositoryTests
         {
             Id = Guid.NewGuid(),
             CustomerId = Guid.NewGuid(),
-            Status = "Created",
+            Status = "Placed",
             Lines = [new OrderLineReadModel("TS-ABCD1234", 2, 9.99m, "SEK")],
             CreatedUtc = DateTime.UtcNow,
             LastUpdatedUtc = DateTime.UtcNow,
@@ -180,7 +180,7 @@ public class PostgresOrderReadModelRepositoryTests
         {
             Id = Guid.NewGuid(),
             CustomerId = customerId,
-            Status = "Created",
+            Status = "Placed",
             Lines = [.. lines.Select(l => new OrderLineReadModel(l.Sku, l.Quantity, 9.99m, "SEK"))],
             CreatedUtc = createdUtc,
             LastUpdatedUtc = createdUtc,
