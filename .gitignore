@@ -536,6 +536,9 @@ obj/
 /wwwroot/node_modules
 src/Web/node_modules/
 src/Web/dist/
+src/Web/test-results/
+src/Web/playwright-report/
+src/Web/blob-report/
 
 # End of https://www.toptal.com/developers/gitignore/api/aspnetcore,dotnetcore,dotenv,csharp
 

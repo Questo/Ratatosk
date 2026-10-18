@@ -40,6 +40,12 @@ dotnet test tests/UnitTests --filter "FullyQualifiedName~ProductTests.Create_Sho
 npm run lint
 npm test
 npm run build
+
+# Playwright smoke test of the back office against a running stack (in src/Web; not part of npm test or CI).
+# Once: npx playwright install chromium. Start the stack with docker-compose up, then run it with
+# ADMIN_EMAIL/ADMIN_PASSWORD set to the .env values; E2E_BASE_URL (default http://localhost:3000)
+# points it at another origin, such as a Vite dev server.
+set -a && . ../../.env && set +a && npm run test:e2e
 ```
 
 Coverage is reported for `Core`, `Domain`, and `Application` assemblies only (not Infrastructure or API).
@@ -51,7 +57,7 @@ Coverage is reported for `Core`, `Domain`, and `Application` assemblies only (no
 - **Fresh checkout setup**: `dotnet tool restore && dotnet restore && npm ci --prefix src/Web && scripts/factory-db.sh create <job-id>`. The last step gives the job its own database, `factory_<n>`, in the shared Postgres container (starting it from the main checkout's `.env` if `localhost:5432` isn't up), so parallel jobs never see each other's data.
 - **Job teardown** (after the job merges): `scripts/factory-db.sh drop <job-id>`.
 - **Dev server on a port**: `ASPNETCORE_ENVIRONMENT=Development Authentication__Secret=factory-dev-secret-at-least-32-bytes Admin__Email=admin@factory.test Admin__Password=factory-admin-password Database__ConnectionString="$(scripts/factory-db.sh url <job-id>)" dotnet run --project src/API --no-launch-profile --urls http://localhost:<port>`, which runs against the job's own database (never the connection string in `appsettings.Development.json`) and seeds `admin@factory.test` there. For the web app, run the API on one port and then `API_URL=http://localhost:<api port> npm run dev --prefix src/Web -- --port <port> --strictPort`, which proxies `/api` to that API. Check the web app's screens in a browser, and exercise the API's endpoints with `curl`.
-- **Validation**: `dotnet build`, `./scripts/run-unit-tests.sh` (75% coverage threshold), and `dotnet format --verify-no-changes --severity error` (what CI runs; pass `--include <changed files>` to scope it, never run `dotnet format` without `--verify-no-changes`). For changes under `src/Web`, also run `npm run lint`, `npm test` and `npm run build` in `src/Web`. Integration tests (`./scripts/run-integration-tests.sh`) use one fixed container on port 5433, so run them only for changes to Infrastructure persistence; the script holds a lock shared by every worktree, so a second job's run waits for the first.
+- **Validation**: `dotnet build`, `./scripts/run-unit-tests.sh` (75% coverage threshold), and `dotnet format --verify-no-changes --severity error` (what CI runs; pass `--include <changed files>` to scope it, never run `dotnet format` without `--verify-no-changes`). For changes under `src/Web`, also run `npm run lint`, `npm test` and `npm run build` in `src/Web`. Jobs that change the web app or the endpoints it drives also run the Playwright smoke test against their dev servers: `E2E_BASE_URL=http://localhost:<web port> ADMIN_EMAIL=admin@factory.test ADMIN_PASSWORD=factory-admin-password npm run test:e2e` in `src/Web` (optional for other jobs). Integration tests (`./scripts/run-integration-tests.sh`) use one fixed container on port 5433, so run them only for changes to Infrastructure persistence; the script holds a lock shared by every worktree, so a second job's run waits for the first.
 
 ## Architecture
 

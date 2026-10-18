@@ -42,6 +42,7 @@ Infrastructure sits beside `Application`/`Domain` and is composed in at runtime 
 - `src/Infrastructure/Changes` — `InProcessChangeBroadcaster`: fans signals out to this process's subscribers, one bounded channel each, dropping signals for a full one.
 - `src/API/Changes` — `GET /changes`, the Admin-only Server-Sent Events change stream (mapped outside the unit-of-work group, not buffered by `CleanupResponseMiddleware`).
 - `src/Web/src` — `api/client.ts` (the one fetch wrapper: relative `/api` URLs, envelope unwrapping, one refresh and retry on 401), `auth` (session from `GET /auth/me`, login screen), `shell` (app shell with a navbar that switches screens), `products` (search, list, add, edit and remove screens), `stock` (Stock list, Restock, by-hand Reservation and Release), `orders` (Order list with status filter, Order detail), `changes` (the hook that keeps the `/api/changes` stream open and invalidates queries on change signals), `test` (Vitest setup, MSW server, render helper, fake `EventSource`). `vite.config.ts` holds the dev proxy, and `nginx.conf` + `Dockerfile` the production serving.
+- `src/Web/e2e` — The Playwright smoke test against a running stack (`npm run test:e2e`; not part of `npm test`), configured by `src/Web/playwright.config.ts` (Chromium, `baseURL` from `E2E_BASE_URL`, default `http://localhost:3000`).
 
 ---
 
