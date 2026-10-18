@@ -87,7 +87,9 @@ describe('App', () => {
     const products = navbar.getByRole('button', { name: 'Products' })
     const stock = navbar.getByRole('button', { name: 'Stock' })
     expect(products).toHaveAttribute('data-active')
+    expect(products).toHaveAttribute('aria-current', 'page')
     expect(stock).not.toHaveAttribute('data-active')
+    expect(stock).not.toHaveAttribute('aria-current')
     expect(screen.getByRole('heading', { name: 'Products' })).toBeInTheDocument()
 
     await user.click(stock)
@@ -96,6 +98,7 @@ describe('App', () => {
     expect(await screen.findByText('No Stock records found.')).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Products' })).not.toBeInTheDocument()
     expect(stock).toHaveAttribute('data-active')
+    expect(stock).toHaveAttribute('aria-current', 'page')
     expect(products).not.toHaveAttribute('data-active')
 
     await user.click(products)
@@ -103,6 +106,23 @@ describe('App', () => {
     expect(await screen.findByRole('heading', { name: 'Products' })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Stock' })).not.toBeInTheDocument()
     expect(products).toHaveAttribute('data-active')
+  })
+
+  it('opens the navbar from the burger on small screens and closes it when a screen is chosen', async () => {
+    fakeAuthApi({ signedInAs: { email: 'admin@factory.test', role: 'Admin' } })
+    const user = userEvent.setup()
+    renderWithProviders(<App />)
+
+    const burger = await screen.findByRole('button', { name: 'Toggle navigation' })
+    expect(burger).toHaveAttribute('aria-expanded', 'false')
+
+    await user.click(burger)
+    expect(burger).toHaveAttribute('aria-expanded', 'true')
+
+    await user.click(within(screen.getByRole('navigation')).getByRole('button', { name: 'Stock' }))
+
+    expect(await screen.findByRole('heading', { name: 'Stock' })).toBeInTheDocument()
+    expect(burger).toHaveAttribute('aria-expanded', 'false')
   })
 
   it('logs a non-Admin session out on load and says so', async () => {

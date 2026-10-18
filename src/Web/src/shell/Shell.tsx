@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { AppShell, Button, Group, NavLink, Text, Title } from '@mantine/core'
+import { AppShell, Burger, Button, Group, NavLink, Text, Title } from '@mantine/core'
+import { useDisclosure } from '@mantine/hooks'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
 import { sessionQuery } from '../auth/session'
@@ -11,6 +12,12 @@ type Screen = 'products' | 'stock'
 export function Shell({ email }: { email: string }) {
   const queryClient = useQueryClient()
   const [screen, setScreen] = useState<Screen>('products')
+  // Below the sm breakpoint the navbar covers the page, so it stays collapsed until the burger opens it
+  const [navOpened, nav] = useDisclosure(false)
+  const show = (next: Screen) => {
+    setScreen(next)
+    nav.close()
+  }
 
   const signOut = useMutation({
     mutationFn: () => api.post('/api/auth/logout'),
@@ -22,12 +29,30 @@ export function Shell({ email }: { email: string }) {
   })
 
   return (
-    <AppShell header={{ height: 60 }} navbar={{ width: 200, breakpoint: 'sm' }} padding="md">
+    <AppShell
+      header={{ height: 60 }}
+      navbar={{ width: 200, breakpoint: 'sm', collapsed: { mobile: !navOpened } }}
+      padding="md"
+    >
       <AppShell.Header>
-        <Group h="100%" px="md" justify="space-between">
-          <Title order={3}>Ratatosk back office</Title>
-          <Group>
-            <Text size="sm">{email}</Text>
+        <Group h="100%" px="md" justify="space-between" wrap="nowrap">
+          <Group wrap="nowrap" miw={0}>
+            <Burger
+              opened={navOpened}
+              onClick={nav.toggle}
+              hiddenFrom="sm"
+              size="sm"
+              aria-label="Toggle navigation"
+              aria-expanded={navOpened}
+            />
+            <Title order={3} lineClamp={1}>
+              Ratatosk back office
+            </Title>
+          </Group>
+          <Group wrap="nowrap">
+            <Text size="sm" visibleFrom="sm">
+              {email}
+            </Text>
             <Button variant="default" loading={signOut.isPending} onClick={() => signOut.mutate()}>
               Sign out
             </Button>
@@ -35,8 +60,20 @@ export function Shell({ email }: { email: string }) {
         </Group>
       </AppShell.Header>
       <AppShell.Navbar p="xs">
-        <NavLink component="button" label="Products" active={screen === 'products'} onClick={() => setScreen('products')} />
-        <NavLink component="button" label="Stock" active={screen === 'stock'} onClick={() => setScreen('stock')} />
+        <NavLink
+          component="button"
+          label="Products"
+          active={screen === 'products'}
+          aria-current={screen === 'products' ? 'page' : undefined}
+          onClick={() => show('products')}
+        />
+        <NavLink
+          component="button"
+          label="Stock"
+          active={screen === 'stock'}
+          aria-current={screen === 'stock' ? 'page' : undefined}
+          onClick={() => show('stock')}
+        />
       </AppShell.Navbar>
       <AppShell.Main>{screen === 'products' ? <ProductsScreen /> : <StockScreen />}</AppShell.Main>
     </AppShell>
