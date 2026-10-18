@@ -35,3 +35,10 @@ export function productsQuery(searchTerm: string, page: number) {
     placeholderData: keepPreviousData,
   })
 }
+
+export function productQuery(productId: string) {
+  return queryOptions({
+    queryKey: [...productsKey, 'detail', productId],
+    queryFn: () => api.get<Product>(`/api/products/${encodeURIComponent(productId)}`),
+  })
+}

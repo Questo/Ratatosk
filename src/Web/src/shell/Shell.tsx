@@ -7,9 +7,21 @@ import { sessionQuery } from '../auth/session'
 import { useChangeStream } from '../changes/useChangeStream'
 import { OrdersScreen } from '../orders/OrdersScreen'
 import { ProductsScreen } from '../products/ProductsScreen'
+import { SearchPalette } from '../search/SearchPalette'
+import type { OpenEntityRequest, SearchHit } from '../search/search'
 import { StockScreen } from '../stock/StockScreen'
 
 type Screen = 'products' | 'stock' | 'orders'
+
+// Which screen opens a search hit of each kind; a hit of any other kind is ignored
+const searchTargets: Record<OpenEntityRequest['kind'], Screen> = {
+  product: 'products',
+  order: 'orders',
+}
+
+function isSearchTarget(kind: string): kind is OpenEntityRequest['kind'] {
+  return Object.hasOwn(searchTargets, kind)
+}
 
 export function Shell({ email }: { email: string }) {
   const queryClient = useQueryClient()
@@ -18,8 +30,17 @@ export function Shell({ email }: { email: string }) {
   const [screen, setScreen] = useState<Screen>('products')
   // Below the sm breakpoint the navbar covers the page, so it stays collapsed until the burger opens it
   const [navOpened, nav] = useDisclosure(false)
+  // The entity a search hit asked to open; cleared on navigation so a screen shown again doesn't reopen it
+  const [openRequest, setOpenRequest] = useState<OpenEntityRequest | null>(null)
   const show = (next: Screen) => {
     setScreen(next)
+    setOpenRequest(null)
+    nav.close()
+  }
+  const openHit = (hit: SearchHit) => {
+    if (!isSearchTarget(hit.kind)) return
+    setScreen(searchTargets[hit.kind])
+    setOpenRequest({ kind: hit.kind, id: hit.id, seq: (openRequest?.seq ?? 0) + 1 })
     nav.close()
   }
 
@@ -53,6 +74,7 @@ export function Shell({ email }: { email: string }) {
               Ratatosk back office
             </Title>
           </Group>
+          <SearchPalette onSelect={openHit} />
           <Group wrap="nowrap">
             <Text size="sm" visibleFrom="sm">
               {email}
@@ -87,7 +109,13 @@ export function Shell({ email }: { email: string }) {
         />
       </AppShell.Navbar>
       <AppShell.Main>
-        {screen === 'products' ? <ProductsScreen /> : screen === 'stock' ? <StockScreen /> : <OrdersScreen />}
+        {screen === 'products' ? (
+          <ProductsScreen openRequest={openRequest?.kind === 'product' ? openRequest : null} />
+        ) : screen === 'stock' ? (
+          <StockScreen />
+        ) : (
+          <OrdersScreen openRequest={openRequest?.kind === 'order' ? openRequest : null} />
+        )}
       </AppShell.Main>
     </AppShell>
   )

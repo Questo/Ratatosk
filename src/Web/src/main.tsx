@@ -1,4 +1,5 @@
 import '@mantine/core/styles.css'
+import '@mantine/spotlight/styles.css'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { MantineProvider } from '@mantine/core'

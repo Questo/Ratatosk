@@ -2,16 +2,23 @@ import { useState } from 'react'
 import { Alert, Badge, Button, Center, Loader, Modal, Pagination, Select, Stack, Table, Tabs, Text, Title } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
 import { OrderDetail } from './OrderDetail'
+import type { OpenEntityRequest } from '../search/search'
 import { OrderHistory } from './OrderHistory'
 import { orderStatuses, ordersQuery, statusColors, type OrderStatus } from './orders'
 
 const all = 'All'
 const statusOptions = [all, ...orderStatuses]
 
-export function OrdersScreen() {
+export function OrdersScreen({ openRequest = null }: { openRequest?: OpenEntityRequest | null }) {
   // The page belongs to the status it was chosen for, so changing the filter starts on page 1
   const [filter, setFilter] = useState<{ status: OrderStatus | null; page: number }>({ status: null, page: 1 })
   const [openOrderId, setOpenOrderId] = useState<string | null>(null)
+  // A search hit opens its Order on top of whatever the list shows, leaving the filter and page alone
+  const [openedSeq, setOpenedSeq] = useState<number | null>(null)
+  if (openRequest && openRequest.seq !== openedSeq) {
+    setOpenedSeq(openRequest.seq)
+    setOpenOrderId(openRequest.id)
+  }
 
   const orders = useQuery(ordersQuery(filter.status, filter.page))
 
@@ -85,7 +92,8 @@ export function OrdersScreen() {
       <Modal opened={openOrderId !== null} onClose={() => setOpenOrderId(null)} title={openOrderId && `Order ${openOrderId}`} size="lg">
         {openOrderId && (
           // keepMounted off, so the history is only fetched while its tab is shown
-          <Tabs defaultValue="details" keepMounted={false}>
+          // Keyed by the request too, so reopening the same Order from search starts on Details
+          <Tabs key={`${openOrderId}-${openedSeq}`} defaultValue="details" keepMounted={false}>
             <Tabs.List mb="md">
               <Tabs.Tab value="details">Details</Tabs.Tab>
               <Tabs.Tab value="history">History</Tabs.Tab>

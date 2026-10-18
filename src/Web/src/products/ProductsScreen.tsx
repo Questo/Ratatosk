@@ -1,14 +1,15 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Alert, Button, Center, Group, Loader, Modal, Pagination, Stack, Table, Text, TextInput, Title } from '@mantine/core'
 import { useDebouncedValue } from '@mantine/hooks'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import type { OpenEntityRequest } from '../search/search'
 import { ProductForm } from './ProductForm'
-import { productsKey, productsQuery, type Product } from './products'
+import { productQuery, productsKey, productsQuery, type Product } from './products'
 import { RemoveProduct } from './RemoveProduct'
 
 type Dialog = { kind: 'add' } | { kind: 'edit'; product: Product } | { kind: 'remove'; product: Product }
 
-export function ProductsScreen() {
+export function ProductsScreen({ openRequest = null }: { openRequest?: OpenEntityRequest | null }) {
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [searchTerm] = useDebouncedValue(search.trim(), 300)
@@ -17,6 +18,28 @@ export function ProductsScreen() {
   if (paging.searchTerm !== searchTerm) setPaging({ searchTerm, page: 1 })
   const page = paging.searchTerm === searchTerm ? paging.page : 1
   const [dialog, setDialog] = useState<Dialog | null>(null)
+  // A search hit opens its Product's edit dialog, fetched by id since it may not be on this page
+  const [opening, setOpening] = useState<{ seq: number; error: string | null } | null>(null)
+  if (openRequest && openRequest.seq !== opening?.seq) {
+    setOpening({ seq: openRequest.seq, error: null })
+    setDialog(null)
+  }
+
+  useEffect(() => {
+    if (!openRequest) return
+    let current = true
+    queryClient.fetchQuery(productQuery(openRequest.id)).then(
+      (product) => {
+        if (current) setDialog({ kind: 'edit', product })
+      },
+      (error: Error) => {
+        if (current) setOpening({ seq: openRequest.seq, error: error.message })
+      },
+    )
+    return () => {
+      current = false
+    }
+  }, [openRequest, queryClient])
 
   const products = useQuery(productsQuery(searchTerm, page))
 
@@ -52,6 +75,11 @@ export function ProductsScreen() {
         <Button onClick={() => setDialog({ kind: 'add' })}>Add Product</Button>
       </Group>
       <TextInput label="Search" value={search} onChange={(event) => setSearch(event.currentTarget.value)} />
+      {opening?.error && (
+        <Alert color="red" role="alert" title="Couldn't open the Product">
+          {opening.error}
+        </Alert>
+      )}
       {products.isError ? (
         <Alert color="red" role="alert">
           {products.error.message}
