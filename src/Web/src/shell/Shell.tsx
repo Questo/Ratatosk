@@ -2,6 +2,7 @@ import { AppShell, Button, Group, Text, Title } from '@mantine/core'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
 import { sessionQuery } from '../auth/session'
+import { ProductsScreen } from '../products/ProductsScreen'
 
 export function Shell({ email }: { email: string }) {
   const queryClient = useQueryClient()
@@ -29,7 +30,7 @@ export function Shell({ email }: { email: string }) {
         </Group>
       </AppShell.Header>
       <AppShell.Main>
-        <Title order={2}>Welcome</Title>
+        <ProductsScreen />
       </AppShell.Main>
     </AppShell>
   )

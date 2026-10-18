@@ -11,7 +11,8 @@ const me = (email: string, role: string) =>
   HttpResponse.json({ message: null, data: { email, role }, timestamp: new Date().toISOString() })
 const ok = () => HttpResponse.json({ message: null, data: {}, timestamp: new Date().toISOString() })
 
-// A fake API: /me reflects whoever logged in last; logout and failed refreshes clear it
+// A fake API: /me reflects whoever logged in last; logout and failed refreshes clear it.
+// The Admin shell loads Products, so it serves an empty list.
 function fakeAuthApi(options: { signedInAs?: { email: string; role: string }; password?: string } = {}) {
   let user = options.signedInAs ?? null
   const calls = { login: 0, logout: 0 }
@@ -36,6 +37,13 @@ function fakeAuthApi(options: { signedInAs?: { email: string; role: string }; pa
       user = null
       return new HttpResponse(null, { status: 204 })
     }),
+    http.get('/api/products', () =>
+      HttpResponse.json({
+        message: null,
+        data: { items: [], totalItems: 0, page: 1, pageSize: 25, totalPages: 0 },
+        timestamp: new Date().toISOString(),
+      }),
+    ),
   )
   return calls
 }
@@ -65,7 +73,8 @@ describe('App', () => {
 
     expect(await screen.findByText('admin@factory.test')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Welcome' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Products' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Welcome' })).not.toBeInTheDocument()
   })
 
   it('logs a non-Admin session out on load and says so', async () => {
