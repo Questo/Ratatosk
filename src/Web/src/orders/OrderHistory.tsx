@@ -41,14 +41,14 @@ export function OrderHistory({ orderId }: { orderId: string }) {
         <Button variant="default" onClick={() => goTo(index - 1)} disabled={index === 0}>
           Previous
         </Button>
-        <Text ta="center">
-          Version {entry.version} of {total} · <strong>{entry.event}</strong> ·{' '}
-          {new Date(entry.occurredAtUtc).toLocaleString()}
-        </Text>
         <Button variant="default" onClick={() => goTo(index + 1)} disabled={index === total - 1}>
           Next
         </Button>
       </Group>
+      <Text>
+        Version {entry.version} of {total} · <strong>{entry.event}</strong> ·{' '}
+        {new Date(entry.occurredAtUtc).toLocaleString()}
+      </Text>
       <div>
         <Badge color={statusColors[order.status]}>{order.status}</Badge>
       </div>
