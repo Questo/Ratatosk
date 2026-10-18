@@ -49,7 +49,7 @@ export function LoginScreen({ notice }: { notice?: string }) {
 
   return (
     <Center mih="100vh" p="md">
-      <Card withBorder shadow="sm" radius="md" p="xl" w={380}>
+      <Card withBorder shadow="sm" radius="md" p="xl" w="100%" maw={380}>
         <Title order={2} ta="center" mb="lg">
           Ratatosk back office
         </Title>
