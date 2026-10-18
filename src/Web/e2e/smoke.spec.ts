@@ -37,6 +37,15 @@ test('an Order placed through the API shows up Confirmed in the Orders screen', 
   await expect(addDialog).toBeHidden()
   await expect(page.getByRole('row').filter({ hasText: sku })).toContainText(name)
 
+  // The header's search palette finds the new Product and opens its edit dialog
+  await page.keyboard.press('ControlOrMeta+K')
+  await page.getByRole('combobox', { name: 'Search Products and Orders' }).fill(sku)
+  await page.getByRole('option', { name: new RegExp(name) }).click()
+  const editDialog = page.getByRole('dialog', { name: 'Edit Product' })
+  await expect(editDialog.getByLabel('Name')).toHaveValue(name)
+  await page.keyboard.press('Escape')
+  await expect(editDialog).toBeHidden()
+
   await page.getByRole('button', { name: 'Stock' }).click()
   const stockRow = page.getByRole('row').filter({ has: page.getByRole('cell', { name: sku, exact: true }) })
   await stockRow.getByRole('button', { name: 'Restock' }).click()
