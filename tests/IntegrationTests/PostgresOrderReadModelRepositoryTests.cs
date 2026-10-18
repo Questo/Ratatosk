@@ -291,6 +291,45 @@ public class PostgresOrderReadModelRepositoryTests
         Assert.AreEqual("TS-AAAA0001", result.Items.Single().Lines.Single().Sku);
     }
 
+    [TestMethod]
+    public async Task SearchAsync_MatchesPartialIdCustomerIdStatusAndLineSku_IgnoringCase()
+    {
+        var customer = Guid.NewGuid();
+        var placed = new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc);
+        var byCustomer = await SaveOrderAsync(customer, placed, "Placed", ("TS-AAAA0001", 1));
+        var bySku = await SaveOrderAsync(Guid.NewGuid(), placed.AddMinutes(1), "Placed", ("TS-AAAA0002", 1), ("TS-FIND0001", 2));
+        var byStatus = await SaveOrderAsync(Guid.NewGuid(), placed.AddMinutes(2), "Cancelled", ("TS-AAAA0003", 1));
+
+        Assert.AreEqual(byCustomer, (await SearchAsync(customer.ToString().ToUpperInvariant()[..13])).Single().Id);
+        Assert.AreEqual(bySku, (await SearchAsync("ts-find")).Single().Id);
+        Assert.AreEqual(byStatus, (await SearchAsync("CANCEL")).Single().Id);
+        Assert.AreEqual(byStatus, (await SearchAsync(byStatus.ToString()[..6].ToUpperInvariant())).Single().Id);
+        Assert.AreEqual(bySku, (await SearchAsync(bySku.ToString())).Single().Id);
+        Assert.IsEmpty(await SearchAsync("no-such-thing"));
+    }
+
+    [TestMethod]
+    public async Task SearchAsync_ReturnsAtMostTheLimit_NewestFirst_WithLines()
+    {
+        var placed = new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc);
+        await SaveOrderAsync(Guid.NewGuid(), placed, "Confirmed", ("TS-AAAA0001", 1));
+        var middle = await SaveOrderAsync(Guid.NewGuid(), placed.AddMinutes(1), "Confirmed", ("TS-AAAA0002", 2), ("TS-AAAA0003", 3));
+        var newest = await SaveOrderAsync(Guid.NewGuid(), placed.AddMinutes(2), "Confirmed", ("TS-AAAA0004", 4));
+
+        var result = await _repo.SearchAsync("confirmed", 2, TestContext.CancellationToken);
+
+        CollectionAssert.AreEqual(new[] { newest, middle }, result.Select(o => o.Id).ToArray());
+        Assert.AreEqual(4, result[0].Lines.Single().Quantity);
+        CollectionAssert.AreEquivalent(
+            new[] { "TS-AAAA0002", "TS-AAAA0003" },
+            result[1].Lines.Select(l => l.Sku).ToArray()
+        );
+        Assert.AreEqual(9.99m, result[1].Lines[0].UnitPrice);
+    }
+
+    private Task<IReadOnlyList<OrderReadModel>> SearchAsync(string term) =>
+        _repo.SearchAsync(term, 10, TestContext.CancellationToken);
+
     private Task<Guid> SaveOrderAsync(
         Guid customerId,
         DateTime createdUtc,

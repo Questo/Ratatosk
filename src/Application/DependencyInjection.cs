@@ -7,6 +7,7 @@ using Ratatosk.Application.Catalog.Models;
 using Ratatosk.Application.Changes;
 using Ratatosk.Application.Inventoring;
 using Ratatosk.Application.Ordering;
+using Ratatosk.Application.Search;
 using Ratatosk.Core.Abstractions;
 using Ratatosk.Core.BuildingBlocks;
 
@@ -21,6 +22,7 @@ public static class DependencyInjection
 
         services.AddRequestHandlers();
         services.AddProjections();
+        services.AddSearchProviders();
 
         return services;
     }
@@ -49,6 +51,20 @@ public static class DependencyInjection
             typeof(IDomainEventHandler<>),
             typeof(ChangeSignalHandler)
         );
+        return services;
+    }
+
+    private static IServiceCollection AddSearchProviders(this IServiceCollection services)
+    {
+        var providerTypes = typeof(ISearchProvider)
+            .Assembly.GetTypes()
+            .Where(t => !t.IsAbstract && !t.IsInterface && typeof(ISearchProvider).IsAssignableFrom(t));
+
+        foreach (var providerType in providerTypes)
+        {
+            services.AddScoped(typeof(ISearchProvider), providerType);
+        }
+
         return services;
     }
 
