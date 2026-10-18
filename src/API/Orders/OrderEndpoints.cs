@@ -69,8 +69,9 @@ public static class OrderEndpoints
 
                     var query = new GetOrderByIdQuery(orderId, callerId, user.IsInRole(UserRole.Admin.Name));
                     var result = await dispatcher.DispatchAsync(query, ct);
+                    var response = Response<OrderReadModel>.FromResult(result);
 
-                    return result.IsFailure ? Results.NotFound() : Results.Ok(result.Value);
+                    return result.IsFailure ? Results.NotFound(response) : Results.Ok(response);
                 }
             )
             .RequireAuthorization(Policies.Authenticated)
@@ -81,8 +82,8 @@ public static class OrderEndpoints
                 "Returns the current read model for the supplied order id. "
                     + "Returns 404 unless the caller placed the order or is an Admin."
             )
-            .Produces<OrderReadModel>(StatusCodes.Status200OK)
-            .Produces(StatusCodes.Status404NotFound)
+            .Produces<Response<OrderReadModel>>(StatusCodes.Status200OK)
+            .Produces<Response<OrderReadModel>>(StatusCodes.Status404NotFound)
             .Produces(StatusCodes.Status401Unauthorized);
 
         app.MapGet(
@@ -103,10 +104,11 @@ public static class OrderEndpoints
                             request.PageSize
                         );
                         var adminResult = await dispatcher.DispatchAsync(adminQuery, ct);
+                        var adminResponse = Response<Pagination<OrderReadModel>>.FromResult(adminResult);
 
                         return adminResult.IsFailure
-                            ? Results.BadRequest(adminResult.Error)
-                            : Results.Ok(adminResult.Value);
+                            ? Results.BadRequest(adminResponse)
+                            : Results.Ok(adminResponse);
                     }
 
                     // The customer is the signed-in user; never take it from the request.
@@ -120,10 +122,9 @@ public static class OrderEndpoints
                         request.Status
                     );
                     var result = await dispatcher.DispatchAsync(query, ct);
+                    var response = Response<Pagination<OrderReadModel>>.FromResult(result);
 
-                    return result.IsFailure
-                        ? Results.BadRequest(result.Error)
-                        : Results.Ok(result.Value);
+                    return result.IsFailure ? Results.BadRequest(response) : Results.Ok(response);
                 }
             )
             .RequireAuthorization(Policies.Authenticated)
@@ -136,8 +137,8 @@ public static class OrderEndpoints
                     + "and customerId is ignored. The optional status filter (an order status name, "
                     + "any case) applies to both. Paging defaults to page 1, size 25; the page size is at most 100."
             )
-            .Produces<Pagination<OrderReadModel>>(StatusCodes.Status200OK)
-            .Produces<string>(StatusCodes.Status400BadRequest)
+            .Produces<Response<Pagination<OrderReadModel>>>(StatusCodes.Status200OK)
+            .Produces<Response<Pagination<OrderReadModel>>>(StatusCodes.Status400BadRequest)
             .Produces(StatusCodes.Status401Unauthorized);
     }
 }
