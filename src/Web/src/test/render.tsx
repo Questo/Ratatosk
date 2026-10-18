@@ -7,9 +7,10 @@ export function renderWithProviders(ui: ReactElement) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
-  return render(
+  const result = render(
     <MantineProvider>
       <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>
     </MantineProvider>,
   )
+  return { ...result, queryClient }
 }

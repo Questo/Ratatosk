@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Alert, Badge, Button, Center, Loader, Modal, Pagination, Select, Stack, Table, Text, Title } from '@mantine/core'
+import { Alert, Badge, Button, Center, Loader, Modal, Pagination, Select, Stack, Table, Tabs, Text, Title } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
 import { OrderDetail } from './OrderDetail'
+import { OrderHistory } from './OrderHistory'
 import { orderStatuses, ordersQuery, statusColors, type OrderStatus } from './orders'
 
 const all = 'All'
@@ -82,7 +83,21 @@ export function OrdersScreen() {
       )}
 
       <Modal opened={openOrderId !== null} onClose={() => setOpenOrderId(null)} title={openOrderId && `Order ${openOrderId}`} size="lg">
-        {openOrderId && <OrderDetail orderId={openOrderId} />}
+        {openOrderId && (
+          // keepMounted off, so the history is only fetched while its tab is shown
+          <Tabs defaultValue="details" keepMounted={false}>
+            <Tabs.List mb="md">
+              <Tabs.Tab value="details">Details</Tabs.Tab>
+              <Tabs.Tab value="history">History</Tabs.Tab>
+            </Tabs.List>
+            <Tabs.Panel value="details">
+              <OrderDetail orderId={openOrderId} />
+            </Tabs.Panel>
+            <Tabs.Panel value="history">
+              <OrderHistory orderId={openOrderId} />
+            </Tabs.Panel>
+          </Tabs>
+        )}
       </Modal>
     </Stack>
   )

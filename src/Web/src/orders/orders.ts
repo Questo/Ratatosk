@@ -23,6 +23,15 @@ export interface Order {
   cancellationReason: string | null
 }
 
+// The Order as it was right after one event in its stream
+export interface OrderHistoryEntry {
+  version: number
+  event: string
+  occurredAtUtc: string
+  order: Order
+  reservedSkus: string[]
+}
+
 export interface OrderPage {
   items: Order[]
   totalItems: number
@@ -60,5 +69,12 @@ export function orderQuery(orderId: string) {
   return queryOptions({
     queryKey: [...ordersKey, 'detail', orderId],
     queryFn: () => api.get<Order>(`/api/orders/${encodeURIComponent(orderId)}`),
+  })
+}
+
+export function orderHistoryQuery(orderId: string) {
+  return queryOptions({
+    queryKey: [...ordersKey, 'history', orderId],
+    queryFn: () => api.get<OrderHistoryEntry[]>(`/api/orders/${encodeURIComponent(orderId)}/history`),
   })
 }
