@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
@@ -9,10 +9,16 @@ import { server } from './test/server'
 const unauthorized = () => HttpResponse.json({ message: 'Unauthorized.' }, { status: 401 })
 const me = (email: string, role: string) =>
   HttpResponse.json({ message: null, data: { email, role }, timestamp: new Date().toISOString() })
+const emptyPage = () =>
+  HttpResponse.json({
+    message: null,
+    data: { items: [], totalItems: 0, page: 1, pageSize: 25, totalPages: 0 },
+    timestamp: new Date().toISOString(),
+  })
 const ok = () => HttpResponse.json({ message: null, data: {}, timestamp: new Date().toISOString() })
 
 // A fake API: /me reflects whoever logged in last; logout and failed refreshes clear it.
-// The Admin shell loads Products, so it serves an empty list.
+// The Admin shell loads Products and, from the navbar, Stock, so it serves an empty list of each.
 function fakeAuthApi(options: { signedInAs?: { email: string; role: string }; password?: string } = {}) {
   let user = options.signedInAs ?? null
   const calls = { login: 0, logout: 0 }
@@ -37,13 +43,8 @@ function fakeAuthApi(options: { signedInAs?: { email: string; role: string }; pa
       user = null
       return new HttpResponse(null, { status: 204 })
     }),
-    http.get('/api/products', () =>
-      HttpResponse.json({
-        message: null,
-        data: { items: [], totalItems: 0, page: 1, pageSize: 25, totalPages: 0 },
-        timestamp: new Date().toISOString(),
-      }),
-    ),
+    http.get('/api/products', emptyPage),
+    http.get('/api/inventory', emptyPage),
   )
   return calls
 }
@@ -75,6 +76,53 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Products' })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Welcome' })).not.toBeInTheDocument()
+  })
+
+  it('switches between the Products and Stock screens from the navbar', async () => {
+    fakeAuthApi({ signedInAs: { email: 'admin@factory.test', role: 'Admin' } })
+    const user = userEvent.setup()
+    renderWithProviders(<App />)
+
+    const navbar = within(await screen.findByRole('navigation'))
+    const products = navbar.getByRole('button', { name: 'Products' })
+    const stock = navbar.getByRole('button', { name: 'Stock' })
+    expect(products).toHaveAttribute('data-active')
+    expect(products).toHaveAttribute('aria-current', 'page')
+    expect(stock).not.toHaveAttribute('data-active')
+    expect(stock).not.toHaveAttribute('aria-current')
+    expect(screen.getByRole('heading', { name: 'Products' })).toBeInTheDocument()
+
+    await user.click(stock)
+
+    expect(await screen.findByRole('heading', { name: 'Stock' })).toBeInTheDocument()
+    expect(await screen.findByText('No Stock records found.')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Products' })).not.toBeInTheDocument()
+    expect(stock).toHaveAttribute('data-active')
+    expect(stock).toHaveAttribute('aria-current', 'page')
+    expect(products).not.toHaveAttribute('data-active')
+
+    await user.click(products)
+
+    expect(await screen.findByRole('heading', { name: 'Products' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Stock' })).not.toBeInTheDocument()
+    expect(products).toHaveAttribute('data-active')
+  })
+
+  it('opens the navbar from the burger on small screens and closes it when a screen is chosen', async () => {
+    fakeAuthApi({ signedInAs: { email: 'admin@factory.test', role: 'Admin' } })
+    const user = userEvent.setup()
+    renderWithProviders(<App />)
+
+    const burger = await screen.findByRole('button', { name: 'Toggle navigation' })
+    expect(burger).toHaveAttribute('aria-expanded', 'false')
+
+    await user.click(burger)
+    expect(burger).toHaveAttribute('aria-expanded', 'true')
+
+    await user.click(within(screen.getByRole('navigation')).getByRole('button', { name: 'Stock' }))
+
+    expect(await screen.findByRole('heading', { name: 'Stock' })).toBeInTheDocument()
+    expect(burger).toHaveAttribute('aria-expanded', 'false')
   })
 
   it('logs a non-Admin session out on load and says so', async () => {

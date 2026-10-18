@@ -105,10 +105,9 @@ public static class InventoryEndpoints
                 {
                     var query = new GetStocksQuery(request.Page, request.PageSize);
                     var result = await dispatcher.DispatchAsync(query, ct);
+                    var response = Response<Pagination<StockReadModel>>.FromResult(result);
 
-                    return result.IsFailure
-                        ? Results.BadRequest(result.Error)
-                        : Results.Ok(result.Value);
+                    return result.IsFailure ? Results.BadRequest(response) : Results.Ok(response);
                 }
             )
             .RequireAuthorization(Policies.Admin)
@@ -119,8 +118,8 @@ public static class InventoryEndpoints
                 "Returns every stock record (on hand, reserved and available), removed products' "
                     + "included, ordered by SKU. Paging defaults to page 1, size 25; the page size is at most 100."
             )
-            .Produces<Pagination<StockReadModel>>(StatusCodes.Status200OK)
-            .Produces<string>(StatusCodes.Status400BadRequest)
+            .Produces<Response<Pagination<StockReadModel>>>(StatusCodes.Status200OK)
+            .Produces<Response<Pagination<StockReadModel>>>(StatusCodes.Status400BadRequest)
             .Produces(StatusCodes.Status401Unauthorized)
             .Produces(StatusCodes.Status403Forbidden);
 
