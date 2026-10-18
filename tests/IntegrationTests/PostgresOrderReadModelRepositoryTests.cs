@@ -115,7 +115,7 @@ public class PostgresOrderReadModelRepositoryTests
     }
 
     [TestMethod]
-    public async Task GetByCustomerAsync_ReturnsOnlyTheCustomersOrders_NewestFirst_WithLines()
+    public async Task GetPageAsync_ForACustomer_ReturnsOnlyTheCustomersOrders_NewestFirst_WithLines()
     {
         var customer = Guid.NewGuid();
         var placed = new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc);
@@ -124,7 +124,7 @@ public class PostgresOrderReadModelRepositoryTests
         var newest = await SaveOrderAsync(customer, placed.AddMinutes(2), ("TS-AAAA0004", 4));
         await SaveOrderAsync(Guid.NewGuid(), placed.AddMinutes(3), ("TS-AAAA0005", 5));
 
-        var result = await _repo.GetByCustomerAsync(customer, cancellationToken: TestContext.CancellationToken);
+        var result = await _repo.GetPageAsync(customer, cancellationToken: TestContext.CancellationToken);
 
         CollectionAssert.AreEqual(
             new[] { newest, middle, oldest },
@@ -141,7 +141,7 @@ public class PostgresOrderReadModelRepositoryTests
     }
 
     [TestMethod]
-    public async Task GetByCustomerAsync_SecondPage_ReturnsTheRestWithLines()
+    public async Task GetPageAsync_ForACustomer_SecondPage_ReturnsTheRestWithLines()
     {
         var customer = Guid.NewGuid();
         var placed = new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc);
@@ -149,7 +149,7 @@ public class PostgresOrderReadModelRepositoryTests
         await SaveOrderAsync(customer, placed.AddMinutes(1), ("TS-AAAA0002", 2));
         await SaveOrderAsync(customer, placed.AddMinutes(2), ("TS-AAAA0003", 3));
 
-        var result = await _repo.GetByCustomerAsync(customer, 2, 2, TestContext.CancellationToken);
+        var result = await _repo.GetPageAsync(customer, null, 2, 2, TestContext.CancellationToken);
 
         Assert.AreEqual(3, result.TotalItems);
         Assert.AreEqual(2, result.Page);
@@ -160,19 +160,96 @@ public class PostgresOrderReadModelRepositoryTests
     }
 
     [TestMethod]
-    public async Task GetByCustomerAsync_WhenTheCustomerHasNoOrders_ReturnsAnEmptyPage()
+    public async Task GetPageAsync_ForACustomer_WhenTheCustomerHasNoOrders_ReturnsAnEmptyPage()
     {
         await SaveOrderAsync(Guid.NewGuid(), DateTime.UtcNow, ("TS-AAAA0001", 1));
 
-        var result = await _repo.GetByCustomerAsync(Guid.NewGuid(), cancellationToken: TestContext.CancellationToken);
+        var result = await _repo.GetPageAsync(Guid.NewGuid(), cancellationToken: TestContext.CancellationToken);
 
         Assert.IsEmpty(result.Items);
         Assert.AreEqual(0, result.TotalItems);
     }
 
+    [TestMethod]
+    public async Task GetPageAsync_WithoutFilters_ReturnsEveryOrder_NewestFirst_WithLines()
+    {
+        var placed = new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc);
+        var oldest = await SaveOrderAsync(Guid.NewGuid(), placed, ("TS-AAAA0001", 1));
+        var middle = await SaveOrderAsync(Guid.NewGuid(), placed.AddMinutes(1), ("TS-AAAA0002", 2));
+        var newest = await SaveOrderAsync(Guid.NewGuid(), placed.AddMinutes(2), ("TS-AAAA0003", 3));
+
+        var result = await _repo.GetPageAsync(cancellationToken: TestContext.CancellationToken);
+
+        CollectionAssert.AreEqual(
+            new[] { newest, middle, oldest },
+            result.Items.Select(o => o.Id).ToArray()
+        );
+        Assert.AreEqual(3, result.TotalItems);
+        CollectionAssert.AreEqual(
+            new[] { 3, 2, 1 },
+            result.Items.Select(o => o.Lines.Single().Quantity).ToArray()
+        );
+    }
+
+    [TestMethod]
+    public async Task GetPageAsync_WithAStatus_ReturnsOnlyOrdersInThatStatus()
+    {
+        var placed = new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc);
+        var confirmedOld = await SaveOrderAsync(Guid.NewGuid(), placed, "Confirmed", ("TS-AAAA0001", 1));
+        await SaveOrderAsync(Guid.NewGuid(), placed.AddMinutes(1), "Cancelled", ("TS-AAAA0002", 1));
+        var confirmedNew = await SaveOrderAsync(Guid.NewGuid(), placed.AddMinutes(2), "Confirmed", ("TS-AAAA0003", 1));
+
+        var result = await _repo.GetPageAsync(status: "Confirmed", cancellationToken: TestContext.CancellationToken);
+
+        CollectionAssert.AreEqual(
+            new[] { confirmedNew, confirmedOld },
+            result.Items.Select(o => o.Id).ToArray()
+        );
+        Assert.AreEqual(2, result.TotalItems);
+    }
+
+    [TestMethod]
+    public async Task GetPageAsync_WithACustomerAndAStatus_AppliesBoth()
+    {
+        var customer = Guid.NewGuid();
+        var placed = new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc);
+        var match = await SaveOrderAsync(customer, placed, "Cancelled", ("TS-AAAA0001", 1));
+        await SaveOrderAsync(customer, placed.AddMinutes(1), "Confirmed", ("TS-AAAA0002", 1));
+        await SaveOrderAsync(Guid.NewGuid(), placed.AddMinutes(2), "Cancelled", ("TS-AAAA0003", 1));
+
+        var result = await _repo.GetPageAsync(customer, "Cancelled", cancellationToken: TestContext.CancellationToken);
+
+        Assert.AreEqual(match, result.Items.Single().Id);
+        Assert.AreEqual(1, result.TotalItems);
+    }
+
+    [TestMethod]
+    public async Task GetPageAsync_WithAStatus_SecondPage_CountsOnlyMatchingOrders()
+    {
+        var placed = new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc);
+        var oldest = await SaveOrderAsync(Guid.NewGuid(), placed, "Confirmed", ("TS-AAAA0001", 1));
+        await SaveOrderAsync(Guid.NewGuid(), placed.AddMinutes(1), "Confirmed", ("TS-AAAA0002", 1));
+        await SaveOrderAsync(Guid.NewGuid(), placed.AddMinutes(2), "Cancelled", ("TS-AAAA0003", 1));
+        await SaveOrderAsync(Guid.NewGuid(), placed.AddMinutes(3), "Confirmed", ("TS-AAAA0004", 1));
+
+        var result = await _repo.GetPageAsync(null, "Confirmed", 2, 2, TestContext.CancellationToken);
+
+        Assert.AreEqual(3, result.TotalItems);
+        Assert.AreEqual(2, result.TotalPages);
+        Assert.AreEqual(oldest, result.Items.Single().Id);
+        Assert.AreEqual("TS-AAAA0001", result.Items.Single().Lines.Single().Sku);
+    }
+
+    private Task<Guid> SaveOrderAsync(
+        Guid customerId,
+        DateTime createdUtc,
+        params (string Sku, int Quantity)[] lines
+    ) => SaveOrderAsync(customerId, createdUtc, "Placed", lines);
+
     private async Task<Guid> SaveOrderAsync(
         Guid customerId,
         DateTime createdUtc,
+        string status,
         params (string Sku, int Quantity)[] lines
     )
     {
@@ -180,7 +257,7 @@ public class PostgresOrderReadModelRepositoryTests
         {
             Id = Guid.NewGuid(),
             CustomerId = customerId,
-            Status = "Placed",
+            Status = status,
             Lines = [.. lines.Select(l => new OrderLineReadModel(l.Sku, l.Quantity, 9.99m, "SEK"))],
             CreatedUtc = createdUtc,
             LastUpdatedUtc = createdUtc,

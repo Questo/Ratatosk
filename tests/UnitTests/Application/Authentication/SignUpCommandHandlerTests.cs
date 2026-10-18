@@ -94,6 +94,29 @@ public class SignUpCommandHandlerTests
     }
 
     [TestMethod]
+    public async Task SignUp_WithADifferentlyCasedEmailAlreadyInUse_FailsAndKeepsTheExistingUser()
+    {
+        (await _host.SendAsync(new SignUpCommand(ValidEmail, ValidPassword))).EnsureSuccess();
+        var existing = await _host.Users.GetByEmailAsync(ValidEmail, CancellationToken.None);
+
+        var result = await _host.SendAsync(new SignUpCommand("USER@Example.com", ValidPassword));
+
+        Assert.IsTrue(result.IsFailure);
+        Assert.AreEqual(Errors.Authentication.AccountAlreadyExists.Message, result.Error);
+        Assert.AreEqual(1, (await _host.Users.GetAllAsync(CancellationToken.None)).TotalItems);
+        Assert.AreEqual(existing!.Id, (await _host.Users.GetByEmailAsync(ValidEmail, CancellationToken.None))!.Id);
+    }
+
+    [TestMethod]
+    public async Task SignUp_WithAnInvalidEmail_FailsAndCreatesNoUser()
+    {
+        var result = await _host.SendAsync(new SignUpCommand("not-an-email", ValidPassword));
+
+        Assert.IsTrue(result.IsFailure);
+        Assert.AreEqual(0, (await _host.Users.GetAllAsync(CancellationToken.None)).TotalItems);
+    }
+
+    [TestMethod]
     public async Task SignUp_WithAnEmptyPassword_FailsAndCreatesNoUser()
     {
         var result = await _host.SendAsync(new SignUpCommand(ValidEmail, ""));

@@ -1,3 +1,4 @@
+using Dapper;
 using Ratatosk.Application.Ordering;
 using Ratatosk.Application.Ordering.Models;
 using Ratatosk.Application.Shared;
@@ -42,18 +43,34 @@ public sealed class OrderReadModelRepository(IUnitOfWork uow)
         return order;
     }
 
-    public async Task<Pagination<OrderReadModel>> GetByCustomerAsync(
-        Guid customerId,
+    public async Task<Pagination<OrderReadModel>> GetPageAsync(
+        Guid? customerId = null,
+        string? status = null,
         int page = 1,
         int pageSize = 25,
         CancellationToken cancellationToken = default
     )
     {
+        var conditions = new List<string>();
+        var parameters = new DynamicParameters();
+
+        if (customerId is not null)
+        {
+            conditions.Add("customer_id = @CustomerId");
+            parameters.Add("CustomerId", customerId);
+        }
+
+        if (status is not null)
+        {
+            conditions.Add("status = @Status");
+            parameters.Add("Status", status);
+        }
+
         var orders = await PagedQueryAsync<OrderReadModel>(
             fromAndJoinsSql: "FROM order_read_models",
             selectColumnsSql: "SELECT id, customer_id, status, created_utc, last_updated_utc",
-            whereSql: "WHERE customer_id = @CustomerId",
-            parameters: new { CustomerId = customerId },
+            whereSql: conditions.Count > 0 ? "WHERE " + string.Join(" AND ", conditions) : null,
+            parameters: parameters,
             orderBySql: "ORDER BY created_utc DESC, id DESC",
             page: page,
             pageSize: pageSize,

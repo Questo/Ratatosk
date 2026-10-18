@@ -22,7 +22,11 @@ public sealed class LoginCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var userAuth = await userAuthRepository.GetByEmailAsync(request.Email, cancellationToken);
+        // Stored emails are normalized by Email.Create; look up the same form.
+        var emailResult = Email.Create(request.Email);
+        var userAuth = emailResult.IsSuccess
+            ? await userAuthRepository.GetByEmailAsync(emailResult.Value!.Value, cancellationToken)
+            : null;
         var passwordResult = Password.Create(request.Password);
         var hashResult = PasswordHash.Create(userAuth != null ? userAuth.Hash : string.Empty);
 

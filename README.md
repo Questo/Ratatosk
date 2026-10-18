@@ -39,9 +39,12 @@
 
     ```bash
     AUTHENTICATION_SECRET=RC9r7YtLzYVn0xOkGzAIxx7am6i83hgx1ot1nzR6m38=
+    ADMIN_EMAIL=admin@example.com
+    ADMIN_PASSWORD=change-me  # pick a strong password: this account controls the catalog and stock
     ```
 
     Docker compose already passes `Authentication__Secret` from `.env`; `appsettings*.json` intentionally leave `Authentication:Secret` blank to avoid committing secrets.
+    It also passes `ADMIN_EMAIL`/`ADMIN_PASSWORD` as `Admin__Email`/`Admin__Password`, which seed one Admin User at startup (skipped when either is unset; an existing User with that email is left as is). Adding, updating and removing Products, Restock, and Reserving and Releasing stock by hand require that Admin role.
 
 4. **Run the web app**:
     `docker-compose up` serves the back office at http://localhost:3000, with nginx proxying `/api` to the API. For development, run the API and then the Vite dev server, which proxies `/api` to `API_URL` (default `http://localhost:5000`):

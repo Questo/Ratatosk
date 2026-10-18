@@ -22,6 +22,8 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       Authentication__Secret: "${AUTHENTICATION_SECRET}"
+      Admin__Email: "${ADMIN_EMAIL}"
+      Admin__Password: "${ADMIN_PASSWORD}"
       Database__ConnectionString: "Host=ratatosk-db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
       Eventstore__Type: 2
   web:
