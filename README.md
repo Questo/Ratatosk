@@ -17,6 +17,7 @@
 - **Application**: Contains services, command and query handlers, and orchestrates application logic.
 - **Infrastructure**: Implements storage solutions, serialization, and external configurations.
 - **API**: Provides a minimal API interface for interacting with the application.
+- **Web** (`src/Web`): The Admin-only back-office web app (React, TypeScript, Vite, Mantine), served on the same origin as the API with `/api` proxied to it.
 
 ## Getting started
 
@@ -45,9 +46,27 @@
     Docker compose already passes `Authentication__Secret` from `.env`; `appsettings*.json` intentionally leave `Authentication:Secret` blank to avoid committing secrets.
     It also passes `ADMIN_EMAIL`/`ADMIN_PASSWORD` as `Admin__Email`/`Admin__Password`, which seed one Admin User at startup (skipped when either is unset; an existing User with that email is left as is). Adding, updating and removing Products, Restock, and Reserving and Releasing stock by hand require that Admin role.
 
+4. **Run the web app**:
+    `docker-compose up` serves the back office at http://localhost:3000, with nginx proxying `/api` to the API. For development, run the API and then the Vite dev server, which proxies `/api` to `API_URL` (default `http://localhost:5000`):
+
+    ```bash
+    cd src/Web
+    npm ci
+    API_URL=http://localhost:5000 npm run dev
+    ```
+
+    Only Admin accounts can sign in.
+
 ## Scripts
 **Run tests**
 ```bash
 ./scripts/run-unit-tests.sh
 ./scripts/run-integration-tests.sh
+```
+
+**Web app checks** (in `src/Web`)
+```bash
+npm run lint
+npm test
+npm run build
 ```

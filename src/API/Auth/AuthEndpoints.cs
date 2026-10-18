@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.Extensions.Options;
 using Ratatosk.Core.BuildingBlocks;
 using Ratatosk.Application.Authentication;
@@ -93,6 +94,21 @@ public static class AuthEndpoints
                     return Results.NoContent();
                 }
             )
+            .WithTags(AuthTag);
+
+        app.MapGet(
+                "/auth/me",
+                (ClaimsPrincipal user) =>
+                    Results.Ok(
+                        Response<CurrentUserResponse>.Ok(
+                            new CurrentUserResponse(
+                                user.FindFirstValue(ClaimTypes.Email),
+                                user.FindFirstValue(ClaimTypes.Role)
+                            )
+                        )
+                    )
+            )
+            .RequireAuthorization(Policies.Authenticated)
             .WithTags(AuthTag);
     }
 

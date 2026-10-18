@@ -1,0 +1,3 @@
+# The web app has its own image (src/Web/Dockerfile); keep it out of the API build context
+src/Web
+**/node_modules

@@ -11,6 +11,7 @@ This document maps the repository layout to the responsibilities of each layer. 
 - `src/Application` — Command/query handlers, event handlers (projections and processes), and ports that orchestrate domain logic. Example folders: `Catalog` (product commands/queries), `Inventoring` (`StockKeeper`, stock projection), `Ordering` (`OrderReservationProcess`, order projection), `Authentication` (token issuance), `Shared` (pagination).
 - `src/Infrastructure` — Adapters and implementations for the ports declared in `Core`/`Application`: event stores (`Persistence/EventSourcing`), repositories and unit of work (`Persistence/Repositories`), read models (`Persistence/ReadModels`), polymorphic serialization, projection wiring, domain service implementations, and authentication plumbing.
 - `src/API` — Minimal API surface (endpoints, DTOs, request models, middleware) that hosts the application layer. Endpoints dispatch commands and queries through `IDispatcher`; `UnitOfWorkEndpointFilter` ends each request's transaction.
+- `src/Web` — The Admin-only back-office web app (React, TypeScript, Vite, Mantine, TanStack Query), a standalone npm project. The browser reaches the API only through the same-origin `/api` proxy (the Vite dev server, or nginx in its Docker image), signed in through httpOnly cookies (ADR 0003).
 - `tests` — `UnitTests` (organized by layer: Application/Core/Domain/Infrastructure; `Shared/TestHost.cs` runs the application with in-memory adapters) and `IntegrationTests` (Postgres adapters against a real database).
 - `docs` — Architecture notes (`DDD.md`) and this structure guide.
 - `scripts` — Convenience scripts for running unit/integration test suites.
@@ -40,6 +41,7 @@ Infrastructure sits beside `Application`/`Domain` and is composed in at runtime 
 - `src/Application/Changes` — `ChangeSignal`, the `IChangeBroadcaster` port, and `ChangeSignalHandler`, which turns product, stock and order events into change signals (registered after every other handler).
 - `src/Infrastructure/Changes` — `InProcessChangeBroadcaster`: fans signals out to this process's subscribers, one bounded channel each, dropping signals for a full one.
 - `src/API/Changes` — `GET /changes`, the Admin-only Server-Sent Events change stream (mapped outside the unit-of-work group, not buffered by `CleanupResponseMiddleware`).
+- `src/Web/src` — `api/client.ts` (the one fetch wrapper: relative `/api` URLs, envelope unwrapping, one refresh and retry on 401), `auth` (session from `GET /auth/me`, login screen), `shell` (app shell), `test` (Vitest setup, MSW server, render helper). `vite.config.ts` holds the dev proxy, and `nginx.conf` + `Dockerfile` the production serving.
 
 ---
 
