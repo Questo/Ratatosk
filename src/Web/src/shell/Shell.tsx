@@ -5,17 +5,18 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
 import { sessionQuery } from '../auth/session'
 import { useChangeStream } from '../changes/useChangeStream'
+import { DashboardScreen } from '../dashboard/DashboardScreen'
 import { OrdersScreen } from '../orders/OrdersScreen'
 import { ProductsScreen } from '../products/ProductsScreen'
 import { StockScreen } from '../stock/StockScreen'
 
-type Screen = 'products' | 'stock' | 'orders'
+type Screen = 'dashboard' | 'products' | 'stock' | 'orders'
 
 export function Shell({ email }: { email: string }) {
   const queryClient = useQueryClient()
   // One change stream for the whole signed-in session; it closes when sign-out unmounts the shell
   useChangeStream()
-  const [screen, setScreen] = useState<Screen>('products')
+  const [screen, setScreen] = useState<Screen>('dashboard')
   // Below the sm breakpoint the navbar covers the page, so it stays collapsed until the burger opens it
   const [navOpened, nav] = useDisclosure(false)
   const show = (next: Screen) => {
@@ -66,6 +67,13 @@ export function Shell({ email }: { email: string }) {
       <AppShell.Navbar p="xs">
         <NavLink
           component="button"
+          label="Dashboard"
+          active={screen === 'dashboard'}
+          aria-current={screen === 'dashboard' ? 'page' : undefined}
+          onClick={() => show('dashboard')}
+        />
+        <NavLink
+          component="button"
           label="Products"
           active={screen === 'products'}
           aria-current={screen === 'products' ? 'page' : undefined}
@@ -87,7 +95,15 @@ export function Shell({ email }: { email: string }) {
         />
       </AppShell.Navbar>
       <AppShell.Main>
-        {screen === 'products' ? <ProductsScreen /> : screen === 'stock' ? <StockScreen /> : <OrdersScreen />}
+        {screen === 'dashboard' ? (
+          <DashboardScreen />
+        ) : screen === 'products' ? (
+          <ProductsScreen />
+        ) : screen === 'stock' ? (
+          <StockScreen />
+        ) : (
+          <OrdersScreen />
+        )}
       </AppShell.Main>
     </AppShell>
   )

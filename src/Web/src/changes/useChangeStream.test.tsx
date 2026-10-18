@@ -4,9 +4,12 @@ import { http, HttpResponse } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Order } from '../orders/orders'
 import { OrdersScreen } from '../orders/OrdersScreen'
+import type { Stock } from '../stock/stock'
+import { StockScreen } from '../stock/StockScreen'
 import { FakeEventSource } from '../test/eventSource'
 import { renderWithProviders } from '../test/render'
 import { server } from '../test/server'
+import { activityKey, type Activity } from './activity'
 import { useChangeStream } from './useChangeStream'
 
 const envelope = (data: unknown) => HttpResponse.json({ message: null, data, timestamp: new Date().toISOString() })
@@ -46,6 +49,29 @@ function fakeApi() {
   }
 }
 
+const productId = '00000000-0000-0000-0000-000000000002'
+
+function fakeStockApi() {
+  const calls = { stock: 0 }
+  const stock: Stock = {
+    productId,
+    sku: 'BW-0001',
+    onHand: 5,
+    reserved: 0,
+    available: 5,
+    unit: 'pcs',
+    version: 2,
+    lastUpdatedUtc: '2026-10-18T10:00:00Z',
+  }
+  server.use(
+    http.get('/api/inventory', () => {
+      calls.stock++
+      return envelope({ items: [stock], totalItems: 1, page: 1, pageSize: 25, totalPages: 1 })
+    }),
+  )
+  return calls
+}
+
 function StreamOnly() {
   useChangeStream()
   return null
@@ -54,6 +80,11 @@ function StreamOnly() {
 function OrdersWithStream() {
   useChangeStream()
   return <OrdersScreen />
+}
+
+function StockWithStream() {
+  useChangeStream()
+  return <StockScreen />
 }
 
 const stream = () => FakeEventSource.latest()
@@ -107,6 +138,41 @@ describe('useChangeStream', () => {
     expect(api.calls.lists).toBe(1)
   })
 
+  it('refetches the Stock queries on a stock signal, and not on order or product signals', async () => {
+    const calls = fakeStockApi()
+    renderWithProviders(<StockWithStream />)
+    await screen.findByRole('cell', { name: 'BW-0001' })
+
+    act(() => {
+      stream().emitChange({ kind: 'order', id: orderId, version: 2 })
+      stream().emitChange({ kind: 'product', id: productId, version: 2 })
+    })
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(calls.stock).toBe(1)
+
+    act(() => stream().emitChange({ kind: 'stock', id: productId, version: 3 }))
+
+    await waitFor(() => expect(calls.stock).toBe(2))
+  })
+
+  it('records every signal in the activity cache, newest first', () => {
+    const { queryClient } = renderWithProviders(<StreamOnly />)
+
+    act(() => {
+      stream().emitChange({ kind: 'product', id: productId, version: 1 })
+      stream().emitChange({ kind: 'stock', id: productId, version: 2 })
+      stream().emitChange({ kind: 'order', id: orderId, version: 1 })
+    })
+
+    const activity = queryClient.getQueryData<Activity[]>(activityKey)!
+    expect(activity.map(({ kind, id, version }) => ({ kind, id, version }))).toEqual([
+      { kind: 'order', id: orderId, version: 1 },
+      { kind: 'stock', id: productId, version: 2 },
+      { kind: 'product', id: productId, version: 1 },
+    ])
+    expect(activity[0].receivedAt).toBeInstanceOf(Date)
+  })
+
   it('refetches the Orders when the stream opens, to catch up on missed signals', async () => {
     const api = fakeApi()
     renderWithProviders(<OrdersWithStream />)
@@ -115,6 +181,16 @@ describe('useChangeStream', () => {
     act(() => stream().emitOpen())
 
     await waitFor(() => expect(api.calls.lists).toBe(2))
+  })
+
+  it('refetches the Stock queries when the stream opens', async () => {
+    const calls = fakeStockApi()
+    renderWithProviders(<StockWithStream />)
+    await screen.findByRole('cell', { name: 'BW-0001' })
+
+    act(() => stream().emitOpen())
+
+    await waitFor(() => expect(calls.stock).toBe(2))
   })
 
   it('refreshes the session through /auth/me and opens a new stream 5 seconds after it closes', async () => {

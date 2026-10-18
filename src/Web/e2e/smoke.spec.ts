@@ -26,7 +26,9 @@ test('an Order placed through the API shows up Confirmed in the Orders screen', 
   await page.getByRole('textbox', { name: 'Password' }).fill(password)
   await page.getByRole('button', { name: 'Sign in' }).click()
   await expect(page.getByRole('banner').getByText(email)).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
 
+  await page.getByRole('button', { name: 'Products' }).click()
   await page.getByRole('button', { name: 'Add Product' }).click()
   const addDialog = page.getByRole('dialog', { name: 'Add Product' })
   await addDialog.getByLabel('Name').fill(name)
