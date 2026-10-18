@@ -57,6 +57,9 @@ public static class SchemaUpgrade
                 UPDATE order_read_models SET status = 'Placed' WHERE status = 'Created';
             END IF;
         END $$;
+
+        -- Why an Order was cancelled. Null for Orders cancelled before it was recorded.
+        ALTER TABLE IF EXISTS order_read_models ADD COLUMN IF NOT EXISTS cancellation_reason text;
         """;
 
     public static Task ApplyAsync(

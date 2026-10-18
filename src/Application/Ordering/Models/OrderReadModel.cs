@@ -26,4 +26,5 @@ public class OrderReadModel
     public List<OrderLineReadModel> Lines { get; set; } = [];
     public DateTime CreatedUtc { get; set; }
     public DateTime LastUpdatedUtc { get; set; }
+    public string? CancellationReason { get; set; }
 }

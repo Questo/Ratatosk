@@ -29,7 +29,8 @@ public class PostgresOrderReadModelRepositoryTests
                     customer_id uuid NOT NULL,
                     status text NOT NULL,
                     created_utc timestamptz NOT NULL,
-                    last_updated_utc timestamptz NOT NULL
+                    last_updated_utc timestamptz NOT NULL,
+                    cancellation_reason text
                 );
                 CREATE TABLE IF NOT EXISTS order_line_read_models(
                     order_id uuid NOT NULL REFERENCES order_read_models(id),
@@ -104,6 +105,56 @@ public class PostgresOrderReadModelRepositoryTests
         Assert.AreEqual("Confirmed", fetched!.Status);
         Assert.AreEqual(1, fetched.Lines.Count);
         Assert.AreEqual(5, fetched.Lines[0].Quantity);
+    }
+
+    [TestMethod]
+    public async Task SaveAsync_ShouldInsertTheCancellationReason()
+    {
+        var order = new OrderReadModel
+        {
+            Id = Guid.NewGuid(),
+            CustomerId = Guid.NewGuid(),
+            Status = "Cancelled",
+            Lines = [new OrderLineReadModel("TS-ABCD1234", 2, 9.99m, "SEK")],
+            CreatedUtc = DateTime.UtcNow,
+            LastUpdatedUtc = DateTime.UtcNow,
+            CancellationReason = "Unexpected failure",
+        };
+
+        await _repo.SaveAsync(order, TestContext.CancellationToken);
+
+        var fetched = await _repo.GetByIdAsync(order.Id, TestContext.CancellationToken);
+        Assert.AreEqual("Unexpected failure", fetched!.CancellationReason);
+        var page = await _repo.GetPageAsync(status: "Cancelled", cancellationToken: TestContext.CancellationToken);
+        Assert.AreEqual("Unexpected failure", page.Items.Single().CancellationReason);
+    }
+
+    [TestMethod]
+    public async Task SaveAsync_WhenRecordAlreadyExists_ShouldUpdateTheCancellationReason()
+    {
+        var order = new OrderReadModel
+        {
+            Id = Guid.NewGuid(),
+            CustomerId = Guid.NewGuid(),
+            Status = "Placed",
+            Lines = [new OrderLineReadModel("TS-ABCD1234", 2, 9.99m, "SEK")],
+            CreatedUtc = DateTime.UtcNow,
+            LastUpdatedUtc = DateTime.UtcNow,
+        };
+        await _repo.SaveAsync(order, TestContext.CancellationToken);
+        Assert.IsNull((await _repo.GetByIdAsync(order.Id, TestContext.CancellationToken))!.CancellationReason);
+
+        order.Status = "Cancelled";
+        order.CancellationReason = "Not enough stock available for SKU TS-ABCD1234";
+        await _repo.SaveAsync(order, TestContext.CancellationToken);
+
+        var fetched = await _repo.GetByIdAsync(order.Id, TestContext.CancellationToken);
+        Assert.AreEqual("Not enough stock available for SKU TS-ABCD1234", fetched!.CancellationReason);
+        var page = await _repo.GetPageAsync(cancellationToken: TestContext.CancellationToken);
+        Assert.AreEqual(
+            "Not enough stock available for SKU TS-ABCD1234",
+            page.Items.Single(o => o.Id == order.Id).CancellationReason
+        );
     }
 
     [TestMethod]

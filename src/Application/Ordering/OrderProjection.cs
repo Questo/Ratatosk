@@ -51,5 +51,6 @@ public class OrderProjection(IOrderReadModelRepository repo, IAggregateRepositor
             ],
             CreatedUtc = order.PlacedAtUtc.UtcDateTime,
             LastUpdatedUtc = order.LastUpdatedUtc.UtcDateTime,
+            CancellationReason = order.CancellationReason,
         };
 }

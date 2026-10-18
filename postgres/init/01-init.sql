@@ -69,7 +69,8 @@ CREATE TABLE IF NOT EXISTS order_read_models(
     customer_id uuid NOT NULL,
     status text NOT NULL,
     created_utc timestamptz NOT NULL,
-    last_updated_utc timestamptz NOT NULL
+    last_updated_utc timestamptz NOT NULL,
+    cancellation_reason text
 );
 
 CREATE TABLE IF NOT EXISTS order_line_read_models(

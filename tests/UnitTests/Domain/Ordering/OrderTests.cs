@@ -132,6 +132,29 @@ public class OrderTests
     }
 
     [TestMethod]
+    public void Cancel_ShouldRecordTheCancellationReason()
+    {
+        var order = Order.Place(Guid.NewGuid(), [Line()]).Value!;
+
+        order.Cancel("Insufficient stock");
+
+        Assert.AreEqual("Insufficient stock", order.CancellationReason);
+    }
+
+    [TestMethod]
+    public void PlacedAndConfirmedOrders_HaveNoCancellationReason()
+    {
+        var line = Line();
+        var order = Order.Place(Guid.NewGuid(), [line]).Value!;
+        Assert.IsNull(order.CancellationReason);
+
+        order.MarkLineReserved(line.Sku);
+
+        Assert.AreEqual(OrderStatus.Confirmed, order.Status);
+        Assert.IsNull(order.CancellationReason);
+    }
+
+    [TestMethod]
     public void Cancel_WhenAlreadyConfirmed_ShouldReturnFailure()
     {
         var line = Line();
