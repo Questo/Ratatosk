@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { App } from './App'
+import { FakeEventSource } from './test/eventSource'
 import { renderWithProviders } from './test/render'
 import { server } from './test/server'
 
@@ -18,7 +19,7 @@ const emptyPage = () =>
 const ok = () => HttpResponse.json({ message: null, data: {}, timestamp: new Date().toISOString() })
 
 // A fake API: /me reflects whoever logged in last; logout and failed refreshes clear it.
-// The Admin shell loads Products and, from the navbar, Stock, so it serves an empty list of each.
+// The Admin shell loads Products and, from the navbar, Stock and Orders, so it serves an empty list of each.
 function fakeAuthApi(options: { signedInAs?: { email: string; role: string }; password?: string } = {}) {
   let user = options.signedInAs ?? null
   const calls = { login: 0, logout: 0 }
@@ -45,6 +46,7 @@ function fakeAuthApi(options: { signedInAs?: { email: string; role: string }; pa
     }),
     http.get('/api/products', emptyPage),
     http.get('/api/inventory', emptyPage),
+    http.get('/api/orders', emptyPage),
   )
   return calls
 }
@@ -106,6 +108,44 @@ describe('App', () => {
     expect(await screen.findByRole('heading', { name: 'Products' })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Stock' })).not.toBeInTheDocument()
     expect(products).toHaveAttribute('data-active')
+  })
+
+  it('shows the Orders screen from the navbar', async () => {
+    fakeAuthApi({ signedInAs: { email: 'admin@factory.test', role: 'Admin' } })
+    const user = userEvent.setup()
+    renderWithProviders(<App />)
+
+    const navbar = within(await screen.findByRole('navigation'))
+    expect(navbar.getAllByRole('button').map((link) => link.textContent)).toEqual(['Products', 'Stock', 'Orders'])
+    const orders = navbar.getByRole('button', { name: 'Orders' })
+
+    await user.click(orders)
+
+    expect(await screen.findByRole('heading', { name: 'Orders' })).toBeInTheDocument()
+    expect(await screen.findByText('No Orders found.')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Products' })).not.toBeInTheDocument()
+    expect(orders).toHaveAttribute('data-active')
+    expect(orders).toHaveAttribute('aria-current', 'page')
+  })
+
+  it('keeps one change stream open while signed in and closes it on sign-out', async () => {
+    fakeAuthApi({ signedInAs: { email: 'admin@factory.test', role: 'Admin' } })
+    const user = userEvent.setup()
+    renderWithProviders(<App />)
+    await screen.findByText('admin@factory.test')
+
+    expect(FakeEventSource.instances).toHaveLength(1)
+    const stream = FakeEventSource.latest()
+    expect(stream.url).toBe('/api/changes')
+    expect(stream.closed).toBe(false)
+
+    await user.click(within(screen.getByRole('navigation')).getByRole('button', { name: 'Stock' }))
+    expect(FakeEventSource.instances).toHaveLength(1)
+
+    await user.click(screen.getByRole('button', { name: 'Sign out' }))
+
+    expect(await screen.findByRole('button', { name: 'Sign in' })).toBeInTheDocument()
+    expect(stream.closed).toBe(true)
   })
 
   it('opens the navbar from the burger on small screens and closes it when a screen is chosen', async () => {
