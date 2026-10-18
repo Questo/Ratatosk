@@ -41,7 +41,7 @@ Infrastructure sits beside `Application`/`Domain` and is composed in at runtime 
 - `src/Application/Changes` — `ChangeSignal`, the `IChangeBroadcaster` port, and `ChangeSignalHandler`, which turns product, stock and order events into change signals (registered after every other handler).
 - `src/Infrastructure/Changes` — `InProcessChangeBroadcaster`: fans signals out to this process's subscribers, one bounded channel each, dropping signals for a full one.
 - `src/API/Changes` — `GET /changes`, the Admin-only Server-Sent Events change stream (mapped outside the unit-of-work group, not buffered by `CleanupResponseMiddleware`).
-- `src/Web/src` — `api/client.ts` (the one fetch wrapper: relative `/api` URLs, envelope unwrapping, one refresh and retry on 401), `auth` (session from `GET /auth/me`, login screen), `shell` (app shell), `test` (Vitest setup, MSW server, render helper). `vite.config.ts` holds the dev proxy, and `nginx.conf` + `Dockerfile` the production serving.
+- `src/Web/src` — `api/client.ts` (the one fetch wrapper: relative `/api` URLs, envelope unwrapping, one refresh and retry on 401), `auth` (session from `GET /auth/me`, login screen), `shell` (app shell), `products` (search, list, add, edit and remove screens), `test` (Vitest setup, MSW server, render helper). `vite.config.ts` holds the dev proxy, and `nginx.conf` + `Dockerfile` the production serving.
 
 ---
 

@@ -22,6 +22,68 @@ describe('api client', () => {
     expect(error).toMatchObject({ status: 400, apiMessage: 'Name is required.', message: 'Name is required.' })
   })
 
+  it('sends a JSON body with method PUT', async () => {
+    let received: { method: string; contentType: string | null; body: unknown } | null = null
+    server.use(
+      http.put('/api/things/1', async ({ request }) => {
+        received = {
+          method: request.method,
+          contentType: request.headers.get('Content-Type'),
+          body: await request.json(),
+        }
+        return envelope(null)
+      }),
+    )
+
+    await api.put('/api/things/1', { name: 'Thing' })
+
+    expect(received).toEqual({ method: 'PUT', contentType: 'application/json', body: { name: 'Thing' } })
+  })
+
+  it('sends method DELETE', async () => {
+    let method: string | null = null
+    server.use(
+      http.delete('/api/things/1', ({ request }) => {
+        method = request.method
+        return new HttpResponse(null, { status: 204 })
+      }),
+    )
+
+    await expect(api.delete('/api/things/1')).resolves.toBeUndefined()
+    expect(method).toBe('DELETE')
+  })
+
+  it.each([
+    ['PUT', () => api.put('/api/things/1', { name: '' })],
+    ['DELETE', () => api.delete('/api/things/1')],
+  ])('throws the status and envelope message for a failed %s', async (_, call) => {
+    server.use(
+      http.put('/api/things/1', () => HttpResponse.json({ message: 'Name is required.' }, { status: 400 })),
+      http.delete('/api/things/1', () => HttpResponse.json({ message: 'Name is required.' }, { status: 400 })),
+    )
+
+    const error = await call().catch((e: unknown) => e)
+
+    expect(error).toBeInstanceOf(ApiError)
+    expect(error).toMatchObject({ status: 400, apiMessage: 'Name is required.' })
+  })
+
+  it.each([
+    ['PUT', () => api.put('/api/things/1', { name: 'Thing' })],
+    ['DELETE', () => api.delete('/api/things/1')],
+  ])('refreshes once and retries a %s after a 401', async (_, call) => {
+    let calls = 0
+    const respond = () => (++calls === 1 ? unauthorized() : envelope('done'))
+    server.use(
+      http.put('/api/things/1', respond),
+      http.delete('/api/things/1', respond),
+      http.post('/api/auth/refresh', () => envelope({})),
+    )
+
+    await expect(call()).resolves.toBe('done')
+    expect(calls).toBe(2)
+  })
+
   it('refreshes once and retries the request once after a 401', async () => {
     let thingCalls = 0
     let refreshCalls = 0
