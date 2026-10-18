@@ -85,11 +85,18 @@ public sealed class InMemoryInventoryReadModelRepository : IInventoryReadModelRe
     public Task<Pagination<StockReadModel>> GetPageAsync(
         int page = 1,
         int pageSize = 25,
+        int? maxAvailable = null,
         CancellationToken cancellationToken = default
     )
     {
-        var rows = _rows
-            .Values.OrderBy(r => r.Sku, StringComparer.Ordinal)
+        var rows = (
+            maxAvailable is null
+                ? _rows.Values.OrderBy(r => r.Sku, StringComparer.Ordinal)
+                : _rows
+                    .Values.Where(r => r.Available <= maxAvailable)
+                    .OrderBy(r => r.Available)
+                    .ThenBy(r => r.Sku, StringComparer.Ordinal)
+        )
             .ThenBy(r => r.ProductId)
             .ToList();
 
