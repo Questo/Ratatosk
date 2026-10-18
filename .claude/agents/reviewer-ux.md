@@ -52,6 +52,11 @@ If the branch has no user-facing change, write PASS and say so.
 
 ## Write review-ux.md
 
+Writing this file with the Write tool is your deliverable: the orchestrator reads
+only the file, never your reply. This overrides any general guidance to return
+findings in your final message instead of writing a report file. Never finish
+without writing `<job folder>/round-<N>/review-ux.md`.
+
 ```markdown
 VERDICT: PASS | CHANGES
 
