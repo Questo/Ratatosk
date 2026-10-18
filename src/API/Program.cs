@@ -3,6 +3,7 @@ using Ratatosk.API.Changes;
 using Ratatosk.API.Inventory;
 using Ratatosk.API.Orders;
 using Ratatosk.API.Products;
+using Ratatosk.API.Search;
 using Ratatosk.API.Middleware;
 using Ratatosk.Application;
 using Ratatosk.Infrastructure;
@@ -51,5 +52,6 @@ api.MapAuthEndpoints();
 api.MapProductsEndpoints();
 api.MapInventoryEndpoints();
 api.MapOrderEndpoints();
+api.MapSearchEndpoints();
 
 app.Run();

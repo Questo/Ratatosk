@@ -49,8 +49,9 @@ public static class ProductsEndpoints
                 {
                     var query = new GetProductByIdQuery(id);
                     var result = await dispatcher.DispatchAsync(query, ct);
+                    var response = Response<ProductReadModel>.FromResult(result);
 
-                    return result.IsFailure ? Results.NotFound() : Results.Ok(result.Value);
+                    return result.IsFailure ? Results.NotFound(response) : Results.Ok(response);
                 }
             )
             // .RequireAuthorization()
@@ -58,8 +59,8 @@ public static class ProductsEndpoints
             .WithName("GetProductById")
             .WithSummary("Get a product by id")
             .WithDescription("Returns a product read model for the supplied product id.")
-            .Produces<ProductReadModel>(StatusCodes.Status200OK)
-            .Produces(StatusCodes.Status404NotFound);
+            .Produces<Response<ProductReadModel>>(StatusCodes.Status200OK)
+            .Produces<Response<ProductReadModel>>(StatusCodes.Status404NotFound);
 
         app.MapPut(
                 "/products/{id:guid}",
