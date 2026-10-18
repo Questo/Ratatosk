@@ -171,6 +171,7 @@ public sealed class InMemoryOrderReadModelRepository : IOrderReadModelRepository
             Lines = [.. r.Lines.Select(l => new OrderLineReadModel(l.Sku, l.Quantity, l.UnitPrice, l.Currency))],
             CreatedUtc = r.CreatedUtc,
             LastUpdatedUtc = r.LastUpdatedUtc,
+            CancellationReason = r.CancellationReason,
         };
 }
 

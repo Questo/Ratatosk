@@ -18,7 +18,7 @@ public sealed class OrderReadModelRepository(IUnitOfWork uow)
     {
         var order = await QueryFirstOrDefaultAsync<OrderReadModel>(
             """
-                SELECT id, customer_id, status, created_utc, last_updated_utc
+                SELECT id, customer_id, status, created_utc, last_updated_utc, cancellation_reason
                 FROM order_read_models
                 WHERE id = @Id
             """,
@@ -68,7 +68,8 @@ public sealed class OrderReadModelRepository(IUnitOfWork uow)
 
         var orders = await PagedQueryAsync<OrderReadModel>(
             fromAndJoinsSql: "FROM order_read_models",
-            selectColumnsSql: "SELECT id, customer_id, status, created_utc, last_updated_utc",
+            selectColumnsSql:
+                "SELECT id, customer_id, status, created_utc, last_updated_utc, cancellation_reason",
             whereSql: conditions.Count > 0 ? "WHERE " + string.Join(" AND ", conditions) : null,
             parameters: parameters,
             orderBySql: "ORDER BY created_utc DESC, id DESC",
@@ -110,11 +111,12 @@ public sealed class OrderReadModelRepository(IUnitOfWork uow)
     {
         await ExecAsync(
             """
-                INSERT INTO order_read_models (id, customer_id, status, created_utc, last_updated_utc)
-                VALUES (@Id, @CustomerId, @Status, @CreatedUtc, @LastUpdatedUtc)
+                INSERT INTO order_read_models (id, customer_id, status, created_utc, last_updated_utc, cancellation_reason)
+                VALUES (@Id, @CustomerId, @Status, @CreatedUtc, @LastUpdatedUtc, @CancellationReason)
                 ON CONFLICT (id) DO UPDATE SET
                     status = EXCLUDED.status,
-                    last_updated_utc = EXCLUDED.last_updated_utc
+                    last_updated_utc = EXCLUDED.last_updated_utc,
+                    cancellation_reason = EXCLUDED.cancellation_reason
             """,
             order,
             cancellationToken

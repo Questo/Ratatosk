@@ -48,6 +48,22 @@ public class SchemaUpgradeTests
                     hash text NOT NULL
                 );
                 INSERT INTO user_auth_read_models VALUES ('old@example.com', 'User', 'hash');
+                DROP TABLE IF EXISTS order_line_read_models;
+                DROP TABLE IF EXISTS order_read_models;
+                CREATE TABLE order_read_models(
+                    id uuid PRIMARY KEY,
+                    customer_id uuid NOT NULL,
+                    status text NOT NULL,
+                    created_utc timestamptz NOT NULL,
+                    last_updated_utc timestamptz NOT NULL
+                );
+                CREATE TABLE order_line_read_models(
+                    order_id uuid NOT NULL REFERENCES order_read_models(id),
+                    sku text NOT NULL,
+                    quantity integer NOT NULL,
+                    unit_price decimal NOT NULL,
+                    currency text NOT NULL
+                );
             """,
             transaction: _uow.Transaction
         );
@@ -133,6 +149,36 @@ public class SchemaUpgradeTests
         Assert.AreEqual(
             "Confirmed",
             await _uow.Connection.QuerySingleAsync<string>(status, new { Id = confirmed }, _uow.Transaction)
+        );
+    }
+
+    [TestMethod]
+    public async Task Apply_AddsANullableCancellationReason_ThatOldRowsReadAsNull()
+    {
+        var cancelled = Guid.NewGuid();
+        await _uow.Connection.ExecuteAsync(
+            """
+                INSERT INTO order_read_models (id, customer_id, status, created_utc, last_updated_utc) VALUES
+                    (@Cancelled, @Customer, 'Cancelled', now(), now());
+            """,
+            new { Cancelled = cancelled, Customer = Guid.NewGuid() },
+            _uow.Transaction
+        );
+
+        await SchemaUpgrade.ApplyAsync(_uow.Connection, _uow.Transaction);
+        await SchemaUpgrade.ApplyAsync(_uow.Connection, _uow.Transaction);
+
+        var orders = new OrderReadModelRepository(_uow);
+        var old = await orders.GetByIdAsync(cancelled);
+        Assert.AreEqual("Cancelled", old!.Status);
+        Assert.IsNull(old.CancellationReason);
+
+        // The upsert path writes the new column.
+        old.CancellationReason = "Not enough stock available for SKU NUT-001";
+        await orders.SaveAsync(old);
+        Assert.AreEqual(
+            "Not enough stock available for SKU NUT-001",
+            (await orders.GetByIdAsync(cancelled))!.CancellationReason
         );
     }
 }

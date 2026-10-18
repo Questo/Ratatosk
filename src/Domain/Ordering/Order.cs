@@ -15,6 +15,7 @@ public class Order : AggregateRoot
     public IReadOnlyList<OrderLine> Lines => _lines;
     public DateTimeOffset PlacedAtUtc { get; private set; }
     public DateTimeOffset LastUpdatedUtc { get; private set; }
+    public string? CancellationReason { get; private set; }
 
     protected override void ApplyEvent(DomainEvent domainEvent)
     {
@@ -38,8 +39,9 @@ public class Order : AggregateRoot
                 Status = OrderStatus.Confirmed;
                 break;
 
-            case OrderCancelled:
+            case OrderCancelled e:
                 Status = OrderStatus.Cancelled;
+                CancellationReason = e.Reason;
                 break;
         }
     }

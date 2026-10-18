@@ -42,6 +42,7 @@ public class OrderPlacementTests
         Assert.AreEqual(nameof(OrderStatus.Confirmed), readModel.Status);
         Assert.HasCount(2, readModel.Lines);
         Assert.AreEqual(19.99m, readModel.Lines.Single(l => l.Sku == skuA).UnitPrice);
+        Assert.IsNull(readModel.CancellationReason);
 
         Assert.AreEqual(3, (await _host.Stock.GetByProductIdAsync(productA))!.Reserved);
         Assert.AreEqual(5, (await _host.Stock.GetByProductIdAsync(productB))!.Reserved);
@@ -93,6 +94,18 @@ public class OrderPlacementTests
             .Single();
         Assert.AreEqual(orderId, rejection.OrderId);
         Assert.IsEmpty((await _host.StreamAsync<Inventory>(productC)).OfType<StockReserved>());
+    }
+
+    [TestMethod]
+    public async Task PlaceOrder_WithoutEnoughStock_RecordsTheCancellationReasonInTheReadModel()
+    {
+        var (_, sku) = await _host.AddStockedProductAsync(onHand: 1);
+
+        var orderId = await _host.PlaceOrderAsync((sku, 2));
+
+        var readModel = await _host.Orders.GetByIdAsync(orderId);
+        Assert.AreEqual(nameof(OrderStatus.Cancelled), readModel!.Status);
+        Assert.AreEqual($"Not enough stock available for SKU {sku}", readModel.CancellationReason);
     }
 
     [TestMethod]

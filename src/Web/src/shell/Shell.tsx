@@ -4,13 +4,17 @@ import { useDisclosure } from '@mantine/hooks'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
 import { sessionQuery } from '../auth/session'
+import { useChangeStream } from '../changes/useChangeStream'
+import { OrdersScreen } from '../orders/OrdersScreen'
 import { ProductsScreen } from '../products/ProductsScreen'
 import { StockScreen } from '../stock/StockScreen'
 
-type Screen = 'products' | 'stock'
+type Screen = 'products' | 'stock' | 'orders'
 
 export function Shell({ email }: { email: string }) {
   const queryClient = useQueryClient()
+  // One change stream for the whole signed-in session; it closes when sign-out unmounts the shell
+  useChangeStream()
   const [screen, setScreen] = useState<Screen>('products')
   // Below the sm breakpoint the navbar covers the page, so it stays collapsed until the burger opens it
   const [navOpened, nav] = useDisclosure(false)
@@ -74,8 +78,17 @@ export function Shell({ email }: { email: string }) {
           aria-current={screen === 'stock' ? 'page' : undefined}
           onClick={() => show('stock')}
         />
+        <NavLink
+          component="button"
+          label="Orders"
+          active={screen === 'orders'}
+          aria-current={screen === 'orders' ? 'page' : undefined}
+          onClick={() => show('orders')}
+        />
       </AppShell.Navbar>
-      <AppShell.Main>{screen === 'products' ? <ProductsScreen /> : <StockScreen />}</AppShell.Main>
+      <AppShell.Main>
+        {screen === 'products' ? <ProductsScreen /> : screen === 'stock' ? <StockScreen /> : <OrdersScreen />}
+      </AppShell.Main>
     </AppShell>
   )
 }
