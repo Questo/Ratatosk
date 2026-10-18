@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react'
+import { act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
@@ -19,7 +19,8 @@ const emptyPage = () =>
 const ok = () => HttpResponse.json({ message: null, data: {}, timestamp: new Date().toISOString() })
 
 // A fake API: /me reflects whoever logged in last; logout and failed refreshes clear it.
-// The Admin shell loads Products and, from the navbar, Stock and Orders, so it serves an empty list of each.
+// The Admin shell lands on the Dashboard (Order counts and low stock) and loads Products, Stock and Orders
+// from the navbar, so it serves an empty list of each.
 function fakeAuthApi(options: { signedInAs?: { email: string; role: string }; password?: string } = {}) {
   let user = options.signedInAs ?? null
   const calls = { login: 0, logout: 0 }
@@ -76,23 +77,51 @@ describe('App', () => {
 
     expect(await screen.findByText('admin@factory.test')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Products' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Dashboard' })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Welcome' })).not.toBeInTheDocument()
   })
 
-  it('switches between the Products and Stock screens from the navbar', async () => {
+  it('lands on the Dashboard, the first and active navbar item', async () => {
+    fakeAuthApi({ signedInAs: { email: 'admin@factory.test', role: 'Admin' } })
+    renderWithProviders(<App />)
+
+    const navbar = within(await screen.findByRole('navigation'))
+    expect(navbar.getAllByRole('button').map((link) => link.textContent)).toEqual([
+      'Dashboard',
+      'Products',
+      'Stock',
+      'Orders',
+    ])
+    const dashboard = navbar.getByRole('button', { name: 'Dashboard' })
+    expect(dashboard).toHaveAttribute('data-active')
+    expect(dashboard).toHaveAttribute('aria-current', 'page')
+    expect(navbar.getByRole('button', { name: 'Products' })).not.toHaveAttribute('aria-current')
+    expect(screen.getByRole('heading', { level: 2, name: 'Dashboard' })).toBeInTheDocument()
+    expect(await screen.findByText('No low-stock Products.')).toBeInTheDocument()
+    expect(screen.getByText('No changes since you signed in.')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Order counts' })).toBeInTheDocument()
+  })
+
+  it('switches between the Dashboard, Products and Stock screens from the navbar', async () => {
     fakeAuthApi({ signedInAs: { email: 'admin@factory.test', role: 'Admin' } })
     const user = userEvent.setup()
     renderWithProviders(<App />)
 
     const navbar = within(await screen.findByRole('navigation'))
+    const dashboard = navbar.getByRole('button', { name: 'Dashboard' })
     const products = navbar.getByRole('button', { name: 'Products' })
     const stock = navbar.getByRole('button', { name: 'Stock' })
+
+    await user.click(products)
+
+    expect(await screen.findByRole('heading', { name: 'Products' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Dashboard' })).not.toBeInTheDocument()
     expect(products).toHaveAttribute('data-active')
     expect(products).toHaveAttribute('aria-current', 'page')
+    expect(dashboard).not.toHaveAttribute('data-active')
+    expect(dashboard).not.toHaveAttribute('aria-current')
     expect(stock).not.toHaveAttribute('data-active')
     expect(stock).not.toHaveAttribute('aria-current')
-    expect(screen.getByRole('heading', { name: 'Products' })).toBeInTheDocument()
 
     await user.click(stock)
 
@@ -108,6 +137,33 @@ describe('App', () => {
     expect(await screen.findByRole('heading', { name: 'Products' })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Stock' })).not.toBeInTheDocument()
     expect(products).toHaveAttribute('data-active')
+
+    await user.click(dashboard)
+
+    expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument()
+    expect(dashboard).toHaveAttribute('aria-current', 'page')
+  })
+
+  it('keeps the activity feed across screens and empties it on sign-out', async () => {
+    fakeAuthApi({ signedInAs: { email: 'admin@factory.test', role: 'Admin' } })
+    const user = userEvent.setup()
+    renderWithProviders(<App />)
+    await screen.findByText('No changes since you signed in.')
+
+    act(() => FakeEventSource.latest().emitChange({ kind: 'product', id: 'p-1', version: 1 }))
+    expect(await screen.findByRole('cell', { name: 'p-1' })).toBeInTheDocument()
+
+    const navbar = within(screen.getByRole('navigation'))
+    await user.click(navbar.getByRole('button', { name: 'Stock' }))
+    await screen.findByRole('heading', { name: 'Stock' })
+    await user.click(navbar.getByRole('button', { name: 'Dashboard' }))
+    expect(await screen.findByRole('cell', { name: 'p-1' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Sign out' }))
+    await signIn('admin@factory.test', 'Secret123!')
+
+    expect(await screen.findByText('No changes since you signed in.')).toBeInTheDocument()
+    expect(screen.queryByRole('cell', { name: 'p-1' })).not.toBeInTheDocument()
   })
 
   it('shows the Orders screen from the navbar', async () => {
@@ -116,14 +172,13 @@ describe('App', () => {
     renderWithProviders(<App />)
 
     const navbar = within(await screen.findByRole('navigation'))
-    expect(navbar.getAllByRole('button').map((link) => link.textContent)).toEqual(['Products', 'Stock', 'Orders'])
     const orders = navbar.getByRole('button', { name: 'Orders' })
 
     await user.click(orders)
 
     expect(await screen.findByRole('heading', { name: 'Orders' })).toBeInTheDocument()
     expect(await screen.findByText('No Orders found.')).toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: 'Products' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Dashboard' })).not.toBeInTheDocument()
     expect(orders).toHaveAttribute('data-active')
     expect(orders).toHaveAttribute('aria-current', 'page')
   })

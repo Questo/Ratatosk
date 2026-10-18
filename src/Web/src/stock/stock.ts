@@ -45,3 +45,21 @@ export function stockQuery(page: number) {
     placeholderData: keepPreviousData,
   })
 }
+
+// A Stock record with this many available or fewer counts as low stock on the dashboard
+export const lowStockThreshold = 5
+
+export const lowStockPageSize = 10
+
+// Lowest available first
+export function lowStockQuery() {
+  const params = new URLSearchParams()
+  params.set('maxAvailable', String(lowStockThreshold))
+  params.set('page', '1')
+  params.set('pageSize', String(lowStockPageSize))
+
+  return queryOptions({
+    queryKey: [...stockKey, 'low', lowStockThreshold],
+    queryFn: () => api.get<StockPage>(`/api/inventory?${params}`),
+  })
+}

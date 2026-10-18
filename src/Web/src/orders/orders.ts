@@ -78,3 +78,17 @@ export function orderHistoryQuery(orderId: string) {
     queryFn: () => api.get<OrderHistoryEntry[]>(`/api/orders/${encodeURIComponent(orderId)}/history`),
   })
 }
+
+// The number of Orders in a status: the totalItems of a one-row page filtered by it
+export function orderCountQuery(status: OrderStatus) {
+  const params = new URLSearchParams()
+  params.set('status', status)
+  params.set('page', '1')
+  params.set('pageSize', '1')
+
+  return queryOptions({
+    queryKey: [...ordersKey, 'count', status],
+    queryFn: () => api.get<OrderPage>(`/api/orders?${params}`),
+    select: (page) => page.totalItems,
+  })
+}

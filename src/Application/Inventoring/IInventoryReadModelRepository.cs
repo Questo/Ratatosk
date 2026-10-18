@@ -11,10 +11,14 @@ public interface IInventoryReadModelRepository
     );
     Task<StockReadModel?> GetBySkuAsync(string sku, CancellationToken cancellationToken = default);
 
-    /// <summary>Every Stock record, ordered by SKU and then product id.</summary>
+    /// <summary>
+    /// Every Stock record, ordered by SKU and then product id. With <paramref name="maxAvailable"/>,
+    /// only records with at most that many available, ordered by available, then SKU, then product id.
+    /// </summary>
     Task<Pagination<StockReadModel>> GetPageAsync(
         int page = 1,
         int pageSize = 25,
+        int? maxAvailable = null,
         CancellationToken cancellationToken = default
     );
 

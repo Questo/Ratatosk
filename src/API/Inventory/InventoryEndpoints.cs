@@ -103,7 +103,11 @@ public static class InventoryEndpoints
                     CancellationToken ct
                 ) =>
                 {
-                    var query = new GetStocksQuery(request.Page, request.PageSize);
+                    var query = new GetStocksQuery(
+                        request.Page,
+                        request.PageSize,
+                        request.MaxAvailable
+                    );
                     var result = await dispatcher.DispatchAsync(query, ct);
                     var response = Response<Pagination<StockReadModel>>.FromResult(result);
 
@@ -116,7 +120,9 @@ public static class InventoryEndpoints
             .WithSummary("List stock levels for every product")
             .WithDescription(
                 "Returns every stock record (on hand, reserved and available), removed products' "
-                    + "included, ordered by SKU. Paging defaults to page 1, size 25; the page size is at most 100."
+                    + "included, ordered by SKU. With the optional maxAvailable (at least 0), returns only "
+                    + "records with at most that many available, lowest available first, then by SKU. "
+                    + "Paging defaults to page 1, size 25; the page size is at most 100."
             )
             .Produces<Response<Pagination<StockReadModel>>>(StatusCodes.Status200OK)
             .Produces<Response<Pagination<StockReadModel>>>(StatusCodes.Status400BadRequest)
@@ -161,4 +167,8 @@ public static class InventoryEndpoints
 
 public sealed record StockQuantityRequest(int Quantity);
 
-public sealed record ListStockRequest([FromQuery] int Page = 1, [FromQuery] int PageSize = 25);
+public sealed record ListStockRequest(
+    [FromQuery] int Page = 1,
+    [FromQuery] int PageSize = 25,
+    [FromQuery] int? MaxAvailable = null
+);
