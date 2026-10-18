@@ -128,6 +128,29 @@ describe('Shell search', () => {
     expect(screen.getByRole('heading', { name: 'Orders', level: 2 })).toBeInTheDocument()
   })
 
+  it('reopens entities picked again after a navbar click on the screen already shown', async () => {
+    fakeApi()
+    renderWithProviders(<Shell email="admin@factory.test" />)
+    const user = userEvent.setup()
+
+    for (const [option, dialogName, screenName] of [
+      [/o0000000/, `Order ${confirmed.id}`, 'Orders'],
+      [/Search Widget/, 'Edit Product', 'Products'],
+    ] as const) {
+      await searchAndPick(user, option)
+      expect(await screen.findByRole('dialog', { name: dialogName })).toBeInTheDocument()
+      await user.keyboard('{Escape}')
+      await waitFor(() => expect(screen.queryByRole('dialog', { name: dialogName })).not.toBeInTheDocument())
+      // Stays on the same screen, so it isn't remounted
+      await user.click(screen.getByRole('button', { name: screenName }))
+
+      await searchAndPick(user, option)
+      expect(await screen.findByRole('dialog', { name: dialogName })).toBeInTheDocument()
+      await user.keyboard('{Escape}')
+      await waitFor(() => expect(screen.queryByRole('dialog', { name: dialogName })).not.toBeInTheDocument())
+    }
+  })
+
   it('shows why a Product hit could not be opened', async () => {
     fakeApi({ productStatus: 404 })
     renderWithProviders(<Shell email="admin@factory.test" />)

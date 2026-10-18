@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { AppShell, Burger, Button, Group, NavLink, Text, Title } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -33,6 +33,8 @@ export function Shell({ email }: { email: string }) {
   const [navOpened, nav] = useDisclosure(false)
   // The entity a search hit asked to open; cleared on navigation so a screen shown again doesn't reopen it
   const [openRequest, setOpenRequest] = useState<OpenEntityRequest | null>(null)
+  // Never reset (unlike the request), so a screen that stayed mounted never sees a seq it already handled
+  const lastSeq = useRef(0)
   const show = (next: Screen) => {
     setScreen(next)
     setOpenRequest(null)
@@ -41,7 +43,8 @@ export function Shell({ email }: { email: string }) {
   const openHit = (hit: SearchHit) => {
     if (!isSearchTarget(hit.kind)) return
     setScreen(searchTargets[hit.kind])
-    setOpenRequest({ kind: hit.kind, id: hit.id, seq: (openRequest?.seq ?? 0) + 1 })
+    lastSeq.current += 1
+    setOpenRequest({ kind: hit.kind, id: hit.id, seq: lastSeq.current })
     nav.close()
   }
 
