@@ -24,6 +24,14 @@ services:
       Authentication__Secret: "${AUTHENTICATION_SECRET}"
       Database__ConnectionString: "Host=ratatosk-db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
       Eventstore__Type: 2
+  web:
+    build:
+      context: ./src/Web
+    container_name: ratatosk-web
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
 
 volumes:
   ratatosk_db_data:
