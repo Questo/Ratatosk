@@ -5,8 +5,11 @@ using Ratatosk.Core.Primitives;
 
 namespace Ratatosk.Application.Inventoring.Queries;
 
-/// <summary>Every Stock record, removed Products' included, ordered by SKU.</summary>
-public sealed record GetStocksQuery(int Page = 1, int PageSize = 25)
+/// <summary>
+/// Every Stock record, removed Products' included, ordered by SKU. With <see cref="MaxAvailable"/>,
+/// only records with at most that many available, lowest available first.
+/// </summary>
+public sealed record GetStocksQuery(int Page = 1, int PageSize = 25, int? MaxAvailable = null)
     : IRequest<Result<Pagination<StockReadModel>>>;
 
 public class GetStocksQueryHandler(IInventoryReadModelRepository repository)
@@ -27,7 +30,15 @@ public class GetStocksQueryHandler(IInventoryReadModelRepository repository)
                 $"Page size must be between 1 and {MaxPageSize}."
             );
 
-        var stocks = await repository.GetPageAsync(request.Page, request.PageSize, cancellationToken);
+        if (request.MaxAvailable < 0)
+            return Result<Pagination<StockReadModel>>.Failure("Max available must be at least 0.");
+
+        var stocks = await repository.GetPageAsync(
+            request.Page,
+            request.PageSize,
+            request.MaxAvailable,
+            cancellationToken
+        );
         return Result<Pagination<StockReadModel>>.Success(stocks);
     }
 }

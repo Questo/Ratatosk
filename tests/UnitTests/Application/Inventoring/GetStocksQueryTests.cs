@@ -64,6 +64,77 @@ public class GetStocksQueryTests
     }
 
     [TestMethod]
+    public async Task GetStocks_WithMaxAvailable_ReturnsOnlyRecordsAtOrBelowIt_LowestAvailableFirst()
+    {
+        var (reserved, _) = await _host.AddStockedProductAsync(onHand: 10);
+        var (atLimit, _) = await _host.AddStockedProductAsync(onHand: 5);
+        var (empty, _) = await _host.AddStockedProductAsync(onHand: 0);
+        var (plenty, _) = await _host.AddStockedProductAsync(onHand: 50);
+        (await _host.SendAsync(new ReserveStockCommand(reserved, 8))).EnsureSuccess();
+
+        var result = await _host.SendAsync(new GetStocksQuery(MaxAvailable: 5));
+
+        Assert.IsTrue(result.IsSuccess);
+        CollectionAssert.AreEqual(
+            new[] { empty, reserved, atLimit },
+            result.Value!.Items.Select(s => s.ProductId).ToArray()
+        );
+        CollectionAssert.DoesNotContain(result.Value.Items.Select(s => s.ProductId).ToArray(), plenty);
+        CollectionAssert.AreEqual(new[] { 0, 2, 5 }, result.Value.Items.Select(s => s.Available).ToArray());
+    }
+
+    [TestMethod]
+    public async Task GetStocks_WithMaxAvailable_OrdersEqualAvailableBySku()
+    {
+        await _host.AddStockedProductAsync(onHand: 1);
+        await _host.AddStockedProductAsync(onHand: 1);
+        await _host.AddStockedProductAsync(onHand: 1);
+
+        var result = await _host.SendAsync(new GetStocksQuery(MaxAvailable: 1));
+
+        var skus = result.Value!.Items.Select(s => s.Sku).ToArray();
+        Assert.AreEqual(3, skus.Length);
+        CollectionAssert.AreEqual(skus.Order(StringComparer.Ordinal).ToArray(), skus);
+    }
+
+    [TestMethod]
+    public async Task GetStocks_WithMaxAvailable_CountsOnlyMatchingRecords()
+    {
+        await _host.AddStockedProductAsync(onHand: 1);
+        await _host.AddStockedProductAsync(onHand: 2);
+        await _host.AddStockedProductAsync(onHand: 3);
+        await _host.AddStockedProductAsync(onHand: 40);
+
+        var result = await _host.SendAsync(new GetStocksQuery(Page: 1, PageSize: 2, MaxAvailable: 5));
+
+        Assert.IsTrue(result.IsSuccess);
+        Assert.AreEqual(3, result.Value!.TotalItems);
+        Assert.AreEqual(2, result.Value.TotalPages);
+        CollectionAssert.AreEqual(new[] { 1, 2 }, result.Value.Items.Select(s => s.Available).ToArray());
+    }
+
+    [TestMethod]
+    public async Task GetStocks_WithMaxAvailableZero_ReturnsOnlyRecordsWithNothingAvailable()
+    {
+        var (empty, _) = await _host.AddStockedProductAsync(onHand: 0);
+        await _host.AddStockedProductAsync(onHand: 1);
+
+        var result = await _host.SendAsync(new GetStocksQuery(MaxAvailable: 0));
+
+        Assert.AreEqual(empty, result.Value!.Items.Single().ProductId);
+        Assert.AreEqual(1, result.Value.TotalItems);
+    }
+
+    [TestMethod]
+    public async Task GetStocks_WithANegativeMaxAvailable_Fails()
+    {
+        var result = await _host.SendAsync(new GetStocksQuery(MaxAvailable: -1));
+
+        Assert.IsTrue(result.IsFailure);
+        Assert.AreEqual("Max available must be at least 0.", result.Error);
+    }
+
+    [TestMethod]
     [DataRow(0, 25)]
     [DataRow(1, 0)]
     [DataRow(1, 101)]

@@ -165,13 +165,57 @@ public class PostgresInventoryReadModelRepositoryTests
                 TestContext.CancellationToken
             );
 
-        var result = await _repo.GetPageAsync(2, 1, TestContext.CancellationToken);
+        var result = await _repo.GetPageAsync(2, 1, cancellationToken: TestContext.CancellationToken);
 
         Assert.AreEqual("NUT-B", result.Items.Single().Sku);
         Assert.AreEqual(3, result.TotalItems);
         Assert.AreEqual(2, result.Page);
         Assert.AreEqual(1, result.PageSize);
         Assert.AreEqual(3, result.TotalPages);
+    }
+
+    [TestMethod]
+    public async Task GetPageAsync_WithMaxAvailable_ReturnsOnlyRecordsAtOrBelowIt_LowestAvailableFirst()
+    {
+        var records = new[]
+        {
+            new StockReadModel(Guid.NewGuid(), "NUT-A", 50, 0, "pcs", 1, DateTime.UtcNow), // 50
+            new StockReadModel(Guid.NewGuid(), "NUT-B", 10, 8, "pcs", 1, DateTime.UtcNow), // 2
+            new StockReadModel(Guid.NewGuid(), "NUT-C", 5, 0, "pcs", 1, DateTime.UtcNow), // 5
+            new StockReadModel(Guid.NewGuid(), "NUT-D", 6, 1, "pcs", 1, DateTime.UtcNow), // 5
+            new StockReadModel(Guid.NewGuid(), "NUT-E", 0, 0, "pcs", 1, DateTime.UtcNow), // 0
+            new StockReadModel(Guid.NewGuid(), "NUT-F", 9, 3, "pcs", 1, DateTime.UtcNow), // 6
+        };
+        foreach (var stock in records)
+            await _repo.SaveAsync(stock, TestContext.CancellationToken);
+
+        var result = await _repo.GetPageAsync(
+            maxAvailable: 5,
+            cancellationToken: TestContext.CancellationToken
+        );
+
+        CollectionAssert.AreEqual(
+            new[] { "NUT-E", "NUT-B", "NUT-C", "NUT-D" },
+            result.Items.Select(s => s.Sku).ToArray()
+        );
+        CollectionAssert.AreEqual(new[] { 0, 2, 5, 5 }, result.Items.Select(s => s.Available).ToArray());
+        Assert.AreEqual(4, result.TotalItems);
+    }
+
+    [TestMethod]
+    public async Task GetPageAsync_WithMaxAvailable_SecondPage_CountsOnlyMatchingRecords()
+    {
+        foreach (var (sku, onHand) in new[] { ("NUT-A", 3), ("NUT-B", 1), ("NUT-C", 2), ("NUT-D", 40) })
+            await _repo.SaveAsync(
+                new StockReadModel(Guid.NewGuid(), sku, onHand, 0, "pcs", 1, DateTime.UtcNow),
+                TestContext.CancellationToken
+            );
+
+        var result = await _repo.GetPageAsync(2, 2, 5, TestContext.CancellationToken);
+
+        Assert.AreEqual("NUT-A", result.Items.Single().Sku);
+        Assert.AreEqual(3, result.TotalItems);
+        Assert.AreEqual(2, result.TotalPages);
     }
 
     [TestMethod]

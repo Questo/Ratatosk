@@ -5,13 +5,14 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
 import { sessionQuery } from '../auth/session'
 import { useChangeStream } from '../changes/useChangeStream'
+import { DashboardScreen } from '../dashboard/DashboardScreen'
 import { OrdersScreen } from '../orders/OrdersScreen'
 import { ProductsScreen } from '../products/ProductsScreen'
 import { SearchPalette } from '../search/SearchPalette'
 import type { OpenEntityRequest, SearchHit } from '../search/search'
 import { StockScreen } from '../stock/StockScreen'
 
-type Screen = 'products' | 'stock' | 'orders'
+type Screen = 'dashboard' | 'products' | 'stock' | 'orders'
 
 // Which screen opens a search hit of each kind; a hit of any other kind is ignored
 const searchTargets: Record<OpenEntityRequest['kind'], Screen> = {
@@ -27,7 +28,7 @@ export function Shell({ email }: { email: string }) {
   const queryClient = useQueryClient()
   // One change stream for the whole signed-in session; it closes when sign-out unmounts the shell
   useChangeStream()
-  const [screen, setScreen] = useState<Screen>('products')
+  const [screen, setScreen] = useState<Screen>('dashboard')
   // Below the sm breakpoint the navbar covers the page, so it stays collapsed until the burger opens it
   const [navOpened, nav] = useDisclosure(false)
   // The entity a search hit asked to open; cleared on navigation so a screen shown again doesn't reopen it
@@ -88,6 +89,13 @@ export function Shell({ email }: { email: string }) {
       <AppShell.Navbar p="xs">
         <NavLink
           component="button"
+          label="Dashboard"
+          active={screen === 'dashboard'}
+          aria-current={screen === 'dashboard' ? 'page' : undefined}
+          onClick={() => show('dashboard')}
+        />
+        <NavLink
+          component="button"
           label="Products"
           active={screen === 'products'}
           aria-current={screen === 'products' ? 'page' : undefined}
@@ -109,7 +117,9 @@ export function Shell({ email }: { email: string }) {
         />
       </AppShell.Navbar>
       <AppShell.Main>
-        {screen === 'products' ? (
+        {screen === 'dashboard' ? (
+          <DashboardScreen />
+        ) : screen === 'products' ? (
           <ProductsScreen openRequest={openRequest?.kind === 'product' ? openRequest : null} />
         ) : screen === 'stock' ? (
           <StockScreen />

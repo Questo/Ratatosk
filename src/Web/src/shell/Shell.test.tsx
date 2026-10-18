@@ -38,9 +38,11 @@ const confirmed: Order = {
   cancellationReason: null,
 }
 
-// A back office API whose list pages never contain the entities the search finds
+// A back office API whose list pages never contain the entities the search finds (the Dashboard,
+// which the Shell opens on, reads the Order and inventory lists)
 function fakeApi(options: { productStatus?: number } = {}) {
   server.use(
+    http.get('/api/inventory', () => page([])),
     http.get('/api/products', () => page([listed])),
     http.get('/api/products/:id', ({ params }) =>
       params.id === widget.id && !options.productStatus
@@ -117,6 +119,7 @@ describe('Shell search', () => {
     fakeApi()
     renderWithProviders(<Shell email="admin@factory.test" />)
     const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Products' }))
     await screen.findByText('Listed Lamp')
 
     await searchAndPick(user, /o0000000/)
