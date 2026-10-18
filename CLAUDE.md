@@ -14,6 +14,11 @@ dotnet build
 # Run the API without Docker (always needs PostgreSQL: the read models and unit of work live there,
 # whichever event store is configured; the schema is upgraded on startup)
 dotnet run --project src/API
+
+# Run the back-office web app: docker-compose up serves it at http://localhost:3000.
+# Without Docker, start the API and then the Vite dev server, which proxies /api to API_URL
+# (default http://localhost:5000):
+cd src/Web && npm ci && API_URL=http://localhost:5000 npm run dev
 ```
 
 ## Testing
@@ -30,6 +35,11 @@ dotnet test tests/UnitTests --filter "ClassName=ProductTests"
 
 # Run a single test method
 dotnet test tests/UnitTests --filter "FullyQualifiedName~ProductTests.Create_ShouldRaiseProductCreatedEvent"
+
+# Web app (in src/Web): lint, Vitest + Testing Library + MSW tests, type-check and build
+npm run lint
+npm test
+npm run build
 ```
 
 Coverage is reported for `Core`, `Domain`, and `Application` assemblies only (not Infrastructure or API).
@@ -38,9 +48,9 @@ Coverage is reported for `Core`, `Domain`, and `Application` assemblies only (no
 
 `/factory <feature>` (`.claude/skills/factory/SKILL.md`) runs spec → build → review → approve, each job in its own worktree. The agents read this section:
 
-- **Fresh checkout setup**: `dotnet tool restore && dotnet restore`.
-- **Dev server on a port**: start Postgres first (`docker compose up -d db`, reads `.env`; it's shared, so start it only if `localhost:5432` isn't already up), then `ASPNETCORE_ENVIRONMENT=Development Authentication__Secret=factory-dev-secret-at-least-32-bytes dotnet run --project src/API --no-launch-profile --urls http://localhost:<port>`. There is no UI, so exercise endpoints with `curl` instead of a browser.
-- **Validation**: `dotnet build`, `./scripts/run-unit-tests.sh` (75% coverage threshold), and `dotnet format --verify-no-changes --severity error` (what CI runs; pass `--include <changed files>` to scope it, never run `dotnet format` without `--verify-no-changes`). Integration tests (`./scripts/run-integration-tests.sh`) use a fixed container on port 5433, so run them only for changes to Infrastructure persistence, and never from two jobs at once.
+- **Fresh checkout setup**: `dotnet tool restore && dotnet restore && npm ci --prefix src/Web`.
+- **Dev server on a port**: start Postgres first (`docker compose up -d db`, reads `.env`; it's shared, so start it only if `localhost:5432` isn't already up), then `ASPNETCORE_ENVIRONMENT=Development Authentication__Secret=factory-dev-secret-at-least-32-bytes dotnet run --project src/API --no-launch-profile --urls http://localhost:<port>`. For the web app, run the API on one port and then `API_URL=http://localhost:<api port> npm run dev --prefix src/Web -- --port <port> --strictPort`, which proxies `/api` to that API. Check the web app's screens in a browser, and exercise the API's endpoints with `curl`.
+- **Validation**: `dotnet build`, `./scripts/run-unit-tests.sh` (75% coverage threshold), and `dotnet format --verify-no-changes --severity error` (what CI runs; pass `--include <changed files>` to scope it, never run `dotnet format` without `--verify-no-changes`). For changes under `src/Web`, also run `npm run lint`, `npm test` and `npm run build` in `src/Web`. Integration tests (`./scripts/run-integration-tests.sh`) use a fixed container on port 5433, so run them only for changes to Infrastructure persistence, and never from two jobs at once.
 
 ## Architecture
 
@@ -61,6 +71,8 @@ API → Application → Domain → Core
 **Infrastructure** — Concrete implementations: three event store backends (`InMemory`, `File`, `PostgresEventStore`) with matching snapshot stores, `AggregateRepository<T>` (load from snapshot + events; commit), `IUnitOfWork`, `EventHandlerDispatcher` (delivers events to every `IDomainEventHandler`), `Argon2PasswordHasher`, `JwtTokenIssuer`.
 
 **API** — Minimal API endpoints organized by feature (`/auth`, `/products`, `/inventory`, `/orders`). `CleanupResponseMiddleware` wraps all responses in a `Result` envelope; `UnitOfWorkEndpointFilter` commits the request's transaction on success (status < 400) and rolls it back otherwise.
+
+**Web** — `src/Web` is the Admin-only back office (React, TypeScript, Vite, Mantine, TanStack Query), a standalone npm project. The browser sees the API on its own origin under `/api` (ADR 0003): the Vite dev server proxies it in development and nginx in the `web` compose service, both stripping the prefix. All calls go through `src/api/client.ts`, which never handles tokens; the app reads the session from `GET /auth/me`.
 
 ## Event Sourcing Flow
 
@@ -83,7 +95,7 @@ For `Sql`, set `DatabaseOptions:ConnectionString`. Auth secrets are in `AuthOpti
 
 The JWT carries the user id as `ClaimTypes.NameIdentifier`, serialized under its full claim URI (`http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier`), not the short `nameid`; `GET /orders` lists only the orders of that id, never one from the request, and `POST /orders` places the Order for that id. `GET /orders/{orderId}` returns 404 unless the caller placed the Order or is an Admin, and a token with no user id gets 401 from the Order endpoints.
 
-Login and refresh also set the tokens as httpOnly, `Secure`, `SameSite=Strict` cookies: `access_token` (path `/`) and `refresh_token` (scoped to `/api/auth/refresh`, the path the browser sees behind the proxy). The API accepts the JWT from the `access_token` cookie when no `Authorization` header is sent (the header wins), refresh falls back to the `refresh_token` cookie when the body has no token, and `POST /auth/logout` clears both cookies (ADR 0003, `docs/adr/0003-web-app-auth-in-httponly-cookies.md`).
+Login and refresh also set the tokens as httpOnly, `Secure`, `SameSite=Strict` cookies: `access_token` (path `/`) and `refresh_token` (scoped to `/api/auth/refresh`, the path the browser sees behind the proxy). The API accepts the JWT from the `access_token` cookie when no `Authorization` header is sent (the header wins), refresh falls back to the `refresh_token` cookie when the body has no token, `POST /auth/logout` clears both cookies, and `GET /auth/me` returns the caller's `{ email, role }` so the web app can tell who is signed in without reading the cookie (ADR 0003, `docs/adr/0003-web-app-auth-in-httponly-cookies.md`).
 
 ## Key Patterns
 
