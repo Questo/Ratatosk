@@ -1,4 +1,5 @@
 using Ratatosk.API.Auth;
+using Ratatosk.API.Changes;
 using Ratatosk.API.Inventory;
 using Ratatosk.API.Orders;
 using Ratatosk.API.Products;
@@ -42,6 +43,8 @@ app.UseMiddleware<CleanupResponseMiddleware>();
 
 // Map endpoints
 app.MapGet("/healthz", () => Results.Ok("Healthy"));
+// Outside the unit-of-work group: an open stream must not hold a database connection.
+app.MapChangeEndpoints();
 
 var api = app.MapGroup("").AddEndpointFilter<UnitOfWorkEndpointFilter>();
 api.MapAuthEndpoints();

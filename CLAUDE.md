@@ -60,13 +60,15 @@ API → Application → Domain → Core
 
 **Infrastructure** — Concrete implementations: three event store backends (`InMemory`, `File`, `PostgresEventStore`) with matching snapshot stores, `AggregateRepository<T>` (load from snapshot + events; commit), `IUnitOfWork`, `EventHandlerDispatcher` (delivers events to every `IDomainEventHandler`), `Argon2PasswordHasher`, `JwtTokenIssuer`.
 
-**API** — Minimal API endpoints organized by feature (`/auth`, `/products`, `/inventory`, `/orders`). `CleanupResponseMiddleware` wraps all responses in a `Result` envelope; `UnitOfWorkEndpointFilter` commits the request's transaction on success (status < 400) and rolls it back otherwise.
+**API** — Minimal API endpoints organized by feature (`/auth`, `/products`, `/inventory`, `/orders`). `CleanupResponseMiddleware` wraps all responses in a `Result` envelope; `UnitOfWorkEndpointFilter` commits the request's transaction on success (status < 400) and rolls it back otherwise. `GET /changes` is an Admin-only Server-Sent Events stream of change signals; it is mapped outside the unit-of-work group (an open stream holds no database connection) and `CleanupResponseMiddleware` passes it through unbuffered.
 
 ## Event Sourcing Flow
 
 Write path: Command → Handler → `IAggregateRepository<T>.LoadAsync` → domain method → `RaiseEvent()` → `CommitAsync`. `CommitAsync` is the only place the persistence sequence lives: append in raise order with an expected-version check (`ConcurrencyException` on conflict), commit, clear, snapshot when due, then publish. Handlers never commit or publish themselves. Only the Sql event store appends inside the transaction; if the transaction fails after an InMemory/File append, the stored events are still published and the error rethrown.
 
 Event handling: `EventHandlerDispatcher` runs each handler in its own DI scope and transaction, depth-first and synchronously. A failing handler is rolled back and logged; it never fails the publisher or the event's other handlers. Read models that can see events out of order or concurrently (`OrderProjection`, `InventoryProjection`) rebuild from the committed aggregate instead of applying deltas; the stock record also carries the Inventory version so an older rebuild never overwrites a newer one.
+
+Change signals: `ChangeSignalHandler` turns every event that changes the Product, stock or Order read model into a `ChangeSignal` (`kind` = `product`/`stock`/`order`, `id`, `version` = the event's `Version` in its own stream) and hands it to `IChangeBroadcaster`, which feeds the open `/changes` streams. It is registered after all other handlers, so a signal only goes out once its read model is written; clients refetch through the read endpoints. Depth-first delivery means signals can arrive out of version order (e.g. `OrderConfirmed` before `OrderCreated`), so clients should ignore a signal older than the version they hold. `InProcessChangeBroadcaster` only reaches clients of its own process, so live updates need a single API instance (ADR 0002).
 
 Read path: Query → Handler → Repository hits denormalized read model table directly (no event replay).
 

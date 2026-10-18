@@ -4,12 +4,14 @@ using Microsoft.Extensions.Logging;
 using Ratatosk.Application;
 using Ratatosk.Application.Authentication;
 using Ratatosk.Application.Catalog;
+using Ratatosk.Application.Changes;
 using Ratatosk.Application.Inventoring;
 using Ratatosk.Application.Ordering;
 using Ratatosk.Core.Abstractions;
 using Ratatosk.Core.BuildingBlocks;
 using Ratatosk.Domain.Catalog;
 using Ratatosk.Infrastructure;
+using Ratatosk.Infrastructure.Changes;
 using Ratatosk.Infrastructure.Persistence;
 using Ratatosk.Infrastructure.Persistence.EventStore;
 using Ratatosk.Infrastructure.Persistence.Repositories;
@@ -33,6 +35,7 @@ public sealed class TestHost : IDisposable
     public InMemoryOrderReadModelRepository Orders { get; }
     public InMemoryUserAuthRepository Users { get; }
     public InMemoryRefreshTokenRepository RefreshTokens { get; }
+    public InProcessChangeBroadcaster Changes { get; }
     public TransactionLog Transactions { get; }
     public ListLoggerProvider Logs { get; }
 
@@ -47,6 +50,7 @@ public sealed class TestHost : IDisposable
         Orders = provider.GetRequiredService<InMemoryOrderReadModelRepository>();
         Users = provider.GetRequiredService<InMemoryUserAuthRepository>();
         RefreshTokens = provider.GetRequiredService<InMemoryRefreshTokenRepository>();
+        Changes = provider.GetRequiredService<InProcessChangeBroadcaster>();
         Transactions = provider.GetRequiredService<TransactionLog>();
     }
 
@@ -89,6 +93,9 @@ public sealed class TestHost : IDisposable
         services.AddSingleton<IRefreshTokenRepository>(sp =>
             sp.GetRequiredService<InMemoryRefreshTokenRepository>()
         );
+
+        services.AddSingleton<InProcessChangeBroadcaster>();
+        services.AddSingleton<IChangeBroadcaster>(sp => sp.GetRequiredService<InProcessChangeBroadcaster>());
 
         configure?.Invoke(services);
 

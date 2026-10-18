@@ -4,6 +4,7 @@ using Ratatosk.Application.Authentication;
 using Ratatosk.Application.Catalog;
 using Ratatosk.Application.Catalog.Commands;
 using Ratatosk.Application.Catalog.Models;
+using Ratatosk.Application.Changes;
 using Ratatosk.Application.Inventoring;
 using Ratatosk.Application.Ordering;
 using Ratatosk.Core.Abstractions;
@@ -37,7 +38,16 @@ public static class DependencyInjection
     {
         services.AddImplementationsOfOpenGeneric(
             typeof(IDomainEventHandler<>),
-            typeof(ProductProjection).Assembly
+            typeof(ProductProjection).Assembly,
+            excluded: typeof(ChangeSignalHandler)
+        );
+
+        // The dispatcher runs an event's handlers in registration order, committing each before
+        // the next. Registering ChangeSignalHandler last means a change signal only goes out once
+        // the read model it points to is written, so a client refetching on the signal sees it.
+        services.AddImplementationsOfOpenGeneric(
+            typeof(IDomainEventHandler<>),
+            typeof(ChangeSignalHandler)
         );
         return services;
     }
@@ -45,14 +55,24 @@ public static class DependencyInjection
     private static IServiceCollection AddImplementationsOfOpenGeneric(
         this IServiceCollection services,
         Type openGenericInterface,
-        Assembly targetAssembly
+        Assembly targetAssembly,
+        Type? excluded = null
     )
     {
         var typesToRegister = targetAssembly
             .GetTypes()
-            .Where(t => !t.IsAbstract && !t.IsInterface)
+            .Where(t => !t.IsAbstract && !t.IsInterface && t != excluded)
             .ToList();
 
+        return services.AddImplementationsOfOpenGeneric(openGenericInterface, typesToRegister);
+    }
+
+    private static IServiceCollection AddImplementationsOfOpenGeneric(
+        this IServiceCollection services,
+        Type openGenericInterface,
+        params IEnumerable<Type> typesToRegister
+    )
+    {
         foreach (var implementationType in typesToRegister)
         {
             var interfaces = implementationType
