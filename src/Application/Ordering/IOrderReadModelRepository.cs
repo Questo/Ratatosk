@@ -20,5 +20,15 @@ public interface IOrderReadModelRepository
         CancellationToken cancellationToken = default
     );
 
+    /// <summary>
+    /// At most <paramref name="limit"/> Orders, newest first, with their lines, whose id, customer
+    /// id, status or the SKU of any line contains <paramref name="term"/>, ignoring case.
+    /// </summary>
+    Task<IReadOnlyList<OrderReadModel>> SearchAsync(
+        string term,
+        int limit,
+        CancellationToken cancellationToken = default
+    );
+
     Task SaveAsync(OrderReadModel order, CancellationToken cancellationToken = default);
 }

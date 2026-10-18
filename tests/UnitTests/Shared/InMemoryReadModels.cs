@@ -33,7 +33,12 @@ public sealed class InMemoryProductReadModelRepository : IProductReadModelReposi
     {
         var matches = _rows
             .Values.Where(r =>
-                (searchTerm is null || r.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+                (
+                    searchTerm is null
+                    || r.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
+                    || r.Sku.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
+                    || r.Description.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
+                )
                 && (minPrice is null || r.Price >= minPrice)
                 && (maxPrice is null || r.Price <= maxPrice)
             )
@@ -160,6 +165,33 @@ public sealed class InMemoryOrderReadModelRepository : IOrderReadModelRepository
                 PageSize = pageSize,
             }
         );
+    }
+
+    // Same matching and order as Postgres: id::text, customer_id::text, status or any line SKU.
+    public Task<IReadOnlyList<OrderReadModel>> SearchAsync(
+        string term,
+        int limit,
+        CancellationToken cancellationToken = default
+    )
+    {
+        bool Matches(string value) => value.Contains(term, StringComparison.OrdinalIgnoreCase);
+
+        IReadOnlyList<OrderReadModel> matches =
+        [
+            .. _rows
+                .Values.Where(r =>
+                    Matches(r.Id.ToString("D"))
+                    || Matches(r.CustomerId.ToString("D"))
+                    || Matches(r.Status)
+                    || r.Lines.Any(l => Matches(l.Sku))
+                )
+                .OrderByDescending(r => r.CreatedUtc)
+                .ThenByDescending(r => r.Id)
+                .Take(limit)
+                .Select(Copy),
+        ];
+
+        return Task.FromResult(matches);
     }
 
     public Task SaveAsync(OrderReadModel order, CancellationToken cancellationToken = default)

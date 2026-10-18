@@ -81,18 +81,60 @@ public sealed class OrderReadModelRepository(IUnitOfWork uow)
         if (orders.Items.Count == 0)
             return orders;
 
+        await LoadLinesAsync(orders.Items, cancellationToken);
+        return orders;
+    }
+
+    public async Task<IReadOnlyList<OrderReadModel>> SearchAsync(
+        string term,
+        int limit,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var orders = (
+            await QueryAsync<OrderReadModel>(
+                """
+                    SELECT id, customer_id, status, created_utc, last_updated_utc, cancellation_reason
+                    FROM order_read_models o
+                    WHERE o.id::text ILIKE @Pattern
+                        OR o.customer_id::text ILIKE @Pattern
+                        OR o.status ILIKE @Pattern
+                        OR EXISTS (
+                            SELECT 1 FROM order_line_read_models l
+                            WHERE l.order_id = o.id AND l.sku ILIKE @Pattern
+                        )
+                    ORDER BY created_utc DESC, id DESC
+                    LIMIT @Limit
+                """,
+                new { Pattern = $"%{term}%", Limit = limit },
+                cancellationToken
+            )
+        ).ToList();
+
+        if (orders.Count == 0)
+            return orders;
+
+        await LoadLinesAsync(orders, cancellationToken);
+        return orders;
+    }
+
+    private async Task LoadLinesAsync(
+        IReadOnlyCollection<OrderReadModel> orders,
+        CancellationToken cancellationToken
+    )
+    {
         var lines = await QueryAsync<OrderLineRow>(
             """
                 SELECT order_id, sku, quantity, unit_price, currency
                 FROM order_line_read_models
                 WHERE order_id = ANY(@Ids)
             """,
-            new { Ids = orders.Items.Select(o => o.Id).ToArray() },
+            new { Ids = orders.Select(o => o.Id).ToArray() },
             cancellationToken
         );
 
         var linesByOrder = lines.ToLookup(l => l.OrderId);
-        foreach (var order in orders.Items)
+        foreach (var order in orders)
         {
             order.Lines =
             [
@@ -100,8 +142,6 @@ public sealed class OrderReadModelRepository(IUnitOfWork uow)
                     .Select(l => new OrderLineReadModel(l.Sku, l.Quantity, l.UnitPrice, l.Currency)),
             ];
         }
-
-        return orders;
     }
 
     public async Task SaveAsync(
