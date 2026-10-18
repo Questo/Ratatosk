@@ -70,3 +70,10 @@ npm run lint
 npm test
 npm run build
 ```
+
+**Web app smoke test** (in `src/Web`, against a running `docker-compose up` stack; not part of `npm test` or CI)
+```bash
+npx playwright install chromium   # once
+set -a && . ../../.env && set +a && npm run test:e2e
+```
+It signs in as the seeded Admin (`ADMIN_EMAIL`/`ADMIN_PASSWORD`), adds a Product, Restocks it, places an Order through the API and waits for it to show up Confirmed on the Orders screen. Set `E2E_BASE_URL` to run it against another origin, such as a Vite dev server.
