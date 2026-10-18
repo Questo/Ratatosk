@@ -13,6 +13,7 @@ public class Order : AggregateRoot
     public Guid CustomerId { get; private set; }
     public OrderStatus Status { get; private set; }
     public IReadOnlyList<OrderLine> Lines => _lines;
+    public IReadOnlyCollection<SKU> ReservedSkus => _reservedSkus;
     public DateTimeOffset PlacedAtUtc { get; private set; }
     public DateTimeOffset LastUpdatedUtc { get; private set; }
     public string? CancellationReason { get; private set; }

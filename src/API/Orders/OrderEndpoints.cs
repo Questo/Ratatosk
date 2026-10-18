@@ -87,6 +87,30 @@ public static class OrderEndpoints
             .Produces(StatusCodes.Status401Unauthorized);
 
         app.MapGet(
+                "/orders/{orderId:guid}/history",
+                async (Guid orderId, IDispatcher dispatcher, CancellationToken ct) =>
+                {
+                    var result = await dispatcher.DispatchAsync(new GetOrderHistoryQuery(orderId), ct);
+                    var response = Response<IReadOnlyList<OrderHistoryEntry>>.FromResult(result);
+
+                    return result.IsFailure ? Results.NotFound(response) : Results.Ok(response);
+                }
+            )
+            .RequireAuthorization(Policies.Admin)
+            .WithTags(OrdersTag)
+            .WithName("GetOrderHistory")
+            .WithSummary("Get an order's event history")
+            .WithDescription(
+                "Replays the order's stored events and returns one entry per event, oldest first: "
+                    + "its version, event name and time, the order as it was right after it, "
+                    + "and which lines held a reservation then. Admin only."
+            )
+            .Produces<Response<IReadOnlyList<OrderHistoryEntry>>>(StatusCodes.Status200OK)
+            .Produces<Response<IReadOnlyList<OrderHistoryEntry>>>(StatusCodes.Status404NotFound)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status403Forbidden);
+
+        app.MapGet(
                 "/orders",
                 async (
                     [AsParameters] ListOrdersRequest request,
