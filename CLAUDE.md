@@ -72,7 +72,7 @@ API → Application → Domain → Core
 
 **API** — Minimal API endpoints organized by feature (`/auth`, `/products`, `/inventory`, `/orders`). `CleanupResponseMiddleware` wraps all responses in a `Result` envelope; `UnitOfWorkEndpointFilter` commits the request's transaction on success (status < 400) and rolls it back otherwise. `GET /changes` is an Admin-only Server-Sent Events stream of change signals; it is mapped outside the unit-of-work group (an open stream holds no database connection) and `CleanupResponseMiddleware` passes it through unbuffered.
 
-**Web** — `src/Web` is the Admin-only back office (React, TypeScript, Vite, Mantine, TanStack Query), a standalone npm project. The browser sees the API on its own origin under `/api` (ADR 0003): the Vite dev server proxies it in development and nginx in the `web` compose service, both stripping the prefix. All calls go through `src/api/client.ts`, which never handles tokens; the app reads the session from `GET /auth/me`.
+**Web** — `src/Web` is the Admin-only back office (React, TypeScript, Vite, Mantine, TanStack Query), a standalone npm project. The browser sees the API on its own origin under `/api` (ADR 0003): the Vite dev server proxies it in development and nginx in the `web` compose service, both stripping the prefix. All calls go through `src/api/client.ts`, which never handles tokens; the app reads the session from `GET /auth/me`. The shell shows the back office's Products screen (search, add, edit, remove).
 
 ## Event Sourcing Flow
 
