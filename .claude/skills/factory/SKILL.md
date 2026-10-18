@@ -181,13 +181,31 @@ cannot conflict with the merge. If not, set `stage: "needs-human"` and tell the
 user the job is approved but the main checkout is busy; they run
 `/factory approve <job-id>` once it is clean. Otherwise:
 
-```bash
-git merge --no-ff factory/<job-id> -m "Merge factory/<job-id>"
-git worktree remove <worktree>
-git branch -d factory/<job-id>
-```
+1. **Catch up with main.** Other jobs may have merged since this branch was
+   built. In the worktree, run `git merge main --no-edit`.
+   - `Already up to date`: go to step 2.
+   - Merged cleanly: run the validation AGENTS.md gives, in the worktree, for the
+     areas the branch and the newly merged commits change. If it passes, go to
+     step 2.
+   - Conflicts, or validation fails: undo the merge (`git merge --abort`, or
+     `git reset --hard ORIG_HEAD` after a clean merge whose validation failed).
+     With resumes left, set `stage: "build"` and resume `builder-<job-id>` (spawn
+     a fresh `builder` with that name if this session never ran it) with
+     `main has moved and factory/<job-id> no longer merges cleanly: <conflicting files or failing command>. Merge main into the branch, resolve it, validate, commit, and update build.md for round N+1.`
+     Then go to **Build check**: the resolved branch gets a new review round.
+     With no resumes left, write `decision.md` yourself, reading `ESCALATE`, a
+     blank line, then `Branch no longer merges cleanly with main: <details>.`,
+     and go to **Needs human**.
+2. **Merge.** In the main checkout:
+   ```bash
+   git merge --no-ff factory/<job-id> -m "Merge factory/<job-id>"
+   git worktree remove <worktree>
+   git branch -d factory/<job-id>
+   ```
+   Then run the job teardown AGENTS.md gives, if any, from the main checkout.
 
-Set `stage: "merged"`. If the merge fails, run `git merge --abort` (when a merge
+Set `stage: "merged"`. If a teardown step fails, the job is still merged: tell
+the user what it printed. If the merge fails, run `git merge --abort` (when a merge
 is in progress), set `stage: "needs-human"` and tell the user why. If removing the
 worktree fails, the job is still merged: tell the user what `git worktree remove`
 printed. Never push.

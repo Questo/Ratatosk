@@ -34,6 +34,11 @@ other jobs.
 
 - Run `cd <worktree> && git branch --show-current` first. It must print the
   branch from your prompt. If it doesn't, stop and write a BLOCKED build.md.
+- Then bring the branch up to date: `cd <worktree> && git merge main --no-edit`.
+  Other jobs merge into `main` while you work, and a branch that is current
+  when it is reviewed merges cleanly. Resolve any conflicts so both sides keep
+  working, and run the validation for the areas the merge touched. Do this at
+  the start of every run, resumes included.
 - Match the surrounding code: its idioms, formatting, naming and imports. Keep
   comment density like the neighbouring code.
 - Make the simplest change that fully meets the spec. No fallbacks, hidden
