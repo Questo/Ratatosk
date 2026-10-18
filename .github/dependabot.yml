@@ -39,6 +39,20 @@ updates:
           - "*"
         update-types: ["minor", "patch"]
 
+  # Back-office web app (src/Web)
+  - package-ecosystem: npm
+    directory: "/src/Web"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      web:
+        patterns:
+          - "*"
+        update-types: ["minor", "patch"]
+
   # Workflows plus the composite actions they use
   - package-ecosystem: github-actions
     directories:
