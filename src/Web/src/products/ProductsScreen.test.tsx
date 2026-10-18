@@ -175,6 +175,13 @@ describe('ProductsScreen', () => {
     await waitFor(() => expect(lastSearch(searches).get('searchTerm')).toBe('Product'))
     expect(lastSearch(searches).get('page')).toBe('1')
     expect(await screen.findByRole('cell', { name: 'Product 1' })).toBeInTheDocument()
+
+    // Clearing the term is a new term too: it doesn't bring back the page chosen before
+    await user.clear(screen.getByRole('textbox', { name: 'Search' }))
+
+    await waitFor(() => expect(lastSearch(searches).has('searchTerm')).toBe(false))
+    expect(lastSearch(searches).get('page')).toBe('1')
+    expect(searches.filter((s) => !s.has('searchTerm')).map((s) => s.get('page'))).toEqual(['1', '2', '1'])
   })
 
   it('hides the pagination control when there is one page', async () => {

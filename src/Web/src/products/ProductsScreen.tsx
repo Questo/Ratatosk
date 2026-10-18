@@ -12,8 +12,9 @@ export function ProductsScreen() {
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [searchTerm] = useDebouncedValue(search.trim(), 300)
-  // The page belongs to the term it was chosen for, so a new term starts on page 1
+  // The page belongs to the term it was chosen for, so every new term starts on page 1
   const [paging, setPaging] = useState({ searchTerm, page: 1 })
+  if (paging.searchTerm !== searchTerm) setPaging({ searchTerm, page: 1 })
   const page = paging.searchTerm === searchTerm ? paging.page : 1
   const [dialog, setDialog] = useState<Dialog | null>(null)
 
