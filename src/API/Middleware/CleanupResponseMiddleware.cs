@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Ratatosk.API.Changes;
 
 namespace Ratatosk.API.Middleware;
 
@@ -13,6 +14,14 @@ public sealed class CleanupResponseMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
+        // The change stream never ends, so buffering it would keep every signal from the client.
+        if (context.GetEndpoint()?.Metadata.GetMetadata<IEndpointNameMetadata>()?.EndpointName
+            == ChangeEndpoints.StreamChangesName)
+        {
+            await _next(context);
+            return;
+        }
+
         var originalBody = context.Response.Body;
         await using var buffer = new MemoryStream();
         context.Response.Body = buffer;

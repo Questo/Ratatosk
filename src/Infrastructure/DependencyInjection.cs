@@ -4,11 +4,13 @@ using Microsoft.Extensions.Options;
 using Ratatosk.Application.Catalog;
 using Ratatosk.Application.Authentication;
 using Ratatosk.Application.Catalog.Models;
+using Ratatosk.Application.Changes;
 using Ratatosk.Application.Inventoring;
 using Ratatosk.Application.Ordering;
 using Ratatosk.Core.Abstractions;
 using Ratatosk.Domain.Catalog;
 using Ratatosk.Infrastructure.Authentication;
+using Ratatosk.Infrastructure.Changes;
 using Ratatosk.Infrastructure.Persistence;
 using Ratatosk.Infrastructure.Persistence.EventStore;
 using Ratatosk.Infrastructure.Persistence.ReadModels;
@@ -112,6 +114,9 @@ public static class DependencyInjection
 
         services.AddScoped<IPasswordHasher, Argon2PasswordHasher>();
         services.AddScoped<ITokenIssuer, JwtTokenIssuer>();
+
+        // Holds the open streams' subscriptions, so one instance serves every request.
+        services.AddSingleton<IChangeBroadcaster, InProcessChangeBroadcaster>();
 
         services.AddHostedService<EventHandlerDispatcher>();
 
