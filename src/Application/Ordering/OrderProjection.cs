@@ -34,7 +34,7 @@ public class OrderProjection(IOrderReadModelRepository repo, IAggregateRepositor
         await repo.SaveAsync(ToReadModel(orderResult.Value!), cancellationToken);
     }
 
-    private static OrderReadModel ToReadModel(Order order) =>
+    internal static OrderReadModel ToReadModel(Order order) =>
         new()
         {
             Id = order.Id,

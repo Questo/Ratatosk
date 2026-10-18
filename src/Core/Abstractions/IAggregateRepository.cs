@@ -9,6 +9,16 @@ public interface IAggregateRepository<T>
     Task<Result<T>> LoadAsync(Guid id, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Returns the aggregate's complete event stream from version 1, oldest first. Snapshots are
+    /// always ignored, so a fresh aggregate can be replayed one event at a time. Fails with
+    /// "{Type} with ID {id} not found" when the stream is empty, as <see cref="LoadAsync"/> does.
+    /// </summary>
+    Task<Result<IReadOnlyList<DomainEvent>>> LoadHistoryAsync(
+        Guid id,
+        CancellationToken cancellationToken = default
+    );
+
+    /// <summary>
     /// Persists the aggregate's uncommitted events (in the order they were raised), commits
     /// them, clears them from the aggregate, and then publishes them to event handlers.
     /// Handlers see committed state; a handler failure never undoes this commit.

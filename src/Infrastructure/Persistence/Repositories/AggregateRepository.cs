@@ -53,6 +53,19 @@ public class AggregateRepository<T>(
         return Result<T>.Success(aggregate);
     }
 
+    public async Task<Result<IReadOnlyList<DomainEvent>>> LoadHistoryAsync(
+        Guid id,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var events = await eventStore.LoadEventsAsync(StreamName.For<T>(id), 1, cancellationToken);
+
+        if (events.Count == 0)
+            return Result<IReadOnlyList<DomainEvent>>.Failure($"{typeof(T).Name} with ID {id} not found");
+
+        return Result<IReadOnlyList<DomainEvent>>.Success([.. events]);
+    }
+
     public async Task CommitAsync(T aggregate, CancellationToken cancellationToken = default)
     {
         var events = aggregate.UncommittedEvents;

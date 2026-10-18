@@ -171,6 +171,37 @@ public class AggregateRepositoryTests
         Assert.IsTrue(result.IsFailure);
     }
 
+    [TestMethod]
+    public async Task LoadHistoryAsync_WhenASnapshotExists_StillReturnsTheFullStreamFromVersionOne()
+    {
+        var product = await CreateAsync();
+        for (var i = 1; i < product.SnapshotFrequency + 2; i++)
+        {
+            product.Update(Name($"Name {i}"), null, null);
+            await Repository<Product>().CommitAsync(product);
+        }
+        Assert.IsNotNull(await _snapshots.LoadSnapshotAsync(typeof(Product).FullName!, product.Id));
+
+        var history = await Repository<Product>().LoadHistoryAsync(product.Id);
+
+        Assert.IsTrue(history.IsSuccess);
+        CollectionAssert.AreEqual(
+            Enumerable.Range(1, product.Version).ToArray(),
+            history.Value!.Select(e => e.Version).ToArray()
+        );
+    }
+
+    [TestMethod]
+    public async Task LoadHistoryAsync_UnknownId_FailsLikeLoadAsync()
+    {
+        var id = Guid.NewGuid();
+
+        var result = await Repository<Product>().LoadHistoryAsync(id);
+
+        Assert.IsTrue(result.IsFailure);
+        Assert.AreEqual($"Product with ID {id} not found", result.Error);
+    }
+
     private async Task<Product> CreateAsync()
     {
         var product = Product.Create("Test Product", SkuGenerator.Generate("TS"), "A product for testing", 10m).Value!;
