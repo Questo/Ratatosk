@@ -71,8 +71,9 @@ public static class ProductsEndpoints
                 ) =>
                 {
                     var result = await dispatcher.DispatchAsync(cmd with { ProductId = id }, ct);
+                    var response = Response.FromResult(result);
 
-                    return result.IsFailure ? Results.BadRequest(result.Error) : Results.Ok();
+                    return result.IsFailure ? Results.BadRequest(response) : Results.Ok(response);
                 }
             )
             .RequireAuthorization(Policies.Admin)
@@ -81,8 +82,8 @@ public static class ProductsEndpoints
             .WithSummary("Update an existing product")
             .WithDescription("Updates a product by id using the supplied payload.")
             .Accepts<UpdateProductCommand>("application/json")
-            .Produces(StatusCodes.Status200OK)
-            .Produces<string>(StatusCodes.Status400BadRequest)
+            .Produces<Response>(StatusCodes.Status200OK)
+            .Produces<Response>(StatusCodes.Status400BadRequest)
             .Produces(StatusCodes.Status401Unauthorized)
             .Produces(StatusCodes.Status403Forbidden);
 
@@ -102,10 +103,9 @@ public static class ProductsEndpoints
                         request.MaxPrice
                     );
                     var result = await dispatcher.DispatchAsync(query, ct);
+                    var response = Response<Pagination<ProductReadModel>>.FromResult(result);
 
-                    return result.IsFailure
-                        ? Results.BadRequest(result.Error)
-                        : Results.Ok(result.Value);
+                    return result.IsFailure ? Results.BadRequest(response) : Results.Ok(response);
                 }
             )
             // .RequireAuthorization()
@@ -115,8 +115,8 @@ public static class ProductsEndpoints
             .WithDescription(
                 "Returns paged products filtered by an optional search term and optional inclusive minPrice/maxPrice bounds. Paging defaults to page 1, size 25."
             )
-            .Produces<Pagination<ProductReadModel>>(StatusCodes.Status200OK)
-            .Produces<string>(StatusCodes.Status400BadRequest);
+            .Produces<Response<Pagination<ProductReadModel>>>(StatusCodes.Status200OK)
+            .Produces<Response<Pagination<ProductReadModel>>>(StatusCodes.Status400BadRequest);
 
         app.MapDelete(
                 "/products/{id:guid}",
