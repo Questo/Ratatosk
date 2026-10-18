@@ -30,17 +30,19 @@ public static class InventoryEndpoints
                     return result.IsFailure ? Results.BadRequest(response) : Results.Ok(response);
                 }
             )
-            .RequireAuthorization(Policies.Authenticated)
+            .RequireAuthorization(Policies.Admin)
             .WithTags(InventoryTag)
             .WithName("ReserveStock")
             .WithSummary("Reserve stock for a product")
             .WithDescription("Reserves the requested quantity of a product's stock.")
             .Accepts<StockQuantityRequest>("application/json")
             .Produces<Response>(StatusCodes.Status200OK)
-            .Produces<Response>(StatusCodes.Status400BadRequest);
+            .Produces<Response>(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status403Forbidden);
 
         app.MapPost(
-                "/inventory/{productId:guid}/unreserve",
+                "/inventory/{productId:guid}/release",
                 async (
                     Guid productId,
                     StockQuantityRequest request,
@@ -55,14 +57,16 @@ public static class InventoryEndpoints
                     return result.IsFailure ? Results.BadRequest(response) : Results.Ok(response);
                 }
             )
-            .RequireAuthorization(Policies.Authenticated)
+            .RequireAuthorization(Policies.Admin)
             .WithTags(InventoryTag)
-            .WithName("UnreserveStock")
+            .WithName("ReleaseStock")
             .WithSummary("Release previously reserved stock for a product")
             .WithDescription("Releases the requested quantity from a product's reserved stock.")
             .Accepts<StockQuantityRequest>("application/json")
             .Produces<Response>(StatusCodes.Status200OK)
-            .Produces<Response>(StatusCodes.Status400BadRequest);
+            .Produces<Response>(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status403Forbidden);
 
         app.MapPost(
                 "/inventory/{productId:guid}/restock",
@@ -80,14 +84,16 @@ public static class InventoryEndpoints
                     return result.IsFailure ? Results.BadRequest(response) : Results.Ok(response);
                 }
             )
-            .RequireAuthorization(Policies.Authenticated)
+            .RequireAuthorization(Policies.Admin)
             .WithTags(InventoryTag)
             .WithName("RestockProduct")
             .WithSummary("Add stock for a product")
             .WithDescription("Increases a product's available stock by the requested quantity.")
             .Accepts<StockQuantityRequest>("application/json")
             .Produces<Response>(StatusCodes.Status200OK)
-            .Produces<Response>(StatusCodes.Status400BadRequest);
+            .Produces<Response>(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status403Forbidden);
 
         app.MapGet(
                 "/inventory",

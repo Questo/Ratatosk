@@ -59,6 +59,9 @@ public static class DependencyInjection
             options.AddPolicy(Policies.Admin, policy => policy.RequireRole(UserRole.Admin.Name));
         });
 
+        // Registered after AddInfrastructure's EventHandlerDispatcher, so the projections see the Admin.
+        services.AddHostedService<AdminSeeder>();
+
         return services;
     }
 }

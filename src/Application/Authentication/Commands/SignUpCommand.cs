@@ -25,8 +25,13 @@ public sealed class SignUpCommandHandler(
     {
         try
         {
+            // Stored emails are normalized by Email.Create; look up the same form.
+            var emailResult = Email.Create(request.Email);
+            if (emailResult.IsFailure)
+                return Result<TokenPair>.Failure(emailResult.Error!);
+
             var userAuth = await userAuthRepository.GetByEmailAsync(
-                request.Email,
+                emailResult.Value!.Value,
                 cancellationToken
             );
             if (userAuth is not null)
@@ -38,7 +43,7 @@ public sealed class SignUpCommandHandler(
 
             var passwordHash = passwordHasher.Hash(passwordResult.Value!);
 
-            var user = User.Create(request.Email, UserRole.User, passwordHash.Value!);
+            var user = User.Create(emailResult.Value.Value, UserRole.User, passwordHash.Value!);
             await userRepository.CommitAsync(user, cancellationToken);
 
             var tokenResult = tokenIssuer.IssueToken(user.Id, user.Email.Value, user.Role.Name);
