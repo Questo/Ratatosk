@@ -13,15 +13,15 @@
     <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.14" />
     <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.14" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="10.0.14" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.12.0" />
     <PackageVersion Include="Swashbuckle.AspNetCore.ReDoc" Version="10.3.1" />
     <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerUI" Version="10.3.1" />
     <PackageVersion Include="Moq" Version="4.21.0" />
-    <PackageVersion Include="MSTest" Version="4.5.2" />
+    <PackageVersion Include="MSTest" Version="4.5.3" />
     <PackageVersion Include="Scrutor" Version="7.0.0" />
     <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.23.0" />
     <PackageVersion Include="Dapper" Version="2.1.89" />
     <PackageVersion Include="Npgsql" Version="10.0.3" />
-    <PackageVersion Include="coverlet.collector" Version="10.1.0" />
+    <PackageVersion Include="coverlet.collector" Version="10.1.1" />
   </ItemGroup>
 </Project>
