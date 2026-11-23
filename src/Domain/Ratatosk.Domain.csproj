@@ -5,6 +5,7 @@
 
   <ItemGroup>
     <!-- Serialization rebuilds stored value objects through their internal FromStored factories. -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
     <InternalsVisibleTo Include="Ratatosk.Infrastructure" />
   </ItemGroup>
 
