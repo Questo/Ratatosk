@@ -20,8 +20,8 @@
     <PackageVersion Include="MSTest" Version="4.5.3" />
     <PackageVersion Include="Scrutor" Version="7.0.0" />
     <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.23.0" />
-    <PackageVersion Include="Dapper" Version="2.1.89" />
-    <PackageVersion Include="Npgsql" Version="10.0.3" />
+    <PackageVersion Include="Dapper" Version="2.1.100" />
+    <PackageVersion Include="Npgsql" Version="10.0.4" />
     <PackageVersion Include="coverlet.collector" Version="10.1.1" />
   </ItemGroup>
 </Project>
